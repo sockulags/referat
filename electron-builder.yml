@@ -23,15 +23,15 @@ publish:
 win:
   executableName: referat
   icon: build/icon.ico
-  # Expected Authenticode publisher for update verification. Matches the current
-  # self-signed cert subject (CN=Lucas Skog); see the caveat in src/main/updater.ts.
-  publisherName:
-    - Lucas Skog
   # Self-signed cert in the CurrentUser store (public thumbprint, no secret).
   # Real SmartScreen trust requires a CA-issued cert — see wiki Roadmap.
+  # publisherName is the expected Authenticode publisher for update verification;
+  # matches the cert subject (CN=Lucas Skog) — see caveat in src/main/updater.ts.
   signtoolOptions:
     certificateSha1: 53873F00599680F4F610D0972683598ABBE84007
     rfc3161TimeStampServer: http://timestamp.digicert.com
+    publisherName:
+      - Lucas Skog
 nsis:
   artifactName: referat-${version}-setup.${ext}
   shortcutName: ${productName}
