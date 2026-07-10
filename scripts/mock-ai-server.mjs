@@ -1,5 +1,6 @@
 // Mock OpenAI-compatible server for local development and pipeline testing.
-// Serves /v1/audio/transcriptions, /v1/chat/completions and /v1/models.
+// Serves /v1/audio/transcriptions, /v1/chat/completions and /v1/models, plus
+// the diarization server contract at the root path: /health and /diarize.
 // Usage: node scripts/mock-ai-server.mjs [port]
 import http from 'node:http'
 
@@ -32,8 +33,25 @@ Mötet gick igenom kvartalets rekryteringar och planeringen inför introduktions
 
 - Policyn för distansarbete bordlades till nästa möte.`
 
+// Matches the mock transcript segments, so merged speakers become S1/S2 alternating.
+const diarization = {
+  turns: [
+    { start: 0, end: 6, speaker: 'S1' },
+    { start: 6, end: 12, speaker: 'S2' },
+    { start: 12, end: 18, speaker: 'S1' },
+    { start: 18, end: 24, speaker: 'S2' }
+  ],
+  speakers: 2
+}
+
 const server = http.createServer((req, res) => {
-  const delay = req.url?.includes('transcriptions') ? 3000 : 2000
+  const delay = req.url?.includes('transcriptions')
+    ? 3000
+    : req.url?.startsWith('/diarize')
+      ? 1000
+      : req.url?.startsWith('/health')
+        ? 0
+        : 2000
   console.log(`${new Date().toISOString()} ${req.method} ${req.url}`)
 
   // Drain request body
@@ -52,6 +70,10 @@ const server = http.createServer((req, res) => {
             choices: [{ index: 0, message: { role: 'assistant', content: protocol }, finish_reason: 'stop' }]
           })
         )
+      } else if (req.url?.startsWith('/health')) {
+        res.end(JSON.stringify({ status: 'ok', model: 'mock-diarization', device: 'cpu' }))
+      } else if (req.url?.startsWith('/diarize')) {
+        res.end(JSON.stringify(diarization))
       } else {
         res.statusCode = 404
         res.end(JSON.stringify({ error: 'not found' }))

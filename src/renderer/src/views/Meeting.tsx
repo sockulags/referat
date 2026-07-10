@@ -92,6 +92,8 @@ export function Meeting(): JSX.Element {
 
       {done && (
         <>
+          {meeting.warning && <WarningPanel warning={meeting.warning} />}
+
           <div className="mt-6 flex items-center gap-1 border-b border-border">
             <TabButton active={tab === 'protocol'} onClick={() => setTab('protocol')}>
               {strings.meeting.tabProtocol}
@@ -104,7 +106,7 @@ export function Meeting(): JSX.Element {
           {tab === 'protocol' ? (
             <ProtocolTab meeting={meeting} />
           ) : (
-            <TranscriptTab meeting={meeting} />
+            <TranscriptTab meeting={meeting} onChanged={load} />
           )}
         </>
       )}
@@ -181,6 +183,24 @@ function MeetingHeader({
 }
 
 function PipelinePanel({ meeting }: { meeting: MeetingDetail }): JSX.Element {
+  // The diarizing step is only relevant when speaker identification is enabled.
+  const [showDiarizing, setShowDiarizing] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    window.api
+      .getSettings()
+      .then((s) => {
+        if (!cancelled) setShowDiarizing(s.diarization.enabled)
+      })
+      .catch(() => {
+        /* fall back to the base steps */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <Card className="mt-6 px-6 py-8 animate-fade-in">
       <div className="text-center mb-8">
@@ -190,7 +210,45 @@ function PipelinePanel({ meeting }: { meeting: MeetingDetail }): JSX.Element {
         </div>
         <p className="text-sm text-fg-muted max-w-sm mx-auto">{strings.meeting.pipelineBody}</p>
       </div>
-      <ProgressSteps status={meeting.status} />
+      <ProgressSteps status={meeting.status} showDiarizing={showDiarizing} />
+    </Card>
+  )
+}
+
+function WarningPanel({
+  warning
+}: {
+  warning: NonNullable<MeetingDetail['warning']>
+}): JSX.Element {
+  const [showDetail, setShowDetail] = useState(false)
+
+  return (
+    <Card className="mt-6 px-6 py-5 animate-fade-in">
+      <div className="flex items-start gap-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning">
+          <IconAlert size={18} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-semibold text-fg">{strings.meeting.warningTitle}</h2>
+          <p className="mt-1 text-sm text-fg-muted leading-relaxed">{warning.message}</p>
+
+          {warning.detail && (
+            <>
+              <button
+                onClick={() => setShowDetail((s) => !s)}
+                className="mt-2 text-xs font-medium text-fg-subtle hover:text-fg-muted transition-colors rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {showDetail ? strings.common.hideDetails : strings.common.showDetails}
+              </button>
+              {showDetail && (
+                <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-3 text-xs text-fg-muted font-mono">
+                  {warning.detail}
+                </pre>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </Card>
   )
 }
@@ -314,15 +372,34 @@ function ProtocolTab({ meeting }: { meeting: MeetingDetail }): JSX.Element {
   )
 }
 
-function TranscriptTab({ meeting }: { meeting: MeetingDetail }): JSX.Element {
+function TranscriptTab({
+  meeting,
+  onChanged
+}: {
+  meeting: MeetingDetail
+  onChanged: () => Promise<void>
+}): JSX.Element {
   const [query, setQuery] = useState('')
+  const [renamed, setRenamed] = useState(false)
   const segments = useMemo(() => meeting.transcript?.segments ?? [], [meeting.transcript])
+  const speakers = meeting.transcript?.speakers
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return segments
     return segments.filter((s) => s.text.toLowerCase().includes(q))
   }, [segments, query])
+
+  const renameSpeaker = async (speakerId: string, name: string): Promise<void> => {
+    await window.api.renameSpeaker(meeting.id, speakerId, name)
+    setRenamed(true)
+    await onChanged()
+  }
+
+  const resummarize = async (): Promise<void> => {
+    // The pipeline-progress events flip the meeting to 'summarizing' and back.
+    await window.api.resummarize(meeting.id)
+  }
 
   if (segments.length === 0) {
     return (
@@ -341,12 +418,27 @@ function TranscriptTab({ meeting }: { meeting: MeetingDetail }): JSX.Element {
         />
       </div>
 
+      {renamed && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-2 px-4 py-2.5 animate-fade-in">
+          <p className="text-sm text-fg-muted">{strings.meeting.speakersChangedHint}</p>
+          <Button variant="secondary" size="sm" onClick={() => void resummarize()}>
+            {strings.meeting.updateProtocol}
+          </Button>
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <p className="py-10 text-center text-sm text-fg-muted">{strings.meeting.noMatches}</p>
       ) : (
         <Card className="divide-y divide-border">
           {filtered.map((seg, i) => (
-            <SegmentRow key={`${seg.startSec}-${i}`} segment={seg} query={query} />
+            <SegmentRow
+              key={`${seg.startSec}-${i}`}
+              segment={seg}
+              query={query}
+              speakerName={seg.speaker ? (speakers?.[seg.speaker] ?? seg.speaker) : undefined}
+              onRenameSpeaker={renameSpeaker}
+            />
           ))}
         </Card>
       )}
@@ -356,17 +448,67 @@ function TranscriptTab({ meeting }: { meeting: MeetingDetail }): JSX.Element {
 
 function SegmentRow({
   segment,
-  query
+  query,
+  speakerName,
+  onRenameSpeaker
 }: {
   segment: TranscriptSegment
   query: string
+  /** Display name for the segment's speaker, when diarization ran. */
+  speakerName?: string
+  onRenameSpeaker?: (speakerId: string, name: string) => Promise<void>
 }): JSX.Element {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState('')
+
+  const save = async (): Promise<void> => {
+    const next = value.trim()
+    setEditing(false)
+    if (next && next !== speakerName && segment.speaker && onRenameSpeaker) {
+      await onRenameSpeaker(segment.speaker, next)
+    }
+  }
+
   return (
     <div className="flex gap-4 px-4 py-3">
       <span className="shrink-0 pt-0.5 text-xs font-medium tabular-nums text-fg-subtle w-12">
         {formatTimestamp(segment.startSec)}
       </span>
-      <p className="text-[15px] leading-relaxed text-fg">{highlight(segment.text, query)}</p>
+      <div className="flex-1 min-w-0">
+        {segment.speaker && speakerName && (
+          <div className="mb-0.5">
+            {editing ? (
+              <input
+                value={value}
+                autoFocus
+                placeholder={strings.meeting.speakerNamePlaceholder}
+                onChange={(e) => setValue(e.target.value)}
+                onBlur={() => void save()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void save()
+                  if (e.key === 'Escape') {
+                    setValue(speakerName)
+                    setEditing(false)
+                  }
+                }}
+                className="h-6 w-44 rounded-md border border-border-strong bg-surface px-1.5 text-xs font-medium text-fg placeholder:text-fg-subtle focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring"
+              />
+            ) : (
+              <button
+                onClick={() => {
+                  setValue(speakerName)
+                  setEditing(true)
+                }}
+                title={strings.meeting.speakerRenameHint}
+                className="text-xs font-medium text-accent hover:text-accent-hover transition-colors rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {speakerName}
+              </button>
+            )}
+          </div>
+        )}
+        <p className="text-[15px] leading-relaxed text-fg">{highlight(segment.text, query)}</p>
+      </div>
     </div>
   )
 }

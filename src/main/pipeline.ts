@@ -1,5 +1,5 @@
-// Sequential pipeline: transcribe -> summarize, one meeting at a time.
-// Status transitions are persisted to meta.json and broadcast to renderers.
+// Sequential pipeline: transcribe -> (diarize) -> summarize, one meeting at a
+// time. Status transitions are persisted to meta.json and broadcast to renderers.
 
 import { BrowserWindow } from 'electron'
 import type { PipelineProgressEvent } from '../shared/types'
@@ -14,12 +14,15 @@ import {
   writeProtocol,
   writeTranscript
 } from './storage'
-import { getSummaryConfig, getTranscriptionConfig } from './settings'
+import { getDiarizationConfig, getSummaryConfig, getTranscriptionConfig } from './settings'
 import { transcribe } from './providers/transcription'
 import { summarize } from './providers/summary'
+import { diarize } from './providers/diarization'
+import { mergeDiarization, speakerAttributedText } from './diarize'
 import { classifyError, UserFacingError } from './providers/shared'
 
-type JobMode = 'full' | 'summarize'
+/** 'diarize' = re-run diarization on the existing transcript, then summarize. */
+type JobMode = 'full' | 'diarize' | 'summarize'
 interface Job {
   meetingId: string
   mode: JobMode
@@ -68,9 +71,39 @@ function fail(meetingId: string, step: 'transcribe' | 'summarize', err: unknown)
   emit({ meetingId, status: 'error' })
 }
 
+/**
+ * Optional diarization step. Failures degrade gracefully: the meeting gets a
+ * warning in meta.json and the pipeline continues to the summary — a
+ * diarization failure must never set status 'error'.
+ */
+async function runDiarization(meetingId: string): Promise<void> {
+  const config = getDiarizationConfig()
+  if (!config.enabled) return
+  const audioPaths = audioSegmentPaths(meetingId)
+  const transcript = readTranscript(meetingId)
+  if (!transcript || audioPaths.length === 0) return
+
+  updateMeta(meetingId, { status: 'diarizing' })
+  emit({ meetingId, status: 'diarizing' })
+  try {
+    const turns = await diarize(audioPaths, config)
+    writeTranscript(meetingId, mergeDiarization(transcript, turns))
+  } catch (err) {
+    const { detail } = classifyError(err)
+    updateMeta(meetingId, {
+      warning: { message: 'Talarna kunde inte identifieras — protokollet skapas ändå', detail }
+    })
+  }
+}
+
 async function runJob(job: Job): Promise<void> {
   const { meetingId, mode } = job
   if (!readMeta(meetingId)) return // deleted meanwhile
+
+  if (mode === 'full' || mode === 'diarize') {
+    // A fresh run must not show last run's warning next to the new result.
+    updateMeta(meetingId, { warning: undefined })
+  }
 
   if (mode === 'full') {
     updateMeta(meetingId, { status: 'transcribing' })
@@ -89,12 +122,18 @@ async function runJob(job: Job): Promise<void> {
     }
   }
 
+  if (mode === 'full' || mode === 'diarize') {
+    await runDiarization(meetingId)
+  }
+
   updateMeta(meetingId, { status: 'summarizing' })
   emit({ meetingId, status: 'summarizing' })
   try {
     const transcript = readTranscript(meetingId)
     if (!transcript) throw new Error('Transkript saknas — kan inte sammanfatta')
-    const protocol = await summarize(transcript.text, getSummaryConfig())
+    // With speakers merged in, the prompt gets speaker-attributed text
+    // ("Anna: …"); without speakers this is exactly transcript.text.
+    const protocol = await summarize(speakerAttributedText(transcript), getSummaryConfig())
     if (!protocol.trim()) {
       // Reasoning-heavy models can burn the whole context budget on thinking
       // and return an empty answer. Surface it instead of writing an empty
@@ -121,6 +160,13 @@ export function retryPipeline(id: string): void {
   enqueue(id, hasTranscript(id) ? 'summarize' : 'full')
 }
 
+/** Re-run only the summary step (e.g. after renaming speakers). */
+export function resummarize(id: string): void {
+  const meta = readMeta(id)
+  if (!meta) return
+  if (hasTranscript(id)) enqueue(id, 'summarize')
+}
+
 /** On app start: resume interrupted jobs and fail crashed recordings. */
 export function recoverPipeline(): void {
   for (const meta of listMeetings()) {
@@ -139,6 +185,9 @@ export function recoverPipeline(): void {
       case 'recorded':
       case 'transcribing':
         enqueue(meta.id, 'full')
+        break
+      case 'diarizing':
+        enqueue(meta.id, hasTranscript(meta.id) ? 'diarize' : 'full')
         break
       case 'summarizing':
         enqueue(meta.id, hasTranscript(meta.id) ? 'summarize' : 'full')

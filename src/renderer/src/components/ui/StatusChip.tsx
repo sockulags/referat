@@ -13,6 +13,7 @@ const config: Record<
   recording: { label: strings.status.recording, tone: 'rec', icon: 'mic', pulse: true },
   recorded: { label: strings.status.recorded, tone: 'neutral', icon: 'check' },
   transcribing: { label: strings.status.transcribing, tone: 'accent', icon: 'clock', pulse: true },
+  diarizing: { label: strings.status.diarizing, tone: 'accent', icon: 'clock', pulse: true },
   summarizing: { label: strings.status.summarizing, tone: 'accent', icon: 'clock', pulse: true },
   done: { label: strings.status.done, tone: 'success', icon: 'check' },
   error: { label: strings.status.error, tone: 'danger', icon: 'alert' }

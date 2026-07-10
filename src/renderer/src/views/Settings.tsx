@@ -51,6 +51,7 @@ export function Settings(): JSX.Element {
         <AudioSection settings={settings} />
         <TranscriptionSection settings={settings} />
         <SummarySection settings={settings} />
+        <DiarizationSection settings={settings} />
         <AppearanceSection settings={settings} />
       </div>
 
@@ -347,6 +348,59 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
           run={async () => {
             await save()
             return window.api.testSummaryConnection()
+          }}
+        />
+      </div>
+    </Section>
+  )
+}
+
+// ---------- Diarization ----------
+
+function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Element {
+  const patchSettings = useApp((s) => s.patchSettings)
+  const toast = useApp((s) => s.toast)
+  const d = settings.diarization
+  const [enabled, setEnabled] = useState(d.enabled)
+  const [baseUrl, setBaseUrl] = useState(d.baseUrl)
+  const [saving, setSaving] = useState(false)
+
+  const save = async (): Promise<void> => {
+    setSaving(true)
+    try {
+      await window.api.saveDiarizationSettings({ enabled, baseUrl })
+      patchSettings({ diarization: { enabled, baseUrl } })
+      toast(strings.common.saved)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Section
+      title={strings.settings.diarization.title}
+      description={strings.settings.diarization.description}
+    >
+      <Toggle
+        id="diarization-enable"
+        checked={enabled}
+        onChange={setEnabled}
+        label={strings.settings.diarization.enable}
+        description={strings.settings.diarization.enableHint}
+      />
+      <Input
+        label={strings.settings.diarization.baseUrl}
+        value={baseUrl}
+        onChange={(e) => setBaseUrl(e.target.value)}
+        placeholder="http://…"
+        hint={strings.settings.diarization.baseUrlHint}
+      />
+      <SaveRow onSave={save} saving={saving} />
+      <div className="pt-4 border-t border-border">
+        <ConnectionTest
+          run={async () => {
+            await save()
+            return window.api.testDiarizationConnection()
           }}
         />
       </div>

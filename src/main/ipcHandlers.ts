@@ -8,15 +8,17 @@ import type {
   AppSettings,
   SaveTranscriptionSettings,
   SaveSummarySettings,
+  SaveDiarizationSettings,
   ConnectionTestResult
 } from '../shared/types'
 import { IPC } from './ipc'
 import * as storage from './storage'
 import * as settings from './settings'
-import { enqueue, retryPipeline } from './pipeline'
+import { enqueue, retryPipeline, resummarize } from './pipeline'
 import { exportProtocol, copyProtocol } from './export'
 import { testTranscriptionConnection } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
+import { testDiarizationConnection } from './providers/diarization'
 import { openExternalSafe } from './security'
 
 /** Called after app is ready. Registers all handlers exactly once. */
@@ -33,6 +35,15 @@ export function registerIpcHandlers(): void {
   )
 
   ipcMain.handle(IPC.retryPipeline, (_e, id: string): void => retryPipeline(id))
+
+  ipcMain.handle(IPC.resummarize, (_e, id: string): void => resummarize(id))
+
+  // ---- Speakers ----
+  ipcMain.handle(
+    IPC.renameSpeaker,
+    (_e, meetingId: string, speakerId: string, name: string): void =>
+      storage.renameSpeaker(meetingId, speakerId, name)
+  )
 
   // ---- Recording ----
   ipcMain.handle(IPC.startRecording, (_e, title: string): RecordingHandle => {
@@ -69,6 +80,10 @@ export function registerIpcHandlers(): void {
     settings.saveSummarySettings(s)
   )
 
+  ipcMain.handle(IPC.saveDiarizationSettings, (_e, s: SaveDiarizationSettings): void =>
+    settings.saveDiarizationSettings(s)
+  )
+
   ipcMain.handle(
     IPC.saveGeneralSettings,
     (
@@ -88,6 +103,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.testSummaryConnection, (): Promise<ConnectionTestResult> =>
     testSummaryConnection(settings.getSummaryConfig())
+  )
+
+  ipcMain.handle(IPC.testDiarizationConnection, (): Promise<ConnectionTestResult> =>
+    testDiarizationConnection(settings.getDiarizationConfig())
   )
 
   // ---- Export ----

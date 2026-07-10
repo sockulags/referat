@@ -3,10 +3,14 @@
 This is an **indicative** roadmap, not a set of promises. Priorities and timing may change.
 It exists to show the direction referat is heading.
 
+## Shipped
+
+- **Speaker diarization** — transcript segments are attributed to individual speakers ("who
+  said what"), with editable names that flow into the minutes. Optional, via a local
+  companion server — see [Speaker Diarization](Speaker-Diarization).
+
 ## Planned
 
-- **Speaker diarization** — attribute transcript segments to individual speakers ("who said
-  what"), so the minutes can reflect who raised each point.
 - **English UI** — the interface is currently Swedish. The strings are already centralized to
   prepare for localization, and English is the next language.
 - **Code signing** — sign the Windows installer so the SmartScreen warning on first run goes

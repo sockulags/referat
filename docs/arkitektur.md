@@ -48,6 +48,42 @@ MediaRecorder ger webm/opus. OpenAI:s transcriptions-API accepterar webm direkt.
 Skicka webm som default. Chunka långa möten (>ca 20 MB) i segment vid transkribering
 (spela in i segment om N minuter redan från början — förenklar och gör pipelinen robust).
 
+## Talardiarisering ("vem sa vad")
+
+Diarisering är en **valfri provider** vid sidan av transkriberingen, avstängd som
+default. Den körs av en lokal följeslagarserver (`diarization-server/`, Python +
+pyannote.audio via uv, GPU med CPU-fallback) som appen pratar med över HTTP —
+samma modell som speaches/Ollama: användaren (eller IT) startar servern, appen
+konfigureras med en bas-URL och en "Testa anslutning"-knapp.
+
+- **HTTP-kontrakt**: `GET /health` (status/modell/enhet) och `POST /diarize` med
+  ljudfilerna som multipart (`files`, i inspelningsordning). Servern avkodar och
+  konkatenerar segmenten till en gemensam tidslinje och svarar med
+  `{ turns: [{ start, end, speaker: "S1" }] }` — talaretiketter är globalt
+  konsekventa över alla filer och normaliserade till `S1`, `S2`, … i
+  förstagångsordning. Att skicka alla segmentfiler i EN request är det som gör
+  etiketterna konsekventa; klientvis per-fil-diarisering hade gett olika
+  talarrymder per fil.
+- **Pipeline-steg**: `transcribing → diarizing → summarizing`. Diarisering körs
+  bara när den är påslagen i inställningarna. Ett fel i steget degraderar mjukt:
+  mötet får en `warning` i meta.json (klarspråk + rå detalj) och pipelinen går
+  vidare till sammanfattningen — protokollet kommer alltid fram. Avbrutna
+  `diarizing`-jobb återupptas vid appstart (transkript finns → kör om
+  diarisering + sammanfattning).
+- **Merge-logik** (`src/main/diarize.ts`, ren och enhetstestad): varje
+  transkriptsegment tilldelas talaren med störst tidsöverlapp; segment utan
+  överlapp faller tillbaka på närmaste tur. Transkript-typen utökas additivt:
+  segment får valfritt `speaker`-id och `Transcript` får en valfri
+  `speakers`-karta (id → visningsnamn, default "Talare N"). Möten utan
+  diarisering är byte-identiska i beteende.
+- **Namnbyten**: klick på en talaretikett i transkriptfliken byter visningsnamn;
+  det persisteras i transcript.json och används i protokollmallen vid
+  omsammanfattning (transkripttexten blir talarattribuerad: "Anna: …").
+- **Tidslinjedrift**: transkriptets multi-fil-offsets bygger på sista
+  segment-slutet per fil medan diariseringen använder verklig ljudlängd; den
+  lilla driften vid filgränser hanteras av överlappsmatchningen i stället för
+  exakta gränser.
+
 ## Export
 
 - Markdown: skriv protocol.md rakt av.

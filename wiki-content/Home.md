@@ -9,8 +9,10 @@ server, or with a cloud provider. Nothing leaves your machine unless you choose 
 
 ## Why referat
 
-- **Privacy by design.** Audio, transcripts and minutes are stored locally. The only thing
-  sent out is text, to the AI service you chose yourself. There is no telemetry.
+- **Privacy by design.** Audio, transcripts and minutes are stored locally. Outbound
+  traffic goes only to endpoints you chose yourself: text to your AI services and — if you
+  enable the optional [speaker identification](Speaker-Diarization) — audio to a local
+  server you run. There is no telemetry.
 - **You choose where the AI runs.** Point transcription and summarization at any
   OpenAI-compatible endpoint — a local server, your company's internal server, OpenAI or
   Azure OpenAI. Anthropic is also supported for the minutes.
@@ -33,6 +35,8 @@ server, or with a cloud provider. Nothing leaves your machine unless you choose 
   and Ollama.
 - **[Configuration](Configuration)** — every setting explained: provider presets, base URLs,
   models, the minutes template and more.
+- **[Speaker Diarization](Speaker-Diarization)** — optional "who said what" labels in the
+  transcript, powered by a local companion server.
 - **[FAQ](FAQ)** — cost, storage location, supported services, privacy.
 - **[Architecture](Architecture)** — how referat is built, and its security hardening.
 - **[Roadmap](Roadmap)** — what's planned next.

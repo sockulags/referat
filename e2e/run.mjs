@@ -124,6 +124,23 @@ async function main() {
   // --- Home: onboarding complete
   await shot('home-empty')
   assert(await seen('Starta inspelning'), 'onboarding completes -> home shows "Starta inspelning"')
+
+  // --- Settings: enable speaker identification against the mock server
+  await page.getByLabel('Öppna inställningar').click()
+  await page.waitForTimeout(1000)
+  await shot('settings')
+  assert(await seen('Identifiera talare'), 'settings shows the speaker section')
+  await page.getByLabel('Identifiera talare').click()
+  await page.waitForTimeout(300)
+  await page.getByLabel('Serveradress').fill('http://localhost:8000')
+  // Only Transkribering, Sammanfattning and Talare have a Spara button; Talare is last.
+  await page.getByRole('button', { name: 'Spara', exact: true }).last().click()
+  await page.waitForTimeout(1000)
+  await shot('settings-diarization')
+  await page.getByLabel('Till startsidan').first().click()
+  await page.waitForTimeout(1000)
+  assert(await seen('Starta inspelning'), 'back home after enabling speaker identification')
+
   const title = page.getByPlaceholder(/titel/i)
   if (await title.count()) await title.fill('Veckomöte HR')
   await page.getByText('Starta inspelning', { exact: true }).first().click()
@@ -167,6 +184,25 @@ async function main() {
       await seen('Anna tar fram en ny annonsmall till fredag.', 5000),
       'transcript tab renders mock transcript segments'
     )
+
+    // Speaker labels from diarization (mock server: S1/S2 -> Talare 1/Talare 2).
+    assert(await seen('Talare 1', 8000), 'transcript tab shows speaker label "Talare 1"')
+    assert(await seen('Talare 2', 5000), 'transcript tab shows speaker label "Talare 2"')
+    await shot('transcript-speakers')
+
+    // Rename flow: click a "Talare 1" label, type a name, Enter -> renamed everywhere.
+    await page.getByText('Talare 1', { exact: true }).first().click()
+    await page.waitForTimeout(400)
+    const speakerInput = page.getByPlaceholder('Namn, t.ex. Anna')
+    await speakerInput.fill('Anna')
+    await speakerInput.press('Enter')
+    await page.waitForTimeout(1500)
+    assert(await seen('Anna', 5000), 'renamed speaker label "Anna" is visible')
+    assert(
+      (await page.getByText('Talare 1', { exact: true }).count()) === 0,
+      'old label "Talare 1" is gone after the rename'
+    )
+    await shot('transcript-renamed')
   }
 
   // --- Back home: list shows the Klar chip

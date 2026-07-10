@@ -16,6 +16,7 @@ import {
 } from 'fs'
 import type { WriteStream } from 'fs'
 import type { MeetingMeta, MeetingDetail, Transcript } from '../shared/types'
+import { renameSpeakerInTranscript } from './diarize'
 
 function meetingsDir(): string {
   const dir = join(app.getPath('userData'), 'meetings')
@@ -170,6 +171,14 @@ export function writeTranscript(id: string, transcript: Transcript): void {
 
 export function hasTranscript(id: string): boolean {
   return existsSync(transcriptPath(id))
+}
+
+/** Set a diarized speaker's display name. No-op when transcript/speaker is missing. */
+export function renameSpeaker(id: string, speakerId: string, name: string): void {
+  const transcript = readTranscript(id)
+  if (!transcript) return
+  const next = renameSpeakerInTranscript(transcript, speakerId, name)
+  if (next !== transcript) writeTranscript(id, next)
 }
 
 export function readProtocol(id: string): string | undefined {

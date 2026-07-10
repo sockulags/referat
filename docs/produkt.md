@@ -66,9 +66,16 @@ Standardmall (svenska): **Sammanfattning** (5–10 meningar), **Beslut** (punktl
 **Actionpunkter** (punkt + ägare + ev. deadline), **Öppna frågor**. Mallen är en
 redigerbar prompt i inställningar för avancerade användare; default funkar utan pill.
 
+## Talardiarisering (tillval)
+
+"Vem sa vad" — transkriptet kan märkas upp per talare ("Talare 1", "Talare 2") och
+namnen kan bytas i efterhand ("Anna"), vilket följer med in i protokollet. Kräver en
+lokal talarserver (guide finns i wikin) och är avstängt som default — en
+kraftanvändarfunktion som inte rör onboardingen.
+
 ## Utanför scope (MVP)
 
-Talardiarisering, live-transkribering under mötet, kalenderintegration, team-delning,
+Live-transkribering under mötet, kalenderintegration, team-delning,
 macOS/Linux, engelska UI. Arkitekturen ska inte blockera dessa senare.
 
 ## Distribution

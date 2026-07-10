@@ -16,8 +16,10 @@ Locally, under:
 ```
 
 There is one folder per meeting containing the audio, transcript and minutes. Nothing is
-uploaded automatically — the only thing sent out is text, to the AI service you chose for
-transcription and summarization. See [Architecture](Architecture) for the exact file layout.
+uploaded automatically — outbound traffic goes only to endpoints you chose yourself: text to
+the AI services for transcription and summarization, and (only if you enable the optional
+[speaker identification](Speaker-Diarization)) audio to a local server you run. See
+[Architecture](Architecture) for the exact file layout.
 
 ## Which AI services work?
 
@@ -49,9 +51,10 @@ minutes template to output another language — see [Configuration](Configuratio
 
 ## Is there any telemetry or tracking?
 
-No. The app doesn't phone home. Outbound network traffic goes only to the transcription and
-summarization endpoints you configure yourself. There is no analytics, no account and no
-usage reporting.
+No. The app doesn't phone home. Outbound network traffic goes only to the endpoints you
+configure yourself — transcription, summarization and, if you enable it, the local
+[speaker identification](Speaker-Diarization) server. There is no analytics, no account and
+no usage reporting.
 
 ## Are my API keys safe?
 

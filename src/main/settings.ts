@@ -5,7 +5,12 @@
 import { app, safeStorage } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
-import type { AppSettings, SaveTranscriptionSettings, SaveSummarySettings } from '../shared/types'
+import type {
+  AppSettings,
+  SaveTranscriptionSettings,
+  SaveSummarySettings,
+  SaveDiarizationSettings
+} from '../shared/types'
 
 /** On-disk shape: like AppSettings but with encrypted key blobs instead of hasApiKey. */
 interface StoredTranscription {
@@ -26,9 +31,16 @@ interface StoredSummary {
   apiKeyEnc?: string
 }
 
+/** Local unauthenticated companion server — no API key to store. */
+interface StoredDiarization {
+  enabled: boolean
+  baseUrl: string
+}
+
 interface StoredSettings {
   transcription: StoredTranscription
   summary: StoredSummary
+  diarization: StoredDiarization
   microphoneId: string
   captureSystemAudio: boolean
   theme: AppSettings['theme']
@@ -74,6 +86,10 @@ function defaults(): StoredSettings {
       model: '',
       promptTemplate: DEFAULT_PROMPT_TEMPLATE
     },
+    diarization: {
+      enabled: false,
+      baseUrl: 'http://localhost:8300'
+    },
     microphoneId: '',
     captureSystemAudio: true,
     theme: 'system',
@@ -97,6 +113,7 @@ function load(): StoredSettings {
       cache = {
         transcription: { ...base.transcription, ...parsed.transcription },
         summary: { ...base.summary, ...parsed.summary },
+        diarization: { ...base.diarization, ...parsed.diarization },
         microphoneId: parsed.microphoneId ?? base.microphoneId,
         captureSystemAudio: parsed.captureSystemAudio ?? base.captureSystemAudio,
         theme: parsed.theme ?? base.theme,
@@ -176,6 +193,10 @@ export function getSettings(): AppSettings {
       hasApiKey: !!s.summary.apiKeyEnc,
       promptTemplate: s.summary.promptTemplate
     },
+    diarization: {
+      enabled: s.diarization.enabled,
+      baseUrl: s.diarization.baseUrl
+    },
     microphoneId: s.microphoneId,
     captureSystemAudio: s.captureSystemAudio,
     theme: s.theme,
@@ -204,6 +225,15 @@ export function saveSummarySettings(payload: SaveSummarySettings): void {
     model: payload.model,
     promptTemplate: payload.promptTemplate,
     apiKeyEnc: resolveKey(payload.apiKey, s.summary.apiKeyEnc)
+  }
+  persist(s)
+}
+
+export function saveDiarizationSettings(payload: SaveDiarizationSettings): void {
+  const s = load()
+  s.diarization = {
+    enabled: payload.enabled,
+    baseUrl: payload.baseUrl
   }
   persist(s)
 }
@@ -246,6 +276,19 @@ export function getTranscriptionConfig(): TranscriptionConfig {
     model: s.transcription.model,
     language: s.transcription.language,
     apiKey: decryptKey(s.transcription.apiKeyEnc)
+  }
+}
+
+export interface DiarizationConfig {
+  enabled: boolean
+  baseUrl: string
+}
+
+export function getDiarizationConfig(): DiarizationConfig {
+  const s = load()
+  return {
+    enabled: s.diarization.enabled,
+    baseUrl: s.diarization.baseUrl
   }
 }
 

@@ -8,6 +8,10 @@ export const IPC = {
   deleteMeeting: 'meetings:delete',
   renameMeeting: 'meetings:rename',
   retryPipeline: 'pipeline:retry',
+  resummarize: 'pipeline:resummarize',
+
+  // Speakers
+  renameSpeaker: 'speakers:rename',
 
   // Recording
   startRecording: 'recording:start',
@@ -19,9 +23,11 @@ export const IPC = {
   getSettings: 'settings:get',
   saveTranscriptionSettings: 'settings:save-transcription',
   saveSummarySettings: 'settings:save-summary',
+  saveDiarizationSettings: 'settings:save-diarization',
   saveGeneralSettings: 'settings:save-general',
   testTranscriptionConnection: 'settings:test-transcription',
   testSummaryConnection: 'settings:test-summary',
+  testDiarizationConnection: 'settings:test-diarization',
 
   // Export
   exportProtocol: 'export:protocol',

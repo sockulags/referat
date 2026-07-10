@@ -4,7 +4,7 @@
 // ---------- Meetings ----------
 
 export type MeetingStatus =
-  'recording' | 'recorded' | 'transcribing' | 'summarizing' | 'done' | 'error'
+  'recording' | 'recorded' | 'transcribing' | 'diarizing' | 'summarizing' | 'done' | 'error'
 
 export interface MeetingMeta {
   id: string
@@ -14,12 +14,19 @@ export interface MeetingMeta {
   status: MeetingStatus
   /** Present when status === 'error'. Plain-language message + raw detail. */
   error?: { message: string; detail?: string; failedStep: 'transcribe' | 'summarize' }
+  /**
+   * Non-fatal problem from the last pipeline run (e.g. speaker identification
+   * failed but the protocol still arrived). Plain-language message + raw detail.
+   */
+  warning?: { message: string; detail?: string }
 }
 
 export interface TranscriptSegment {
   startSec: number
   endSec: number
   text: string
+  /** Canonical speaker id ('S1', 'S2', …) when diarization ran. */
+  speaker?: string
 }
 
 export interface Transcript {
@@ -27,6 +34,8 @@ export interface Transcript {
   segments: TranscriptSegment[]
   /** Full text joined from segments, for convenience/search. */
   text: string
+  /** Speaker id -> display name ('S1' -> 'Talare 1' or a user-chosen name). */
+  speakers?: Record<string, string>
 }
 
 export interface MeetingDetail extends MeetingMeta {
@@ -63,9 +72,17 @@ export interface SummarySettings {
   promptTemplate: string
 }
 
+export interface DiarizationSettings {
+  /** Off by default — speaker identification is a power feature. */
+  enabled: boolean
+  /** Base URL of the local diarization server, e.g. http://localhost:8300 */
+  baseUrl: string
+}
+
 export interface AppSettings {
   transcription: TranscriptionSettings
   summary: SummarySettings
+  diarization: DiarizationSettings
   /** Preferred input device id ('' = system default). */
   microphoneId: string
   /** Whether to capture system audio (loopback) in addition to the microphone. */
@@ -81,6 +98,8 @@ export interface SaveTranscriptionSettings extends Omit<TranscriptionSettings, '
 export interface SaveSummarySettings extends Omit<SummarySettings, 'hasApiKey'> {
   apiKey?: string
 }
+/** The diarization server is local-only and unauthenticated — no key handling. */
+export type SaveDiarizationSettings = DiarizationSettings
 
 export interface ConnectionTestResult {
   ok: boolean
@@ -123,6 +142,12 @@ export interface RendererApi {
   renameMeeting(id: string, title: string): Promise<void>
   /** Re-run the pipeline after an error, from the failed step. */
   retryPipeline(id: string): Promise<void>
+  /** Re-run only the summary step (e.g. after renaming speakers). */
+  resummarize(id: string): Promise<void>
+
+  // Speakers
+  /** Rename a diarized speaker; persisted to transcript.json. */
+  renameSpeaker(meetingId: string, speakerId: string, name: string): Promise<void>
 
   // Recording: renderer captures & encodes; main persists chunks.
   startRecording(title: string): Promise<RecordingHandle>
@@ -136,6 +161,7 @@ export interface RendererApi {
   getSettings(): Promise<AppSettings>
   saveTranscriptionSettings(s: SaveTranscriptionSettings): Promise<void>
   saveSummarySettings(s: SaveSummarySettings): Promise<void>
+  saveDiarizationSettings(s: SaveDiarizationSettings): Promise<void>
   saveGeneralSettings(s: {
     microphoneId?: string
     captureSystemAudio?: boolean
@@ -144,6 +170,7 @@ export interface RendererApi {
   }): Promise<void>
   testTranscriptionConnection(): Promise<ConnectionTestResult>
   testSummaryConnection(): Promise<ConnectionTestResult>
+  testDiarizationConnection(): Promise<ConnectionTestResult>
 
   // Export
   exportProtocol(id: string, format: 'md' | 'docx'): Promise<{ savedTo: string | null }>

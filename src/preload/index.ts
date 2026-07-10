@@ -7,6 +7,7 @@ import type {
   AppSettings,
   SaveTranscriptionSettings,
   SaveSummarySettings,
+  SaveDiarizationSettings,
   ConnectionTestResult,
   PipelineProgressEvent,
   UpdateDownloadedEvent
@@ -21,6 +22,11 @@ const api: RendererApi = {
   renameMeeting: (id: string, title: string): Promise<void> =>
     ipcRenderer.invoke(IPC.renameMeeting, id, title),
   retryPipeline: (id: string): Promise<void> => ipcRenderer.invoke(IPC.retryPipeline, id),
+  resummarize: (id: string): Promise<void> => ipcRenderer.invoke(IPC.resummarize, id),
+
+  // Speakers
+  renameSpeaker: (meetingId: string, speakerId: string, name: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.renameSpeaker, meetingId, speakerId, name),
 
   // Recording
   startRecording: (title: string): Promise<RecordingHandle> =>
@@ -38,6 +44,8 @@ const api: RendererApi = {
     ipcRenderer.invoke(IPC.saveTranscriptionSettings, s),
   saveSummarySettings: (s: SaveSummarySettings): Promise<void> =>
     ipcRenderer.invoke(IPC.saveSummarySettings, s),
+  saveDiarizationSettings: (s: SaveDiarizationSettings): Promise<void> =>
+    ipcRenderer.invoke(IPC.saveDiarizationSettings, s),
   saveGeneralSettings: (s: {
     microphoneId?: string
     captureSystemAudio?: boolean
@@ -48,6 +56,8 @@ const api: RendererApi = {
     ipcRenderer.invoke(IPC.testTranscriptionConnection),
   testSummaryConnection: (): Promise<ConnectionTestResult> =>
     ipcRenderer.invoke(IPC.testSummaryConnection),
+  testDiarizationConnection: (): Promise<ConnectionTestResult> =>
+    ipcRenderer.invoke(IPC.testDiarizationConnection),
 
   // Export
   exportProtocol: (id: string, format: 'md' | 'docx'): Promise<{ savedTo: string | null }> =>

@@ -1,7 +1,8 @@
 # Configuration
 
-All settings live under **Settings** in the app. There are four groups: **Audio**,
-**Transcription**, **Summarization** and **Appearance**. This page explains every field.
+All settings live under **Settings** in the app. There are five groups: **Audio**,
+**Transcription**, **Summarization**, **Speakers** and **Appearance**. This page explains
+every field.
 
 referat uses two independent providers: **transcription** (speech → text) and
 **summarization** (text → minutes). You configure them separately, so you can mix modes —
@@ -96,6 +97,26 @@ structure, language or tone; the default works without any changes.
 > which referat surfaces as an error instead of saving empty minutes. See
 > [Local AI Setup](Local-AI-Setup).
 
+## Speakers
+
+Optional speaker identification ("who said what") — transcript segments are labelled
+**Talare 1**, **Talare 2**, … and the labels can be renamed; the names flow into the minutes
+when the protocol is regenerated. Off by default. Requires the local companion server — see
+[Speaker Diarization](Speaker-Diarization) for the full setup. In the app's Swedish UI the
+group is called **Talare**.
+
+**Fields**
+
+- **Identify speakers** (*Identifiera talare*) — the on/off toggle. When off, meetings are
+  processed exactly as before.
+- **Server address** (*Serveradress*) — the diarization server's address. Default
+  `http://localhost:8300`.
+- **Test connection** (*Testa anslutning*) — checks the server's `/health` endpoint; a
+  network error means the address is wrong or the server isn't running.
+
+A diarization failure never blocks the minutes: the meeting gets a warning note and the
+protocol is still produced, just without speaker labels.
+
 ## Audio
 
 - **Microphone** — which input device is recorded.
@@ -116,5 +137,6 @@ choice, connection test and microphone test.
 ## Related pages
 
 - **[Local AI Setup](Local-AI-Setup)** — concrete local values and the Docker command.
+- **[Speaker Diarization](Speaker-Diarization)** — the optional speaker server in detail.
 - **[Architecture](Architecture)** — how keys and settings are stored.
 - **[FAQ](FAQ)** — common questions.

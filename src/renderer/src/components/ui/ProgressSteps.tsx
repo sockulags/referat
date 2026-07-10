@@ -4,42 +4,62 @@ import { strings } from '../../strings'
 import { cn } from './cn'
 import { IconCheck } from '../icons'
 
-const STEPS: { key: string; label: string }[] = [
+type StepKey = 'recorded' | 'transcribing' | 'diarizing' | 'summarizing' | 'done'
+
+const BASE_STEPS: { key: StepKey; label: string }[] = [
   { key: 'recorded', label: strings.meeting.steps.recorded },
   { key: 'transcribing', label: strings.meeting.steps.transcribing },
   { key: 'summarizing', label: strings.meeting.steps.summarizing },
   { key: 'done', label: strings.meeting.steps.done }
 ]
 
-/** Index of the currently-active step for a given status. */
-function activeIndex(status: MeetingStatus): number {
+/** Same steps with the optional diarizing step between transcribing and summarizing. */
+const DIARIZING_STEPS: { key: StepKey; label: string }[] = [
+  BASE_STEPS[0],
+  BASE_STEPS[1],
+  { key: 'diarizing', label: strings.meeting.steps.diarizing },
+  BASE_STEPS[2],
+  BASE_STEPS[3]
+]
+
+/** The step a given status belongs to, or null when no step is active. */
+function stepKey(status: MeetingStatus): StepKey | null {
   switch (status) {
     case 'recording':
     case 'recorded':
-      return 0
+      return 'recorded'
     case 'transcribing':
-      return 1
+      return 'transcribing'
+    case 'diarizing':
+      return 'diarizing'
     case 'summarizing':
-      return 2
+      return 'summarizing'
     case 'done':
-      return 3
+      return 'done'
     case 'error':
-      return -1
-    default:
-      return 0
+      return null
   }
 }
 
-export function ProgressSteps({ status }: { status: MeetingStatus }): JSX.Element {
-  const active = activeIndex(status)
+export function ProgressSteps({
+  status,
+  showDiarizing = false
+}: {
+  status: MeetingStatus
+  /** Include the diarizing step; it is always shown while diarizing is active. */
+  showDiarizing?: boolean
+}): JSX.Element {
+  const steps = showDiarizing || status === 'diarizing' ? DIARIZING_STEPS : BASE_STEPS
+  const key = stepKey(status)
+  const active = key === null ? -1 : steps.findIndex((s) => s.key === key)
   const isDone = status === 'done'
 
   return (
     <ol className="flex items-start">
-      {STEPS.map((step, i) => {
+      {steps.map((step, i) => {
         const complete = i < active || isDone
         const current = i === active && !isDone
-        const isLast = i === STEPS.length - 1
+        const isLast = i === steps.length - 1
         return (
           <li key={step.key} className="flex-1 flex flex-col items-center">
             <div className="flex items-center w-full">

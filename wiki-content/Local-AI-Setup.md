@@ -78,6 +78,17 @@ set) the API key:
 
 When both show green, you're ready. Pick **On this computer** and record your first meeting.
 
+## Optional: speaker identification ("who said what")
+
+A third, optional local service can label the transcript per speaker — **Talare 1**,
+**Talare 2**, … — with names you can edit that flow into the minutes. It is off by default
+and runs as a companion server that ships in the repository (`diarization-server/`,
+Python + pyannote.audio, installed and started with uv). An NVIDIA GPU is strongly
+recommended; CPU works but is many times slower than realtime.
+
+Setup is a separate guide: **[Speaker Diarization](Speaker-Diarization)** — Hugging Face
+account, install, and pointing the app at the server under **Settings → Speakers**.
+
 ## Troubleshooting
 
 - **"The server isn't responding — check the address."** The service isn't running, or the
@@ -93,5 +104,6 @@ When both show green, you're ready. Pick **On this computer** and record your fi
 ## Related pages
 
 - **[Configuration](Configuration)** — every setting field in detail.
+- **[Speaker Diarization](Speaker-Diarization)** — the optional "who said what" service.
 - **[Installation](Installation)** — first-run walkthrough.
 - **[FAQ](FAQ)** — common questions.

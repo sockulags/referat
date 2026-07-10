@@ -18,11 +18,11 @@ referat follows Electron's standard main/renderer separation.
 
 - Window and tray lifecycle, and IPC registration.
 - **Storage** — one folder per meeting under `app.getPath('userData')/meetings/`.
-- **Pipeline runner** — a queue that transcribes then summarizes, one meeting at a time,
-  with status persisted to disk.
+- **Pipeline runner** — a queue that transcribes, optionally identifies speakers, then
+  summarizes, one meeting at a time, with status persisted to disk.
 - **Provider clients** (`src/main/providers/`) — `fetch`-based clients for
-  OpenAI-compatible transcription, OpenAI-compatible chat completions and Anthropic
-  messages, plus a per-provider connection test.
+  OpenAI-compatible transcription, OpenAI-compatible chat completions, Anthropic
+  messages and the local speaker-diarization server, plus a per-provider connection test.
 - **Settings** — JSON in `userData`; API keys encrypted with `safeStorage`.
 
 ### Preload (`src/preload/`)
@@ -77,13 +77,17 @@ crash mid-write can't truncate it and make the meeting vanish from the index.
   Each segment is independently decodable and stays under provider upload caps (OpenAI
   rejects files over 25 MB). At transcription time the segments are processed in order and
   concatenated, offsetting each segment's timestamps by the cumulative duration.
-- **Sequential pipeline.** A single-flight queue runs `transcribe → summarize` for one
-  meeting at a time. Status transitions
-  (`recording → recorded → transcribing → summarizing → done`, or `error`) are persisted to
-  `meta.json` and broadcast to the interface.
+- **Sequential pipeline.** A single-flight queue runs `transcribe → diarize (optional) →
+  summarize` for one meeting at a time. Status transitions
+  (`recording → recorded → transcribing → diarizing → summarizing → done`, or `error`) are
+  persisted to `meta.json` and broadcast to the interface. The diarization step only runs
+  when speaker identification is enabled, and a failure there degrades gracefully: the
+  meeting gets a warning note and the minutes are still produced (see
+  [Speaker Diarization](Speaker-Diarization)).
 - **Crash recovery.** On startup the app inspects every meeting: a meeting left in
   `recording` (app killed mid-capture) is marked `error`; `recorded`/`transcribing` are
-  re-queued for the full pipeline; `summarizing` resumes at summarization if a transcript
+  re-queued for the full pipeline; `diarizing` re-runs diarization and summarization on the
+  existing transcript; `summarizing` resumes at summarization if a transcript
   already exists, otherwise re-runs fully.
 - **Per-step retry.** After an error, **Try again** resumes from the failed step — if the
   transcript exists it only re-summarizes.

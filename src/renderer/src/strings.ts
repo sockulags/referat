@@ -51,6 +51,7 @@ export const strings = {
     recording: 'Spelar in',
     recorded: 'Inspelad',
     transcribing: 'Transkriberar',
+    diarizing: 'Identifierar talare',
     summarizing: 'Sammanfattar',
     done: 'Klar',
     error: 'Fel'
@@ -95,9 +96,16 @@ export const strings = {
     pipelineTitle: 'Skapar ditt protokoll',
     pipelineBody: 'Du kan stänga appen — arbetet fortsätter och återupptas nästa gång.',
     errorTitle: 'Något gick fel',
+    warningTitle: 'Protokollet är klart — med en notis',
+    speakerRenameHint: 'Klicka för att byta namn på talaren',
+    speakerNamePlaceholder: 'Namn, t.ex. Anna',
+    speakersChangedHint:
+      'Du har ändrat talarnamn. Skapa protokollet igen så används de nya namnen.',
+    updateProtocol: 'Uppdatera protokollet',
     steps: {
       recorded: 'Inspelad',
       transcribing: 'Transkriberar',
+      diarizing: 'Identifierar talare',
       summarizing: 'Sammanfattar',
       done: 'Klart'
     }
@@ -178,6 +186,15 @@ export const strings = {
       advanced: 'Avancerat: protokollmall',
       promptTemplate: 'Protokollmall',
       promptHint: 'Instruktionen som styr protokollet. {{transcript}} byts mot transkriptet.'
+    },
+    diarization: {
+      title: 'Talare',
+      description: 'Märker upp vem som säger vad i transkriptet, som "Talare 1" och "Talare 2".',
+      enable: 'Identifiera talare',
+      enableHint:
+        'Kräver en lokal talarserver på din dator eller i nätverket — se guiden på webbplatsen. Namnen går att ändra i efterhand.',
+      baseUrl: 'Serveradress',
+      baseUrlHint: 'Adressen till talarservern, t.ex. http://localhost:8300'
     },
     appearance: {
       title: 'Utseende',
