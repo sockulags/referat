@@ -17,7 +17,7 @@ import {
 import { getSummaryConfig, getTranscriptionConfig } from './settings'
 import { transcribe } from './providers/transcription'
 import { summarize } from './providers/summary'
-import { classifyError } from './providers/shared'
+import { classifyError, UserFacingError } from './providers/shared'
 
 type JobMode = 'full' | 'summarize'
 interface Job {
@@ -95,6 +95,14 @@ async function runJob(job: Job): Promise<void> {
     const transcript = readTranscript(meetingId)
     if (!transcript) throw new Error('Transkript saknas — kan inte sammanfatta')
     const protocol = await summarize(transcript.text, getSummaryConfig())
+    if (!protocol.trim()) {
+      // Reasoning-heavy models can burn the whole context budget on thinking
+      // and return an empty answer. Surface it instead of writing an empty
+      // protocol marked as done.
+      throw new UserFacingError(
+        'Modellen gav ett tomt svar. Prova en annan modell i inställningarna — resonerande modeller fungerar ofta sämre för protokoll.'
+      )
+    }
     writeProtocol(meetingId, protocol)
   } catch (err) {
     fail(meetingId, 'summarize', err)

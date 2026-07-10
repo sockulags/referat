@@ -74,6 +74,9 @@ export function errorDetail(err: unknown): string {
  */
 export function classifyError(err: unknown): { message: string; detail: string } {
   const detail = errorDetail(err)
+  if (err instanceof UserFacingError) {
+    return { message: err.message, detail: err.rawDetail ?? detail }
+  }
   if (isTimeoutError(err)) {
     return { message: 'Servern svarar inte (timeout)', detail }
   }
@@ -93,6 +96,17 @@ export function classifyError(err: unknown): { message: string; detail: string }
     return { message: `Servern svarade med ett fel (${err.status})`, detail }
   }
   return { message: 'Något gick fel vid bearbetningen', detail }
+}
+
+/** An error whose message is already plain-language Swedish, safe to show as-is. */
+export class UserFacingError extends Error {
+  constructor(
+    message: string,
+    public rawDetail?: string
+  ) {
+    super(message)
+    this.name = 'UserFacingError'
+  }
 }
 
 /** Thrown when a provider returns a non-2xx HTTP response. */
