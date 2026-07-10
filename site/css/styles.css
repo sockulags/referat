@@ -911,6 +911,43 @@ svg {
   font-size: 0.875rem;
 }
 
+/* ---------- Nedladdnings-toast ---------- */
+.download-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.95rem;
+  font-weight: 550;
+  line-height: 1.4;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+  transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
+}
+.download-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.download-toast__dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
 /* ---------- Scroll-reveal ---------- */
 .reveal {
   opacity: 0;

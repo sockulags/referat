@@ -7,6 +7,13 @@ import { openExternalSafe } from './security'
 import { recoverPipeline } from './pipeline'
 import { isRecordingActive } from './storage'
 
+// Test hook: E2E harnesses point userData at a scratch directory so runs are
+// isolated and repeatable. Also keeps `electron out/main` dev runs from
+// sharing %APPDATA%\Electron with other dev apps.
+if (process.env['REFERAT_USER_DATA']) {
+  app.setPath('userData', process.env['REFERAT_USER_DATA'])
+}
+
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false

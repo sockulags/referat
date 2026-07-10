@@ -64,7 +64,9 @@ async function anthropicMessages(
   timeoutMs: number,
   maxTokens: number
 ): Promise<string> {
-  const base = trimBaseUrl(config.baseUrl) || ANTHROPIC_DEFAULT_BASE
+  // Strip a trailing /v1 so a baseUrl that already includes it doesn't become
+  // .../v1/v1/messages. The Anthropic path is always <base>/v1/messages.
+  const base = (trimBaseUrl(config.baseUrl) || ANTHROPIC_DEFAULT_BASE).replace(/\/v1$/, '')
   const url = `${base}/v1/messages`
   const res = await providerFetch(url, {
     method: 'POST',

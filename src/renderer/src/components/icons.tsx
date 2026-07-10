@@ -195,6 +195,13 @@ export const IconSpinner = (p: IconProps): JSX.Element => (
   </Base>
 )
 
+export const IconExternal = (p: IconProps): JSX.Element => (
+  <Base {...p}>
+    <path d="M14 5h5v5M19 5l-8 8" />
+    <path d="M18 13.5V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4.5" />
+  </Base>
+)
+
 /** Brand mark — a stylized quote/soundwave turning into text lines. */
 export const Wordmark = ({ size = 22 }: { size?: number }): JSX.Element => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">

@@ -10,6 +10,7 @@ import { StatusChip } from '../components/ui/StatusChip'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Field'
 import { Tooltip } from '../components/ui/Tooltip'
+import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import {
   IconMic,
   IconWave,
@@ -31,6 +32,7 @@ export function Home(): JSX.Element {
   const [loading, setLoading] = useState(true)
   const [renameTarget, setRenameTarget] = useState<MeetingMeta | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<MeetingMeta | null>(null)
+  const headingRef = useAutofocusHeading<HTMLHeadingElement>()
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -84,7 +86,11 @@ export function Home(): JSX.Element {
       <Hero title={title} setTitle={setTitle} onStart={start} />
 
       <section className="mt-12">
-        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wide mb-3">
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-sm font-semibold text-fg-muted uppercase tracking-wide mb-3"
+        >
           {strings.home.previousMeetings}
         </h2>
 

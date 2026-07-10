@@ -94,11 +94,40 @@
   }
 
   /* ---------- Placeholder-nedladdning ---------- */
+  var downloadToastTimer = null;
+
+  function hideDownloadToast() {
+    var toast = document.getElementById("download-toast");
+    if (toast) toast.classList.remove("is-visible");
+  }
+
+  function showDownloadToast() {
+    var toast = document.getElementById("download-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "download-toast";
+      toast.className = "download-toast";
+      toast.setAttribute("role", "status");
+      toast.innerHTML =
+        '<span class="download-toast__dot" aria-hidden="true"></span>' +
+        "<span>Nedladdningen öppnas snart — version 0.1 är på väg.</span>";
+      document.body.appendChild(toast);
+      toast.addEventListener("click", hideDownloadToast);
+    }
+    if (downloadToastTimer) clearTimeout(downloadToastTimer);
+    // Next frame so the fade-in transition runs from the hidden state.
+    requestAnimationFrame(function () {
+      toast.classList.add("is-visible");
+    });
+    downloadToastTimer = setTimeout(hideDownloadToast, 4500);
+  }
+
   var downloads = document.querySelectorAll('[data-placeholder="download"]');
   Array.prototype.forEach.call(downloads, function (el) {
     el.addEventListener("click", function (e) {
       e.preventDefault();
       // Installer-länken kopplas in senare (version 0.1).
+      showDownloadToast();
     });
   });
 })();

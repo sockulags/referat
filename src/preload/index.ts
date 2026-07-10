@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
 import type {
   RendererApi,
   MeetingMeta,
@@ -25,8 +24,8 @@ const api: RendererApi = {
   // Recording
   startRecording: (title: string): Promise<RecordingHandle> =>
     ipcRenderer.invoke(IPC.startRecording, title),
-  appendAudioChunk: (meetingId: string, chunk: ArrayBuffer): Promise<void> =>
-    ipcRenderer.invoke(IPC.appendAudioChunk, meetingId, chunk),
+  appendAudioChunk: (meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void> =>
+    ipcRenderer.invoke(IPC.appendAudioChunk, meetingId, chunk, segmentIndex),
   finishRecording: (meetingId: string, durationSec: number): Promise<void> =>
     ipcRenderer.invoke(IPC.finishRecording, meetingId, durationSec),
   cancelRecording: (meetingId: string): Promise<void> =>
@@ -67,16 +66,16 @@ const api: RendererApi = {
   getAppVersion: (): Promise<string> => ipcRenderer.invoke(IPC.getAppVersion)
 }
 
+// Under sandbox:true a preload can only require('electron') + polyfilled node
+// builtins — it must NOT require external npm modules (e.g. @electron-toolkit/
+// preload), or the whole preload fails to load and window.api never appears.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
   } catch (error) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
   // @ts-ignore (define in dts)
   window.api = api
 }

@@ -40,8 +40,10 @@ export function registerIpcHandlers(): void {
     return { meetingId: meta.id }
   })
 
-  ipcMain.handle(IPC.appendAudioChunk, (_e, meetingId: string, chunk: ArrayBuffer): Promise<void> =>
-    storage.appendAudioChunk(meetingId, chunk)
+  ipcMain.handle(
+    IPC.appendAudioChunk,
+    (_e, meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void> =>
+      storage.appendAudioChunk(meetingId, chunk, segmentIndex)
   )
 
   ipcMain.handle(

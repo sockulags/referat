@@ -16,11 +16,13 @@ import { Input, Select, Textarea, Field } from '../components/ui/Field'
 import { Toggle } from '../components/ui/Toggle'
 import { ConnectionTest } from '../components/ConnectionTest'
 import { IconSun, IconMoon, IconMonitor, IconChevronDown } from '../components/icons'
+import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import { cn } from '../components/ui/cn'
 
 export function Settings(): JSX.Element {
   const settings = useApp((s) => s.settings)
   const [version, setVersion] = useState('')
+  const headingRef = useAutofocusHeading<HTMLHeadingElement>()
 
   useEffect(() => {
     void window.api.getAppVersion().then(setVersion)
@@ -37,7 +39,11 @@ export function Settings(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-fg mb-6">
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-2xl font-semibold tracking-tight text-fg mb-6"
+      >
         {strings.settings.title}
       </h1>
 

@@ -118,7 +118,8 @@ export interface RendererApi {
 
   // Recording: renderer captures & encodes; main persists chunks.
   startRecording(title: string): Promise<RecordingHandle>
-  appendAudioChunk(meetingId: string, chunk: ArrayBuffer): Promise<void>
+  /** segmentIndex identifies the rotated segment file; defaults to 0. */
+  appendAudioChunk(meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void>
   /** Finalize: closes file, sets duration, kicks off the pipeline. */
   finishRecording(meetingId: string, durationSec: number): Promise<void>
   cancelRecording(meetingId: string): Promise<void>

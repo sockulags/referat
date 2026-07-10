@@ -1,6 +1,7 @@
 // OpenAI-compatible transcription client (multipart -> /audio/transcriptions).
 
 import { readFile } from 'fs/promises'
+import { basename } from 'path'
 import type { ConnectionTestResult, Transcript, TranscriptSegment } from '../../shared/types'
 import type { TranscriptionConfig } from '../settings'
 import {
@@ -82,13 +83,14 @@ async function parseResponse(res: Response): Promise<VerboseJson | string> {
   }
 }
 
-export async function transcribe(
+/** Transcribe a single audio file (one recorded segment). */
+async function transcribeFile(
   audioFilePath: string,
   config: TranscriptionConfig,
   durationSec: number
 ): Promise<Transcript> {
   const bytes = await readFile(audioFilePath)
-  const file = new File([bytes], 'audio.webm', { type: 'audio/webm' })
+  const file = new File([bytes], basename(audioFilePath), { type: 'audio/webm' })
 
   const form = new FormData()
   form.append('file', file)
@@ -110,6 +112,53 @@ export async function transcribe(
 
   const data = await parseResponse(res)
   return buildTranscript(data, config.language, durationSec)
+}
+
+/**
+ * Transcribe one or more recorded segments in order and concatenate them,
+ * offsetting each segment's timestamps by the cumulative duration of prior
+ * segments. Keeping one file per ~10-min segment keeps every request under
+ * provider size caps (OpenAI rejects >25 MB) without buffering the whole meeting.
+ */
+export async function transcribe(
+  audioFilePaths: string[],
+  config: TranscriptionConfig,
+  durationSec: number
+): Promise<Transcript> {
+  if (audioFilePaths.length === 0) {
+    throw new Error('Ingen ljudfil att transkribera')
+  }
+
+  // Even split as a fallback when a server returns no per-segment timings.
+  const fallbackPerSegment = durationSec > 0 ? durationSec / audioFilePaths.length : 0
+
+  const segments: TranscriptSegment[] = []
+  const texts: string[] = []
+  let language = ''
+  let offset = 0
+
+  for (const path of audioFilePaths) {
+    const part = await transcribeFile(path, config, fallbackPerSegment)
+    if (!language) language = part.language
+    for (const seg of part.segments) {
+      segments.push({
+        startSec: seg.startSec + offset,
+        endSec: seg.endSec + offset,
+        text: seg.text
+      })
+    }
+    if (part.text) texts.push(part.text)
+    // This segment's duration = its last endSec (server-provided), else the
+    // proportional fallback. Advances the offset for the next segment.
+    const lastEnd = part.segments.length > 0 ? part.segments[part.segments.length - 1].endSec : 0
+    offset += lastEnd > 0 ? lastEnd : fallbackPerSegment
+  }
+
+  return {
+    language: language || config.language || 'sv',
+    segments,
+    text: texts.join(' ').trim()
+  }
 }
 
 export async function testTranscriptionConnection(

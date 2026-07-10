@@ -10,7 +10,10 @@ export function trimBaseUrl(baseUrl: string): string {
 }
 
 export function authHeaders(apiKey: string): Record<string, string> {
-  return apiKey ? { Authorization: `Bearer ${apiKey}` } : {}
+  // Send both header shapes when a key is set: `Authorization: Bearer` for
+  // OpenAI/local and `api-key` for Azure OpenAI's v1-compatible endpoint.
+  // Both are harmless to the provider that ignores the one it doesn't use.
+  return apiKey ? { Authorization: `Bearer ${apiKey}`, 'api-key': apiKey } : {}
 }
 
 /**

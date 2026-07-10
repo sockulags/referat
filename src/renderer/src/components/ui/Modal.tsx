@@ -25,20 +25,63 @@ export function Modal({
   widthClass = 'max-w-md'
 }: ModalProps): JSX.Element | null {
   const panelRef = useRef<HTMLDivElement>(null)
+  const restoreRef = useRef<HTMLElement | null>(null)
+  // Keep the latest onClose without re-running the focus effect on every render.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
 
   useEffect(() => {
     if (!open) return
+    const panel = panelRef.current
+    // Remember what had focus so we can restore it when the dialog closes.
+    restoreRef.current = document.activeElement as HTMLElement | null
+
+    const focusable = (): HTMLElement[] =>
+      Array.from(
+        panel?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement)
+
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        onCloseRef.current()
+        return
+      }
+      if (e.key !== 'Tab') return
+      // Trap Tab / Shift+Tab within the dialog.
+      const items = focusable()
+      if (items.length === 0) {
+        e.preventDefault()
+        panel?.focus()
+        return
+      }
+      const first = items[0]
+      const last = items[items.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey) {
+        if (active === first || !panel?.contains(active)) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else if (active === last || !panel?.contains(active)) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKey)
+
     // Focus the first focusable element for keyboard users.
-    const first = panelRef.current?.querySelector<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
-    first?.focus()
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+    focusable()[0]?.focus()
+
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      // Restore focus to the element that opened the dialog.
+      restoreRef.current?.focus?.()
+    }
+  }, [open])
 
   if (!open) return null
 
@@ -55,6 +98,7 @@ export function Modal({
       />
       <div
         ref={panelRef}
+        tabIndex={-1}
         className={cn(
           'relative w-full bg-surface border border-border rounded-2xl shadow-float animate-pop-in',
           widthClass

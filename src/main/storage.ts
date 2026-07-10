@@ -9,6 +9,7 @@ import {
   existsSync,
   readFileSync,
   writeFileSync,
+  renameSync,
   rmSync,
   readdirSync,
   createWriteStream
@@ -43,6 +44,30 @@ export function audioPath(id: string): string {
   return join(meetingDir(id), 'audio.webm')
 }
 
+/** Segment index 0 -> audio.webm (backward compatible), N>0 -> audio-N.webm. */
+function segmentAudioPath(id: string, segmentIndex: number): string {
+  const name = segmentIndex === 0 ? 'audio.webm' : `audio-${segmentIndex}.webm`
+  return join(meetingDir(id), name)
+}
+
+/**
+ * Audio segment files for a meeting, in play order. Existing single-file
+ * recordings return [audio.webm]; rotated recordings return
+ * [audio.webm, audio-1.webm, ...] up to the first missing index.
+ */
+export function audioSegmentPaths(id: string): string[] {
+  const dir = meetingDir(id)
+  const paths: string[] = []
+  const base = join(dir, 'audio.webm')
+  if (existsSync(base)) paths.push(base)
+  for (let i = 1; ; i++) {
+    const p = join(dir, `audio-${i}.webm`)
+    if (!existsSync(p)) break
+    paths.push(p)
+  }
+  return paths
+}
+
 function transcriptPath(id: string): string {
   return join(meetingDir(id), 'transcript.json')
 }
@@ -73,7 +98,12 @@ export function readMeta(id: string): MeetingMeta | null {
 export function writeMeta(meta: MeetingMeta): void {
   const dir = meetingDir(meta.id)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  writeFileSync(metaPath(meta.id), JSON.stringify(meta, null, 2), 'utf-8')
+  // Atomic write: a crash mid-write must not truncate meta.json (which would
+  // make the meeting vanish from the index). Write a temp file then rename.
+  const target = metaPath(meta.id)
+  const tmp = `${target}.tmp`
+  writeFileSync(tmp, JSON.stringify(meta, null, 2), 'utf-8')
+  renameSync(tmp, target)
 }
 
 /** Patch selected fields of a meeting's meta and persist. Returns the new meta. */
@@ -175,44 +205,78 @@ export function renameMeeting(id: string, title: string): void {
 
 // ---- Recording: streamed audio append ----
 
+// One WriteStream per (meeting id, segment index), keyed as `${id}#${segment}`.
 const activeStreams = new Map<string, WriteStream>()
+// Ids whose recording has been finalized or cancelled. A late chunk for such an
+// id must be dropped — never reopen a stream (which would leak, or recreate a
+// folder deleted by cancel).
+const closedRecordings = new Set<string>()
 
-function getStream(id: string): WriteStream {
-  let stream = activeStreams.get(id)
+function streamKey(id: string, segmentIndex: number): string {
+  return `${id}#${segmentIndex}`
+}
+
+function assertValidSegmentIndex(segmentIndex: number): void {
+  if (!Number.isInteger(segmentIndex) || segmentIndex < 0 || segmentIndex > 100000) {
+    throw new Error(`Invalid segment index: ${JSON.stringify(segmentIndex)}`)
+  }
+}
+
+function getStream(id: string, segmentIndex: number): WriteStream {
+  const key = streamKey(id, segmentIndex)
+  let stream = activeStreams.get(key)
   if (!stream) {
     const dir = meetingDir(id)
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
     // 'a' — append; chunks are streamed straight to disk, never buffered in memory.
-    stream = createWriteStream(audioPath(id), { flags: 'a' })
-    activeStreams.set(id, stream)
+    stream = createWriteStream(segmentAudioPath(id, segmentIndex), { flags: 'a' })
+    activeStreams.set(key, stream)
   }
   return stream
 }
 
-export function appendAudioChunk(id: string, chunk: ArrayBuffer): Promise<void> {
+export function appendAudioChunk(
+  id: string,
+  chunk: ArrayBuffer,
+  segmentIndex: number = 0
+): Promise<void> {
+  const seg = segmentIndex ?? 0
+  assertValidSegmentIndex(seg)
+  // Drop chunks that arrive after finalize/cancel instead of resurrecting a stream.
+  if (closedRecordings.has(id)) return Promise.resolve()
   return new Promise((resolve, reject) => {
-    const stream = getStream(id)
+    const stream = getStream(id, seg)
     stream.write(Buffer.from(chunk), (err) => (err ? reject(err) : resolve()))
   })
 }
 
-function closeStream(id: string): Promise<void> {
-  const stream = activeStreams.get(id)
-  activeStreams.delete(id)
-  if (!stream) return Promise.resolve()
-  return new Promise((resolve) => stream.end(() => resolve()))
+/** Close every open segment stream for a meeting. */
+function closeStreams(id: string): Promise<void> {
+  const prefix = `${id}#`
+  const keys = [...activeStreams.keys()].filter((k) => k.startsWith(prefix))
+  return Promise.all(
+    keys.map((key) => {
+      const stream = activeStreams.get(key)
+      activeStreams.delete(key)
+      if (!stream) return Promise.resolve()
+      return new Promise<void>((resolve) => stream.end(() => resolve()))
+    })
+  ).then(() => undefined)
 }
 
-/** Close the audio stream and stamp duration + status 'recorded'. */
+/** Close all audio streams and stamp duration + status 'recorded'. */
 export async function finishRecording(id: string, durationSec: number): Promise<void> {
-  await closeStream(id)
+  // Mark closed first so any concurrently-arriving late chunk is dropped.
+  closedRecordings.add(id)
+  await closeStreams(id)
   recordingIds.delete(id)
   updateMeta(id, { durationSec: Math.max(0, Math.round(durationSec)), status: 'recorded' })
 }
 
-/** Close the audio stream and remove the whole folder. */
+/** Close all audio streams and remove the whole folder. */
 export async function cancelRecording(id: string): Promise<void> {
-  await closeStream(id)
+  closedRecordings.add(id)
+  await closeStreams(id)
   recordingIds.delete(id)
   deleteMeeting(id)
 }

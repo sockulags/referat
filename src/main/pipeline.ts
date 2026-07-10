@@ -5,7 +5,7 @@ import { BrowserWindow } from 'electron'
 import type { PipelineProgressEvent } from '../shared/types'
 import { IPC } from './ipc'
 import {
-  audioPath,
+  audioSegmentPaths,
   hasTranscript,
   listMeetings,
   readMeta,
@@ -27,6 +27,7 @@ interface Job {
 
 const queue: Job[] = []
 let running = false
+let runningId: string | null = null
 
 function emit(event: PipelineProgressEvent): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -35,7 +36,9 @@ function emit(event: PipelineProgressEvent): void {
 }
 
 export function enqueue(meetingId: string, mode: JobMode = 'full'): void {
-  // Avoid duplicate queue entries for the same meeting.
+  // Skip if the meeting is already queued OR currently running — a retry while
+  // a job runs must not start a second concurrent run of the same meeting.
+  if (runningId === meetingId) return
   if (queue.some((j) => j.meetingId === meetingId)) return
   queue.push({ meetingId, mode })
   void runNext()
@@ -46,6 +49,7 @@ async function runNext(): Promise<void> {
   const job = queue.shift()
   if (!job) return
   running = true
+  runningId = job.meetingId
   try {
     await runJob(job)
   } catch (err) {
@@ -53,6 +57,7 @@ async function runNext(): Promise<void> {
     console.error('Pipeline job crashed', err)
   } finally {
     running = false
+    runningId = null
     if (queue.length > 0) void runNext()
   }
 }
@@ -73,7 +78,7 @@ async function runJob(job: Job): Promise<void> {
     try {
       const meta = readMeta(meetingId)
       const transcript = await transcribe(
-        audioPath(meetingId),
+        audioSegmentPaths(meetingId),
         getTranscriptionConfig(),
         meta?.durationSec ?? 0
       )

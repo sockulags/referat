@@ -52,8 +52,10 @@ export function Recording(): JSX.Element {
         await recorder.start({
           microphoneId: settings?.microphoneId ?? '',
           captureSystemAudio: settings?.captureSystemAudio ?? false,
-          onChunk: (chunk) => {
-            if (meetingIdRef.current) void window.api.appendAudioChunk(meetingIdRef.current, chunk)
+          onChunk: async (chunk, segmentIndex) => {
+            if (meetingIdRef.current) {
+              await window.api.appendAudioChunk(meetingIdRef.current, chunk, segmentIndex)
+            }
           },
           onSystemAudioUnavailable: () => setSystemMissing(true)
         })

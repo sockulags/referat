@@ -19,6 +19,7 @@ import {
   IconRetry,
   IconClock
 } from '../components/icons'
+import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import { cn } from '../components/ui/cn'
 
 type Tab = 'protocol' | 'transcript'
@@ -55,11 +56,25 @@ export function Meeting(): JSX.Element {
     return off
   }, [meetingId, load])
 
+  const retryLoad = (): void => {
+    setLoading(true)
+    void load()
+  }
+
   if (loading) return <MeetingSkeleton />
   if (!meeting) {
     return (
-      <div className="mx-auto max-w-2xl px-5 py-16 text-center text-fg-muted">
-        {strings.errors.loadMeeting}
+      <div className="mx-auto max-w-md px-5 py-16 text-center">
+        <p className="text-fg-muted">{strings.errors.loadMeeting}</p>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-4"
+          onClick={retryLoad}
+          iconLeft={<IconRetry size={16} />}
+        >
+          {strings.common.retry}
+        </Button>
       </div>
     )
   }
@@ -106,6 +121,7 @@ function MeetingHeader({
 }): JSX.Element {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(meeting.title)
+  const headingRef = useAutofocusHeading<HTMLHeadingElement>()
 
   const save = async (): Promise<void> => {
     const next = value.trim() || strings.recording.untitled
@@ -142,7 +158,11 @@ function MeetingHeader({
           title={strings.meeting.renameHint}
           className="group flex items-center gap-2 text-left rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <h1 className="text-2xl font-semibold tracking-tight text-fg">
+          <h1
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-2xl font-semibold tracking-tight text-fg"
+          >
             {meeting.title || strings.recording.untitled}
           </h1>
         </button>

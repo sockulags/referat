@@ -14,13 +14,30 @@ import {
   IconCloud,
   IconCheck,
   IconAlert,
-  IconMic
+  IconMic,
+  IconExternal
 } from '../components/icons'
 import { Spinner } from '../components/ui/Spinner'
 import { cn } from '../components/ui/cn'
 
 type Choice = 'local' | 'server' | 'cloud'
 const STEPS = 4
+
+// Guide for setting up a local AI server. http/https only — safe for openExternal.
+const LOCAL_AI_DOCS_URL = 'https://github.com/sockulags/referat#lokal-ai'
+
+function LocalAiHelpLink(): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={() => void window.api.openExternal(LOCAL_AI_DOCS_URL)}
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-hover transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring rounded"
+    >
+      <IconExternal size={15} />
+      {strings.onboarding.provider.localGuide}
+    </button>
+  )
+}
 
 export function Onboarding(): JSX.Element {
   const navigate = useApp((s) => s.navigate)
@@ -31,6 +48,8 @@ export function Onboarding(): JSX.Element {
   const [choice, setChoice] = useState<Choice>('local')
   const [serverAddress, setServerAddress] = useState('')
   const [apiKey, setApiKey] = useState('')
+  // Lifted so the advance button can read "Fortsätt ändå" when a test failed.
+  const [testFailed, setTestFailed] = useState(false)
 
   const finish = async (): Promise<void> => {
     await window.api.saveGeneralSettings({ onboardingCompleted: true })
@@ -130,7 +149,7 @@ export function Onboarding(): JSX.Element {
                   setApiKey={setApiKey}
                 />
               )}
-              {step === 2 && <TestStep />}
+              {step === 2 && <TestStep onResult={setTestFailed} />}
               {step === 3 && <MicStep />}
             </div>
 
@@ -151,7 +170,9 @@ export function Onboarding(): JSX.Element {
                     ? strings.onboarding.welcome.cta
                     : step === STEPS - 1
                       ? strings.onboarding.mic.finish
-                      : strings.common.next}
+                      : step === 2 && testFailed
+                        ? strings.onboarding.test.continueAnyway
+                        : strings.common.next}
                 </Button>
               </div>
             </div>
@@ -287,6 +308,11 @@ function ProviderStep({
         })}
       </div>
 
+      {choice === 'local' && (
+        <div className="mt-3 animate-fade-in">
+          <LocalAiHelpLink />
+        </div>
+      )}
       {choice === 'server' && (
         <div className="mt-4 flex flex-col gap-3 animate-fade-in">
           <Input
@@ -322,7 +348,7 @@ function ProviderStep({
   )
 }
 
-function TestStep(): JSX.Element {
+function TestStep({ onResult }: { onResult: (failed: boolean) => void }): JSX.Element {
   const [testing, setTesting] = useState(false)
   const [done, setDone] = useState(false)
   const [tr, setTr] = useState<ConnectionTestResult | null>(null)
@@ -347,6 +373,7 @@ function TestStep(): JSX.Element {
     setSr(s)
     setTesting(false)
     setDone(true)
+    onResult(!(t.ok && s.ok))
   }
 
   const allOk = done && tr?.ok && sr?.ok
@@ -382,12 +409,15 @@ function TestStep(): JSX.Element {
             {allOk ? strings.onboarding.test.allGood : strings.onboarding.test.someFailed}
           </div>
           {!allOk && (
-            <button
-              onClick={runTests}
-              className="text-sm text-accent hover:text-accent-hover font-medium self-start"
-            >
-              {strings.onboarding.test.run}
-            </button>
+            <div className="flex flex-col items-start gap-2.5">
+              <button
+                onClick={runTests}
+                className="text-sm text-accent hover:text-accent-hover font-medium self-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring rounded"
+              >
+                {strings.onboarding.test.run}
+              </button>
+              <LocalAiHelpLink />
+            </div>
           )}
         </div>
       )}

@@ -27,7 +27,11 @@ export function transcriptionDefaults(preset: TranscriptionPreset): Transcriptio
     case 'openai':
       return { baseUrl: 'https://api.openai.com/v1', model: 'whisper-1', needsKey: true }
     case 'azure':
-      return { baseUrl: '', model: 'whisper', needsKey: true }
+      return {
+        baseUrl: 'https://<resurs>.openai.azure.com/openai/v1',
+        model: 'whisper',
+        needsKey: true
+      }
     case 'custom':
       return { baseUrl: '', model: '', needsKey: false }
   }
@@ -57,7 +61,12 @@ export function summaryDefaults(preset: SummaryPreset): SummaryDefaults {
         needsKey: true
       }
     case 'azure':
-      return { baseUrl: '', model: 'gpt-4o', apiFlavor: 'openai-compatible', needsKey: true }
+      return {
+        baseUrl: 'https://<resurs>.openai.azure.com/openai/v1',
+        model: 'gpt-4o',
+        apiFlavor: 'openai-compatible',
+        needsKey: true
+      }
     case 'anthropic':
       return {
         baseUrl: 'https://api.anthropic.com',

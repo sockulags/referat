@@ -118,6 +118,7 @@ export const strings = {
         title: 'På den här datorn',
         body: 'Inget lämnar din dator. Kräver en lokal AI-server — vi hjälper dig igång.'
       },
+      localGuide: 'Så installerar du en lokal AI-server',
       server: {
         title: 'På företagets server',
         body: 'Din IT-avdelning ger dig en adress och eventuellt en nyckel.'
@@ -173,7 +174,7 @@ export const strings = {
     summary: {
       title: 'Sammanfattning',
       description: 'Tjänsten som skapar själva protokollet från transkriptet.',
-      flavor: 'Gränssnitt',
+      flavor: 'API-typ',
       advanced: 'Avancerat: protokollmall',
       promptTemplate: 'Protokollmall',
       promptHint: 'Instruktionen som styr protokollet. {{transcript}} byts mot transkriptet.'
@@ -200,7 +201,7 @@ export const strings = {
       openai: 'OpenAI',
       azure: 'Azure OpenAI',
       anthropic: 'Anthropic',
-      custom: 'Egen endpoint'
+      custom: 'Egen adress'
     }
   },
 
