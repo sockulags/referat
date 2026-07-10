@@ -1,6 +1,6 @@
 {
   "name": "referat",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Mötesanteckningar som stannar hos dig — lokal mötesinspelning, transkribering och protokoll.",
   "main": "./out/main/index.js",
   "author": "Lucas Skog <lucasskog@gmail.com>",
