@@ -36,6 +36,23 @@ export interface Transcript {
   text: string
   /** Speaker id -> display name ('S1' -> 'Talare 1' or a user-chosen name). */
   speakers?: Record<string, string>
+  /**
+   * Speaker id -> voice embedding from the diarization server. Only present
+   * when voice recognition is enabled (biometric data — see produkt.md).
+   */
+  speakerEmbeddings?: Record<string, number[]>
+  /** Speaker id -> suggested display name from voice recognition ("Anna?"). */
+  speakerSuggestions?: Record<string, string>
+}
+
+/** A locally stored voice profile (the embedding itself never crosses IPC). */
+export interface SpeakerProfile {
+  id: string
+  name: string
+  /** ISO 8601 timestamp of the last meeting that updated this profile. */
+  updatedAt: string
+  /** Number of meetings that have contributed to the voice profile. */
+  sampleCount: number
 }
 
 export interface MeetingDetail extends MeetingMeta {
@@ -77,6 +94,11 @@ export interface DiarizationSettings {
   enabled: boolean
   /** Base URL of the local diarization server, e.g. http://localhost:8300 */
   baseUrl: string
+  /**
+   * Feature flag: recognize speakers across meetings via locally stored voice
+   * profiles. Off by default — voiceprints are biometric data (GDPR).
+   */
+  recognitionEnabled: boolean
 }
 
 export interface AppSettings {
@@ -146,8 +168,16 @@ export interface RendererApi {
   resummarize(id: string): Promise<void>
 
   // Speakers
-  /** Rename a diarized speaker; persisted to transcript.json. */
+  /**
+   * Rename a diarized speaker; persisted to transcript.json. With voice
+   * recognition enabled this also saves/updates the local voice profile.
+   */
   renameSpeaker(meetingId: string, speakerId: string, name: string): Promise<void>
+  /** Reject a recognition suggestion; removed from transcript.json. */
+  dismissSpeakerSuggestion(meetingId: string, speakerId: string): Promise<void>
+  listSpeakerProfiles(): Promise<SpeakerProfile[]>
+  deleteSpeakerProfile(id: string): Promise<void>
+  deleteAllSpeakerProfiles(): Promise<void>
 
   // Recording: renderer captures & encodes; main persists chunks.
   startRecording(title: string): Promise<RecordingHandle>

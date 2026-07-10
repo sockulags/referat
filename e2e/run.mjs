@@ -132,6 +132,10 @@ async function main() {
   assert(await seen('Identifiera talare'), 'settings shows the speaker section')
   await page.getByLabel('Identifiera talare').click()
   await page.waitForTimeout(300)
+  // Voice recognition across meetings (renaming a speaker saves a profile).
+  assert(await seen('Känn igen talare mellan möten'), 'settings shows the voice recognition toggle')
+  await page.getByLabel('Känn igen talare mellan möten').click()
+  await page.waitForTimeout(300)
   await page.getByLabel('Serveradress').fill('http://localhost:8000')
   // Only Transkribering, Sammanfattning and Talare have a Spara button; Talare is last.
   await page.getByRole('button', { name: 'Spara', exact: true }).last().click()
@@ -212,6 +216,46 @@ async function main() {
   await page.waitForTimeout(1000)
   await shot('home-list')
   assert(await seen('Klar', 8000), 'meeting list shows the "Klar" status chip')
+
+  // --- Second meeting: the voice enrolled as "Anna" is recognized again
+  const title2 = page.getByPlaceholder(/titel/i)
+  if (await title2.count()) await title2.fill('Uppföljning HR')
+  await page.getByText('Starta inspelning', { exact: true }).first().click()
+  await page.waitForTimeout(3000)
+  await page.waitForTimeout(12000)
+  await page.getByText('Stoppa och spara').click()
+  await page.waitForTimeout(1500)
+  assert(await seen('Protokoll', 40000), 'second meeting pipeline reaches done')
+  await page.waitForTimeout(1000)
+
+  await page.getByText('Transkript', { exact: true }).first().click()
+  await page.waitForTimeout(600)
+  assert(await seen('Anna?', 8000), 'second meeting transcript shows the "Anna?" voice suggestion')
+  await shot('transcript-suggestion')
+
+  // Confirm the suggestion: click the label, keep the prefilled name, Enter.
+  await page.getByText('Anna?', { exact: true }).first().click()
+  await page.waitForTimeout(400)
+  const suggestionInput = page.getByPlaceholder('Namn, t.ex. Anna')
+  assert(
+    (await suggestionInput.inputValue()) === 'Anna',
+    'rename input is prefilled with the suggested name "Anna"'
+  )
+  await suggestionInput.press('Enter')
+  await page.waitForTimeout(1500)
+  assert(await seen('Anna', 5000), 'confirmed speaker label "Anna" is visible')
+  assert(
+    (await page.getByText('Anna?', { exact: true }).count()) === 0,
+    'suggestion label "Anna?" is gone after confirming'
+  )
+  await shot('transcript-suggestion-confirmed')
+
+  // --- Settings: the saved voice is listed under "Sparade röster"
+  await page.getByLabel('Öppna inställningar').click()
+  await page.waitForTimeout(1000)
+  assert(await seen('Sparade röster', 8000), 'settings shows the saved voices list')
+  assert(await seen('Anna', 5000), 'saved voice "Anna" is listed under "Sparade röster"')
+  await shot('settings-voices')
 
   console.log('CONSOLE_ERRORS:', JSON.stringify(consoleErrors, null, 2))
   assert(consoleErrors.length === 0, 'no renderer console errors during the run')

@@ -113,6 +113,17 @@ group is called **Talare**.
   `http://localhost:8300`.
 - **Test connection** (*Testa anslutning*) — checks the server's `/health` endpoint; a
   network error means the address is wrong or the server isn't running.
+- **Recognize speakers across meetings** (*Känn igen talare mellan möten*) — optional
+  sub-toggle, off by default; only shown when speaker identification is on. When on,
+  renaming a speaker saves a local voiceprint, and in later meetings a matching voice is
+  suggested with a question mark ("Anna?") for you to confirm or dismiss. Voiceprints are
+  biometric data and everything is stored locally — see
+  [Speaker Diarization](Speaker-Diarization) for details, data locations and the GDPR
+  notes.
+- **Saved voices** (*Sparade röster*) — the list of saved voice profiles, shown when
+  recognition is on. Each entry has a **"Glöm rösten"** button that removes that voice;
+  **"Glöm alla röster"** removes all of them (with a confirmation — it can't be undone).
+  Names already written in transcripts are unaffected.
 
 A diarization failure never blocks the minutes: the meeting gets a warning note and the
 protocol is still produced, just without speaker labels.

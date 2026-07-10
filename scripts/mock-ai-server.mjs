@@ -34,6 +34,9 @@ Mötet gick igenom kvartalets rekryteringar och planeringen inför introduktions
 - Policyn för distansarbete bordlades till nästa möte.`
 
 // Matches the mock transcript segments, so merged speakers become S1/S2 alternating.
+// Embeddings are constant across requests so recognition can be exercised
+// end-to-end: name S1 in one meeting, get the suggestion in the next. The app
+// ignores them entirely when voice recognition is off.
 const diarization = {
   turns: [
     { start: 0, end: 6, speaker: 'S1' },
@@ -41,7 +44,11 @@ const diarization = {
     { start: 12, end: 18, speaker: 'S1' },
     { start: 18, end: 24, speaker: 'S2' }
   ],
-  speakers: 2
+  speakers: 2,
+  embeddings: {
+    S1: [1, 0, 0, 0, 0, 0, 0, 0],
+    S2: [0, 1, 0, 0, 0, 0, 0, 0]
+  }
 }
 
 const server = http.createServer((req, res) => {

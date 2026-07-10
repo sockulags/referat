@@ -4,9 +4,13 @@ HTTP contract (see referat/docs/arkitektur.md, "Talardiarisering"):
 
   GET  /health   -> { "status": "ok", "model": "<id>", "device": "cuda"|"cpu" }
   POST /diarize  -> multipart form, repeated field `files` (audio files in
-                    recording order), optional form field `num_speakers`.
+                    recording order), optional form fields `num_speakers` and
+                    `embeddings` ("1"/"true" enables per-speaker voiceprints).
                     Response: { "turns": [{ "start", "end", "speaker" }],
                                 "speakers": <count> }
+                    plus, when embeddings are requested,
+                    "embeddings": { "S1": [float, ...], ... } - one
+                    L2-normalized voice embedding per speaker.
 
 All files in one request are decoded to 16 kHz mono, concatenated into a
 single waveform and diarized in one pipeline run - that is what makes speaker
@@ -108,8 +112,11 @@ def annotation_of(result):
     return getattr(result, "speaker_diarization", result)
 
 
-def turns_from_annotation(annotation) -> tuple[list[dict], int]:
-    """Convert an Annotation to normalized turns (S1, S2, ... by first appearance)."""
+def turns_from_annotation(annotation) -> tuple[list[dict], dict[str, str]]:
+    """Convert an Annotation to normalized turns (S1, S2, ... by first appearance).
+
+    Returns (turns, mapping) where mapping is original label -> normalized label.
+    """
     mapping: dict[str, str] = {}
     turns: list[dict] = []
     # itertracks yields segments in chronological order.
@@ -123,7 +130,39 @@ def turns_from_annotation(annotation) -> tuple[list[dict], int]:
                 "speaker": mapping[label],
             }
         )
-    return turns, len(mapping)
+    return turns, mapping
+
+
+def embeddings_from_result(result, mapping: dict[str, str]) -> dict[str, list[float]]:
+    """Extract one L2-normalized voice embedding per normalized speaker label.
+
+    pyannote.audio 4.x community pipelines return a structured output whose
+    `speaker_embeddings` is a (num_speakers, dimension) array of cluster
+    centroids, ordered like `speaker_diarization.labels()`. L2-normalizing
+    here means the client can compare voiceprints with a plain dot product
+    (equal to cosine similarity).
+
+    Raises RuntimeError if the pipeline result does not carry embeddings
+    (e.g. a legacy pipeline that returns a bare Annotation).
+    """
+    vectors = getattr(result, "speaker_embeddings", None)
+    if vectors is None:
+        raise RuntimeError(
+            "The loaded pipeline does not expose speaker embeddings; "
+            "use pyannote/speaker-diarization-community-1 (pyannote.audio >= 4)."
+        )
+    labels = annotation_of(result).labels()
+    embeddings: dict[str, list[float]] = {}
+    for index, label in enumerate(labels):
+        vector = np.asarray(vectors[index], dtype=np.float64)
+        norm = float(np.linalg.norm(vector))
+        if norm > 0.0:
+            vector = vector / norm
+        # A zero vector can occur for a speaker the clustering step could not
+        # give a centroid (rare edge case); it is returned as-is and yields
+        # cosine similarity 0 against everything, i.e. "no match".
+        embeddings[mapping[label]] = [float(x) for x in vector]
+    return embeddings
 
 
 def create_app(pipeline, model: str, device: str) -> FastAPI:
@@ -140,7 +179,9 @@ def create_app(pipeline, model: str, device: str) -> FastAPI:
     def diarize(
         files: list[UploadFile] = File(...),
         num_speakers: int | None = Form(default=None),
+        embeddings: str | None = Form(default=None),
     ):
+        want_embeddings = (embeddings or "").strip().lower() in {"1", "true", "yes", "on"}
         waveforms: list[np.ndarray] = []
         for f in files:
             data = f.file.read()
@@ -166,16 +207,27 @@ def create_app(pipeline, model: str, device: str) -> FastAPI:
         except Exception as e:
             log.exception("Diarization failed")
             raise HTTPException(status_code=500, detail=f"Diarization failed: {e}")
-        turns, speakers = turns_from_annotation(annotation_of(result))
+        turns, mapping = turns_from_annotation(annotation_of(result))
+        speakers = len(mapping)
+        response = {"turns": turns, "speakers": speakers}
+        if want_embeddings:
+            try:
+                response["embeddings"] = embeddings_from_result(result, mapping)
+            except Exception as e:
+                log.exception("Embedding extraction failed")
+                raise HTTPException(
+                    status_code=500, detail=f"Embedding extraction failed: {e}"
+                )
         log.info(
-            "Diarized %d file(s), %.1f s audio, %d turns, %d speaker(s) in %.1f s",
+            "Diarized %d file(s), %.1f s audio, %d turns, %d speaker(s)%s in %.1f s",
             len(files),
             duration,
             len(turns),
             speakers,
+            " + embeddings" if want_embeddings else "",
             time.monotonic() - t0,
         )
-        return {"turns": turns, "speakers": speakers}
+        return response
 
     return app
 

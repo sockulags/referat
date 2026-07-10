@@ -101,6 +101,101 @@ export function renameSpeakerInTranscript(
 }
 
 /**
+ * Remove a recognition suggestion for one speaker. Returns the same object
+ * when there is nothing to remove; drops the whole map when it becomes empty.
+ */
+export function dismissSuggestionInTranscript(
+  transcript: Transcript,
+  speakerId: string
+): Transcript {
+  const suggestions = transcript.speakerSuggestions
+  if (!suggestions || !(speakerId in suggestions)) return transcript
+  const rest = { ...suggestions }
+  delete rest[speakerId]
+  const next = { ...transcript }
+  if (Object.keys(rest).length > 0) next.speakerSuggestions = rest
+  else delete next.speakerSuggestions
+  return next
+}
+
+// ---- Voice recognition across meetings (pure matching logic) ----
+
+/**
+ * Minimum cosine similarity for a profile match. Calibrated against the
+ * community-1 pipeline's 256-dim centroids: same voice across meetings
+ * measured ≥0.95, different voices ≤0.17 — 0.6 favors recall (matches are
+ * only ever shown as suggestions) while keeping a wide margin both ways.
+ */
+export const RECOGNITION_THRESHOLD = 0.6
+
+/** Display names still on the default 'Talare N' pattern are safe to suggest over. */
+export function isDefaultSpeakerName(name: string): boolean {
+  return /^Talare \d+$/.test(name)
+}
+
+/**
+ * Cosine similarity in [-1, 1]. Vectors of different length (e.g. after a
+ * model change on the server) or with zero norm compare as 0 — never a match.
+ */
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) return 0
+  let dot = 0
+  let normA = 0
+  let normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+  if (normA === 0 || normB === 0) return 0
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB))
+}
+
+export interface ProfileWithEmbedding {
+  id: string
+  name: string
+  embedding: number[]
+}
+
+/**
+ * Match this meeting's speakers against stored voice profiles. Greedy
+ * best-first UNIQUE assignment: all speaker×profile pairs are ranked by
+ * similarity, and a pair is assigned only when both sides are still unused
+ * and the similarity clears the threshold. Two speakers can therefore never
+ * be suggested the same profile name. Returns speaker id -> profile name.
+ */
+export function matchSpeakerProfiles(
+  embeddings: Record<string, number[]>,
+  profiles: ProfileWithEmbedding[],
+  threshold: number
+): Record<string, string> {
+  interface Pair {
+    speakerId: string
+    profile: ProfileWithEmbedding
+    similarity: number
+  }
+  const pairs: Pair[] = []
+  for (const [speakerId, embedding] of Object.entries(embeddings)) {
+    for (const profile of profiles) {
+      const similarity = cosineSimilarity(embedding, profile.embedding)
+      if (similarity >= threshold) pairs.push({ speakerId, profile, similarity })
+    }
+  }
+  pairs.sort((a, b) => b.similarity - a.similarity)
+
+  const usedSpeakers = new Set<string>()
+  const usedProfiles = new Set<string>()
+  const suggestions: Record<string, string> = {}
+  for (const { speakerId, profile } of pairs) {
+    if (usedSpeakers.has(speakerId) || usedProfiles.has(profile.id)) continue
+    usedSpeakers.add(speakerId)
+    usedProfiles.add(profile.id)
+    suggestions[speakerId] = profile.name
+  }
+  return suggestions
+}
+
+/**
  * Transcript text with speaker attribution, for the {{transcript}} slot in
  * the prompt template. Consecutive segments by the same speaker are grouped
  * into one "Name: text" paragraph; paragraphs are separated by blank lines.

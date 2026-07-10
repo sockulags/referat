@@ -32,6 +32,13 @@ interface RawTurn {
 
 interface DiarizeResponse {
   turns?: RawTurn[]
+  embeddings?: Record<string, unknown>
+}
+
+export interface DiarizationResult {
+  turns: DiarizationTurn[]
+  /** Speaker id -> voice embedding; only present when recognition is enabled. */
+  embeddings?: Record<string, number[]>
 }
 
 /** Map the raw server payload to turns, tolerating missing/odd fields. */
@@ -49,19 +56,41 @@ function buildTurns(data: DiarizeResponse): DiarizationTurn[] {
 }
 
 /**
+ * Only arrays of finite numbers count as embeddings; anything else the server
+ * sends (wrong type, NaN, empty) is dropped entry by entry.
+ */
+function buildEmbeddings(data: DiarizeResponse): Record<string, number[]> | undefined {
+  const raw = data.embeddings
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined
+  const embeddings: Record<string, number[]> = {}
+  for (const [speaker, value] of Object.entries(raw)) {
+    if (
+      Array.isArray(value) &&
+      value.length > 0 &&
+      value.every((n) => typeof n === 'number' && Number.isFinite(n))
+    ) {
+      embeddings[speaker] = value as number[]
+    }
+  }
+  return Object.keys(embeddings).length > 0 ? embeddings : undefined
+}
+
+/**
  * Diarize a meeting's audio segments. All files travel in ONE request, in
  * recording order — that is what keeps the speaker labels ('S1', 'S2', …)
- * globally consistent across files.
+ * globally consistent across files. With recognition enabled the server is
+ * asked for one voice embedding per speaker as well.
  */
 export async function diarize(
   audioFilePaths: string[],
   config: DiarizationConfig
-): Promise<DiarizationTurn[]> {
+): Promise<DiarizationResult> {
   const form = new FormData()
   for (const path of audioFilePaths) {
     const bytes = await readFile(path)
     form.append('files', new File([bytes], basename(path), { type: 'audio/webm' }))
   }
+  if (config.recognitionEnabled) form.append('embeddings', 'true')
 
   const url = `${trimBaseUrl(config.baseUrl)}/diarize`
   const res = await providerFetch(url, {
@@ -75,7 +104,10 @@ export async function diarize(
   }
 
   const data = (await res.json()) as DiarizeResponse
-  return buildTurns(data)
+  const turns = buildTurns(data)
+  if (!config.recognitionEnabled) return { turns }
+  const embeddings = buildEmbeddings(data)
+  return embeddings ? { turns, embeddings } : { turns }
 }
 
 interface HealthResponse {

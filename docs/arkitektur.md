@@ -83,6 +83,19 @@ konfigureras med en bas-URL och en "Testa anslutning"-knapp.
   segment-slutet per fil medan diariseringen använder verklig ljudlängd; den
   lilla driften vid filgränser hanteras av överlappsmatchningen i stället för
   exakta gränser.
+- **Röstigenkänning mellan möten** (featureflagga, av som default —
+  röstavtryck är biometriska uppgifter): när flaggan är på skickar klienten
+  `embeddings=true` i `/diarize`-anropet och servern svarar även med en
+  embedding-vektor per talare (`embeddings: { "S1": [...] }`). Utan flaggan
+  beräknas inga röstavtryck alls. Namnger användaren en talare sparas/uppdateras
+  en lokal röstprofil (`userData/speaker-profiles.json`, centroid +
+  sampleCount). Vid nästa diarisering matchas mötets talare mot profilerna
+  (cosinuslikhet, tröskel + unik tilldelning via bäst-först) och träffar blir
+  **förslag** (`speakerSuggestions`, visas som "Anna?" i transkriptet) — aldrig
+  tysta namnsättningar; användaren bekräftar eller avfärdar. Profiler kan
+  raderas enskilt eller alla på en gång från inställningarna ("glöm rösten").
+  Embeddings persisteras per möte i transcript.json endast när flaggan är på;
+  dimensionsmismatch (t.ex. efter modellbyte på servern) ignoreras defensivt.
 
 ## Export
 

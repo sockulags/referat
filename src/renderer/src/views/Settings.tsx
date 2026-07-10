@@ -1,6 +1,11 @@
 import type { JSX, ReactNode } from 'react'
-import { useEffect, useState } from 'react'
-import type { AppSettings, SummaryPreset, TranscriptionPreset } from '../../../shared/types'
+import { useCallback, useEffect, useState } from 'react'
+import type {
+  AppSettings,
+  SpeakerProfile,
+  SummaryPreset,
+  TranscriptionPreset
+} from '../../../shared/types'
 import { useApp, applyTheme } from '../store'
 import { strings } from '../strings'
 import {
@@ -14,6 +19,7 @@ import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input, Select, Textarea, Field } from '../components/ui/Field'
 import { Toggle } from '../components/ui/Toggle'
+import { Modal } from '../components/ui/Modal'
 import { ConnectionTest } from '../components/ConnectionTest'
 import { IconSun, IconMoon, IconMonitor, IconChevronDown } from '../components/icons'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
@@ -363,13 +369,14 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
   const d = settings.diarization
   const [enabled, setEnabled] = useState(d.enabled)
   const [baseUrl, setBaseUrl] = useState(d.baseUrl)
+  const [recognitionEnabled, setRecognitionEnabled] = useState(d.recognitionEnabled)
   const [saving, setSaving] = useState(false)
 
   const save = async (): Promise<void> => {
     setSaving(true)
     try {
-      await window.api.saveDiarizationSettings({ enabled, baseUrl })
-      patchSettings({ diarization: { enabled, baseUrl } })
+      await window.api.saveDiarizationSettings({ enabled, baseUrl, recognitionEnabled })
+      patchSettings({ diarization: { enabled, baseUrl, recognitionEnabled } })
       toast(strings.common.saved)
     } finally {
       setSaving(false)
@@ -388,6 +395,15 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
         label={strings.settings.diarization.enable}
         description={strings.settings.diarization.enableHint}
       />
+      {enabled && (
+        <Toggle
+          id="diarization-recognition"
+          checked={recognitionEnabled}
+          onChange={setRecognitionEnabled}
+          label={strings.settings.diarization.recognition.enable}
+          description={strings.settings.diarization.recognition.enableHint}
+        />
+      )}
       <Input
         label={strings.settings.diarization.baseUrl}
         value={baseUrl}
@@ -404,7 +420,98 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
           }}
         />
       </div>
+      {enabled && recognitionEnabled && <SpeakerProfilesBlock />}
     </Section>
+  )
+}
+
+/** List of locally saved voice profiles, with per-profile and bulk removal. */
+function SpeakerProfilesBlock(): JSX.Element {
+  const r = strings.settings.diarization.recognition
+  const [profiles, setProfiles] = useState<SpeakerProfile[]>([])
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const refresh = useCallback(async (): Promise<void> => {
+    try {
+      setProfiles(await window.api.listSpeakerProfiles())
+    } catch {
+      setProfiles([])
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    window.api
+      .listSpeakerProfiles()
+      .then((p) => {
+        if (!cancelled) setProfiles(p)
+      })
+      .catch(() => {
+        if (!cancelled) setProfiles([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const forget = async (id: string): Promise<void> => {
+    await window.api.deleteSpeakerProfile(id)
+    await refresh()
+  }
+
+  const forgetAll = async (): Promise<void> => {
+    await window.api.deleteAllSpeakerProfiles()
+    setConfirmOpen(false)
+    await refresh()
+  }
+
+  return (
+    <div className="pt-4 border-t border-border">
+      <h3 className="text-sm font-semibold text-fg mb-2">{r.profilesTitle}</h3>
+      {profiles.length === 0 ? (
+        <p className="text-sm text-fg-muted">{r.profilesEmpty}</p>
+      ) : (
+        <>
+          <ul className="flex flex-col divide-y divide-border">
+            {profiles.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0 truncate">
+                  <span className="text-sm font-medium text-fg">{p.name}</span>
+                  <span className="ml-2 text-xs text-fg-muted tabular-nums">
+                    {p.sampleCount} {r.profileMeetings}
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => void forget(p.id)}>
+                  {r.forget}
+                </Button>
+              </li>
+            ))}
+          </ul>
+          <div className="pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)}>
+              {r.forgetAll}
+            </Button>
+          </div>
+        </>
+      )}
+      <Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title={r.forgetAllConfirmTitle}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
+              {strings.common.cancel}
+            </Button>
+            <Button variant="danger" onClick={() => void forgetAll()}>
+              {r.forgetAllConfirm}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-muted leading-relaxed">{r.forgetAllConfirmBody}</p>
+      </Modal>
+    </div>
   )
 }
 

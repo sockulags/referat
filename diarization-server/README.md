@@ -83,6 +83,8 @@ Multipart form:
 - `files` — one or more audio files **in recording order**. webm/opus (from
   MediaRecorder), wav, ogg, mp3 — anything FFmpeg decodes.
 - `num_speakers` — optional integer; fixes the number of speakers if known.
+- `embeddings` — optional; `1` or `true` adds per-speaker voice embeddings to
+  the response (default off).
 
 All files are decoded to 16 kHz mono, concatenated into one waveform and
 diarized in a single pipeline run — this is what makes speaker labels globally
@@ -100,6 +102,28 @@ consistent across files. Response:
 
 Times are seconds on the concatenated global timeline. Speakers are labeled
 `S1`, `S2`, ... in order of first appearance.
+
+With `embeddings=1` the response also contains one voice embedding
+(voiceprint) per speaker:
+
+```json
+{
+  "turns": [...],
+  "speakers": 2,
+  "embeddings": {
+    "S1": [0.0132, -0.0308, ...],
+    "S2": [0.0087, 0.0412, ...]
+  }
+}
+```
+
+Each vector is the pipeline's cluster centroid for that speaker (256
+dimensions with the default model), **L2-normalized** so cosine similarity
+between two voiceprints is a plain dot product. Voiceprints are only computed
+and returned when explicitly requested; without the field the response is
+unchanged. Embeddings from the same server/model are comparable across
+requests (that is the point — recognizing a returning voice across meetings);
+do not compare embeddings produced by different embedding models.
 
 Errors: `400` with a JSON `detail` for undecodable input, `500` with `detail`
 for anything else.

@@ -16,7 +16,9 @@ import {
 } from 'fs'
 import type { WriteStream } from 'fs'
 import type { MeetingMeta, MeetingDetail, Transcript } from '../shared/types'
-import { renameSpeakerInTranscript } from './diarize'
+import { dismissSuggestionInTranscript, renameSpeakerInTranscript } from './diarize'
+import { getDiarizationConfig } from './settings'
+import { upsertProfile } from './speakerProfiles'
 
 function meetingsDir(): string {
   const dir = join(app.getPath('userData'), 'meetings')
@@ -173,11 +175,35 @@ export function hasTranscript(id: string): boolean {
   return existsSync(transcriptPath(id))
 }
 
-/** Set a diarized speaker's display name. No-op when transcript/speaker is missing. */
+/**
+ * Set a diarized speaker's display name. No-op when transcript/speaker is
+ * missing. A successful non-empty rename settles any recognition suggestion
+ * for that speaker, and — with voice recognition enabled and an embedding on
+ * the transcript — enrolls/updates the local voice profile for the name.
+ */
 export function renameSpeaker(id: string, speakerId: string, name: string): void {
   const transcript = readTranscript(id)
   if (!transcript) return
-  const next = renameSpeakerInTranscript(transcript, speakerId, name)
+  let next = renameSpeakerInTranscript(transcript, speakerId, name)
+  if (next === transcript) return
+
+  const trimmed = name.trim()
+  if (trimmed) {
+    // The user has decided — whatever recognition suggested is now moot.
+    next = dismissSuggestionInTranscript(next, speakerId)
+    const embedding = next.speakerEmbeddings?.[speakerId]
+    if (embedding && getDiarizationConfig().recognitionEnabled) {
+      upsertProfile(trimmed, embedding)
+    }
+  }
+  writeTranscript(id, next)
+}
+
+/** Reject a recognition suggestion. No-op when the suggestion is absent. */
+export function dismissSpeakerSuggestion(id: string, speakerId: string): void {
+  const transcript = readTranscript(id)
+  if (!transcript) return
+  const next = dismissSuggestionInTranscript(transcript, speakerId)
   if (next !== transcript) writeTranscript(id, next)
 }
 

@@ -12,6 +12,10 @@ export const IPC = {
 
   // Speakers
   renameSpeaker: 'speakers:rename',
+  dismissSpeakerSuggestion: 'speakers:dismiss-suggestion',
+  listSpeakerProfiles: 'speakers:list-profiles',
+  deleteSpeakerProfile: 'speakers:delete-profile',
+  deleteAllSpeakerProfiles: 'speakers:delete-all-profiles',
 
   // Recording
   startRecording: 'recording:start',

@@ -7,8 +7,11 @@ import type { DiarizationConfig } from '../settings'
 
 const config: DiarizationConfig = {
   enabled: true,
-  baseUrl: 'http://localhost:8300'
+  baseUrl: 'http://localhost:8300',
+  recognitionEnabled: false
 }
+
+const recognitionConfig: DiarizationConfig = { ...config, recognitionEnabled: true }
 
 let dir: string
 
@@ -64,9 +67,9 @@ describe('diarize', () => {
       })
     ])
 
-    const turns = await diarize([a], config)
+    const result = await diarize([a], config)
 
-    expect(turns).toEqual([
+    expect(result.turns).toEqual([
       { startSec: 0, endSec: 6, speaker: 'S1' },
       { startSec: 6, endSec: 12, speaker: 'S2' }
     ])
@@ -102,9 +105,9 @@ describe('diarize', () => {
       })
     ])
 
-    const turns = await diarize([a], config)
+    const result = await diarize([a], config)
 
-    expect(turns).toEqual([
+    expect(result.turns).toEqual([
       { startSec: 0, endSec: 6, speaker: 'S1' },
       { startSec: 6, endSec: 6, speaker: 'S2' },
       { startSec: 20, endSec: 20, speaker: 'S3' }
@@ -114,13 +117,70 @@ describe('diarize', () => {
   it('returns no turns when the body lacks a turns array', async () => {
     const a = makeFile('empty.webm')
     queueFetch([jsonResponse({})])
-    await expect(diarize([a], config)).resolves.toEqual([])
+    await expect(diarize([a], config)).resolves.toEqual({ turns: [] })
   })
 
   it('throws an HttpError-derived error on a non-2xx response', async () => {
     const a = makeFile('bad.webm')
     queueFetch([new Response('nope', { status: 500 })])
     await expect(diarize([a], config)).rejects.toThrow(/HTTP 500/)
+  })
+
+  it('requests and parses embeddings when recognition is enabled', async () => {
+    const a = makeFile('recog.webm')
+    const fetchFn = queueFetch([
+      jsonResponse({
+        turns: [{ start: 0, end: 6, speaker: 'S1' }],
+        embeddings: { S1: [1, 0, 0], S2: [0, 1, 0] }
+      })
+    ])
+
+    const result = await diarize([a], recognitionConfig)
+
+    const [, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit]
+    const form = init.body as FormData
+    expect(form.get('embeddings')).toBe('true')
+    expect(result.embeddings).toEqual({ S1: [1, 0, 0], S2: [0, 1, 0] })
+  })
+
+  it('does not request embeddings when recognition is disabled, and ignores any in the response', async () => {
+    const a = makeFile('norecog.webm')
+    const fetchFn = queueFetch([jsonResponse({ turns: [], embeddings: { S1: [1, 0, 0] } })])
+
+    const result = await diarize([a], config)
+
+    const [, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit]
+    const form = init.body as FormData
+    expect(form.get('embeddings')).toBeNull()
+    expect(result).toEqual({ turns: [] })
+  })
+
+  it('drops malformed embedding entries and keeps the valid ones', async () => {
+    const a = makeFile('badvec.webm')
+    queueFetch([
+      jsonResponse({
+        turns: [],
+        embeddings: {
+          S1: [0.5, -0.5], // valid
+          S2: [1, NaN], // non-finite (NaN serializes to null) -> dropped
+          S3: 'not-an-array', // wrong type -> dropped
+          S4: [], // empty -> dropped
+          S5: [1, 'two'] // mixed types -> dropped
+        }
+      })
+    ])
+
+    const result = await diarize([a], recognitionConfig)
+
+    expect(result.embeddings).toEqual({ S1: [0.5, -0.5] })
+  })
+
+  it('omits embeddings entirely when the response has none valid', async () => {
+    const a = makeFile('novalid.webm')
+    queueFetch([jsonResponse({ turns: [], embeddings: { S1: 'junk' } })])
+    const result = await diarize([a], recognitionConfig)
+    expect(result).toEqual({ turns: [] })
+    expect(result).not.toHaveProperty('embeddings')
   })
 })
 

@@ -35,6 +35,8 @@ interface StoredSummary {
 interface StoredDiarization {
   enabled: boolean
   baseUrl: string
+  /** Voice recognition across meetings (biometric data) — off by default. */
+  recognitionEnabled: boolean
 }
 
 interface StoredSettings {
@@ -88,7 +90,8 @@ function defaults(): StoredSettings {
     },
     diarization: {
       enabled: false,
-      baseUrl: 'http://localhost:8300'
+      baseUrl: 'http://localhost:8300',
+      recognitionEnabled: false
     },
     microphoneId: '',
     captureSystemAudio: true,
@@ -195,7 +198,8 @@ export function getSettings(): AppSettings {
     },
     diarization: {
       enabled: s.diarization.enabled,
-      baseUrl: s.diarization.baseUrl
+      baseUrl: s.diarization.baseUrl,
+      recognitionEnabled: s.diarization.recognitionEnabled
     },
     microphoneId: s.microphoneId,
     captureSystemAudio: s.captureSystemAudio,
@@ -233,7 +237,8 @@ export function saveDiarizationSettings(payload: SaveDiarizationSettings): void 
   const s = load()
   s.diarization = {
     enabled: payload.enabled,
-    baseUrl: payload.baseUrl
+    baseUrl: payload.baseUrl,
+    recognitionEnabled: payload.recognitionEnabled
   }
   persist(s)
 }
@@ -282,13 +287,15 @@ export function getTranscriptionConfig(): TranscriptionConfig {
 export interface DiarizationConfig {
   enabled: boolean
   baseUrl: string
+  recognitionEnabled: boolean
 }
 
 export function getDiarizationConfig(): DiarizationConfig {
   const s = load()
   return {
     enabled: s.diarization.enabled,
-    baseUrl: s.diarization.baseUrl
+    baseUrl: s.diarization.baseUrl,
+    recognitionEnabled: s.diarization.recognitionEnabled
   }
 }
 

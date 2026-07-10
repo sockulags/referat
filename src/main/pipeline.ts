@@ -18,8 +18,16 @@ import { getDiarizationConfig, getSummaryConfig, getTranscriptionConfig } from '
 import { transcribe } from './providers/transcription'
 import { summarize } from './providers/summary'
 import { diarize } from './providers/diarization'
-import { mergeDiarization, speakerAttributedText } from './diarize'
+import {
+  isDefaultSpeakerName,
+  matchSpeakerProfiles,
+  mergeDiarization,
+  RECOGNITION_THRESHOLD,
+  speakerAttributedText
+} from './diarize'
+import { profilesWithEmbeddings } from './speakerProfiles'
 import { classifyError, UserFacingError } from './providers/shared'
+import type { Transcript } from '../shared/types'
 
 /** 'diarize' = re-run diarization on the existing transcript, then summarize. */
 type JobMode = 'full' | 'diarize' | 'summarize'
@@ -86,14 +94,44 @@ async function runDiarization(meetingId: string): Promise<void> {
   updateMeta(meetingId, { status: 'diarizing' })
   emit({ meetingId, status: 'diarizing' })
   try {
-    const turns = await diarize(audioPaths, config)
-    writeTranscript(meetingId, mergeDiarization(transcript, turns))
+    const result = await diarize(audioPaths, config)
+    let merged = mergeDiarization(transcript, result.turns)
+    if (config.recognitionEnabled && result.embeddings) {
+      merged = applyRecognition(merged, result.embeddings)
+    }
+    writeTranscript(meetingId, merged)
   } catch (err) {
     const { detail } = classifyError(err)
     updateMeta(meetingId, {
       warning: { message: 'Talarna kunde inte identifieras — protokollet skapas ändå', detail }
     })
   }
+}
+
+/**
+ * Voice recognition (flag on only — with the flag off nothing biometric is
+ * ever stored): keep the embeddings on the transcript so a later rename can
+ * enroll a profile, and turn profile matches into SUGGESTIONS ("Anna?").
+ * Suggestions are only made for speakers still on their default 'Talare N'
+ * name — a name the user chose is never fought over.
+ */
+function applyRecognition(
+  transcript: Transcript,
+  embeddings: Record<string, number[]>
+): Transcript {
+  const next: Transcript = { ...transcript, speakerEmbeddings: embeddings }
+  // A re-run replaces last run's recognition output; stale suggestions must
+  // not survive a fresh diarization.
+  delete next.speakerSuggestions
+  const matches = matchSpeakerProfiles(embeddings, profilesWithEmbeddings(), RECOGNITION_THRESHOLD)
+  const names = next.speakers ?? {}
+  const suggestions: Record<string, string> = {}
+  for (const [speakerId, profileName] of Object.entries(matches)) {
+    const display = names[speakerId]
+    if (display && isDefaultSpeakerName(display)) suggestions[speakerId] = profileName
+  }
+  if (Object.keys(suggestions).length > 0) next.speakerSuggestions = suggestions
+  return next
 }
 
 async function runJob(job: Job): Promise<void> {

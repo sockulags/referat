@@ -99,6 +99,8 @@ export const strings = {
     warningTitle: 'Protokollet är klart — med en notis',
     speakerRenameHint: 'Klicka för att byta namn på talaren',
     speakerNamePlaceholder: 'Namn, t.ex. Anna',
+    speakerSuggestionHint: 'Föreslaget namn utifrån rösten — klicka för att bekräfta eller ändra',
+    speakerSuggestionDismiss: 'Nej, ta bort förslaget',
     speakersChangedHint:
       'Du har ändrat talarnamn. Skapa protokollet igen så används de nya namnen.',
     updateProtocol: 'Uppdatera protokollet',
@@ -194,7 +196,22 @@ export const strings = {
       enableHint:
         'Kräver en lokal talarserver på din dator eller i nätverket — se guiden på webbplatsen. Namnen går att ändra i efterhand.',
       baseUrl: 'Serveradress',
-      baseUrlHint: 'Adressen till talarservern, t.ex. http://localhost:8300'
+      baseUrlHint: 'Adressen till talarservern, t.ex. http://localhost:8300',
+      recognition: {
+        enable: 'Känn igen talare mellan möten',
+        enableHint:
+          'När du namnger en talare sparas ett röstavtryck på din dator, och nästa gång rösten hörs föreslås namnet med ett frågetecken — du bekräftar alltid själv. Röstavtryck räknas som biometriska uppgifter: berätta för mötesdeltagarna och ta bort avtryck på begäran.',
+        profilesTitle: 'Sparade röster',
+        profilesEmpty:
+          'Inga sparade röster än. Namnge en talare i ett transkript så sparas rösten här.',
+        profileMeetings: 'möten',
+        forget: 'Glöm rösten',
+        forgetAll: 'Glöm alla röster',
+        forgetAllConfirmTitle: 'Glöm alla röster?',
+        forgetAllConfirmBody:
+          'Alla sparade röstavtryck tas bort. Namn som redan står i transkript påverkas inte. Det går inte att ångra.',
+        forgetAllConfirm: 'Ja, glöm alla'
+      }
     },
     appearance: {
       title: 'Utseende',

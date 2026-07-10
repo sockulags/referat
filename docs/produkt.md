@@ -73,6 +73,16 @@ namnen kan bytas i efterhand ("Anna"), vilket följer med in i protokollet. Krä
 lokal talarserver (guide finns i wikin) och är avstängt som default — en
 kraftanvändarfunktion som inte rör onboardingen.
 
+### Röstigenkänning mellan möten (tillval i tillvalet)
+
+Egen featureflagga, av som default. När den är på sparas ett lokalt röstavtryck när
+användaren namnger en talare; nästa möte där rösten hörs föreslås namnet som
+"Anna?" — alltid ett förslag som användaren bekräftar, aldrig ett tyst beslut (ett
+felaktigt "Anna sa X" i ett HR-protokoll är värre än ett anonymt "Talare 2").
+Röstavtryck är biometriska personuppgifter (GDPR art. 9): allt lagras lokalt,
+avtryck kan raderas enskilt eller alla på en gång, och inställningstexten uppmanar
+till att informera deltagarna. Wikin dokumenterar ansvaret för IT/DPO.
+
 ## Utanför scope (MVP)
 
 Live-transkribering under mötet, kalenderintegration, team-delning,

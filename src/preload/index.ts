@@ -10,7 +10,8 @@ import type {
   SaveDiarizationSettings,
   ConnectionTestResult,
   PipelineProgressEvent,
-  UpdateDownloadedEvent
+  UpdateDownloadedEvent,
+  SpeakerProfile
 } from '../shared/types'
 import { IPC } from '../main/ipc'
 
@@ -27,6 +28,12 @@ const api: RendererApi = {
   // Speakers
   renameSpeaker: (meetingId: string, speakerId: string, name: string): Promise<void> =>
     ipcRenderer.invoke(IPC.renameSpeaker, meetingId, speakerId, name),
+  dismissSpeakerSuggestion: (meetingId: string, speakerId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.dismissSpeakerSuggestion, meetingId, speakerId),
+  listSpeakerProfiles: (): Promise<SpeakerProfile[]> => ipcRenderer.invoke(IPC.listSpeakerProfiles),
+  deleteSpeakerProfile: (id: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.deleteSpeakerProfile, id),
+  deleteAllSpeakerProfiles: (): Promise<void> => ipcRenderer.invoke(IPC.deleteAllSpeakerProfiles),
 
   // Recording
   startRecording: (title: string): Promise<RecordingHandle> =>

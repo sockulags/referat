@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import type { Transcript } from '../shared/types'
 import type { DiarizationTurn } from './providers/diarization'
-import { mergeDiarization, renameSpeakerInTranscript, speakerAttributedText } from './diarize'
+import {
+  cosineSimilarity,
+  dismissSuggestionInTranscript,
+  isDefaultSpeakerName,
+  matchSpeakerProfiles,
+  mergeDiarization,
+  renameSpeakerInTranscript,
+  speakerAttributedText,
+  type ProfileWithEmbedding
+} from './diarize'
 
 function transcriptOf(segments: { startSec: number; endSec: number; text: string }[]): Transcript {
   return {
@@ -125,6 +134,134 @@ describe('renameSpeakerInTranscript', () => {
     expect(renameSpeakerInTranscript(base, 'S9', 'Anna')).toBe(base)
     const plain = transcriptOf([{ startSec: 0, endSec: 5, text: 'A' }])
     expect(renameSpeakerInTranscript(plain, 'S1', 'Anna')).toBe(plain)
+  })
+})
+
+describe('dismissSuggestionInTranscript', () => {
+  const base: Transcript = {
+    ...transcriptOf([{ startSec: 0, endSec: 5, text: 'A' }]),
+    speakers: { S1: 'Talare 1', S2: 'Talare 2' },
+    speakerSuggestions: { S1: 'Anna', S2: 'Bertil' }
+  }
+
+  it('removes the suggestion for the given speaker only', () => {
+    const next = dismissSuggestionInTranscript(base, 'S1')
+    expect(next.speakerSuggestions).toEqual({ S2: 'Bertil' })
+    // Original untouched (pure function).
+    expect(base.speakerSuggestions).toEqual({ S1: 'Anna', S2: 'Bertil' })
+  })
+
+  it('drops the whole suggestions map when the last suggestion is removed', () => {
+    const one: Transcript = { ...base, speakerSuggestions: { S1: 'Anna' } }
+    const next = dismissSuggestionInTranscript(one, 'S1')
+    expect(next).not.toHaveProperty('speakerSuggestions')
+  })
+
+  it('is a no-op when there is no suggestion for the speaker', () => {
+    expect(dismissSuggestionInTranscript(base, 'S9')).toBe(base)
+    const plain = transcriptOf([{ startSec: 0, endSec: 5, text: 'A' }])
+    expect(dismissSuggestionInTranscript(plain, 'S1')).toBe(plain)
+  })
+})
+
+describe('isDefaultSpeakerName', () => {
+  it('matches only the untouched "Talare N" pattern', () => {
+    expect(isDefaultSpeakerName('Talare 1')).toBe(true)
+    expect(isDefaultSpeakerName('Talare 12')).toBe(true)
+    expect(isDefaultSpeakerName('Anna')).toBe(false)
+    expect(isDefaultSpeakerName('Talare')).toBe(false)
+    expect(isDefaultSpeakerName('Talare 1 (ordförande)')).toBe(false)
+  })
+})
+
+describe('cosineSimilarity', () => {
+  it('is 1 for identical directions and -1 for opposite ones', () => {
+    expect(cosineSimilarity([1, 0], [2, 0])).toBeCloseTo(1)
+    expect(cosineSimilarity([1, 0], [-3, 0])).toBeCloseTo(-1)
+  })
+
+  it('is 0 for orthogonal vectors', () => {
+    expect(cosineSimilarity([1, 0], [0, 1])).toBeCloseTo(0)
+  })
+
+  it('is 0 on dimension mismatch', () => {
+    expect(cosineSimilarity([1, 0, 0], [1, 0])).toBe(0)
+    expect(cosineSimilarity([], [])).toBe(0)
+  })
+
+  it('is 0 when either vector has zero norm', () => {
+    expect(cosineSimilarity([0, 0], [1, 1])).toBe(0)
+    expect(cosineSimilarity([1, 1], [0, 0])).toBe(0)
+  })
+})
+
+describe('matchSpeakerProfiles', () => {
+  const profile = (id: string, name: string, embedding: number[]): ProfileWithEmbedding => ({
+    id,
+    name,
+    embedding
+  })
+
+  it('suggests the profile name for a speaker above the threshold', () => {
+    const suggestions = matchSpeakerProfiles(
+      { S1: [1, 0, 0] },
+      [profile('p1', 'Anna', [1, 0, 0])],
+      0.5
+    )
+    expect(suggestions).toEqual({ S1: 'Anna' })
+  })
+
+  it('makes no suggestion below the threshold', () => {
+    // Similarity 0 < 0.5.
+    const suggestions = matchSpeakerProfiles(
+      { S1: [1, 0, 0] },
+      [profile('p1', 'Anna', [0, 1, 0])],
+      0.5
+    )
+    expect(suggestions).toEqual({})
+  })
+
+  it('a similarity exactly at the threshold counts as a match', () => {
+    // cos([1,0],[1,1]) = 1/sqrt(2) ≈ 0.7071
+    const sim = cosineSimilarity([1, 0], [1, 1])
+    const suggestions = matchSpeakerProfiles({ S1: [1, 0] }, [profile('p1', 'Anna', [1, 1])], sim)
+    expect(suggestions).toEqual({ S1: 'Anna' })
+  })
+
+  it('assigns each profile at most once — the closer speaker wins', () => {
+    // Both speakers resemble Anna, S2 more so; only S2 gets the suggestion.
+    const suggestions = matchSpeakerProfiles(
+      { S1: [1, 0.5], S2: [1, 0.1] },
+      [profile('p1', 'Anna', [1, 0])],
+      0.5
+    )
+    expect(suggestions).toEqual({ S2: 'Anna' })
+  })
+
+  it('assigns each speaker at most once — best profile wins, next profile goes to the next speaker', () => {
+    const anna = [1, 0, 0]
+    const bertil = [0.8, 0.6, 0]
+    const suggestions = matchSpeakerProfiles(
+      { S1: [1, 0.05, 0], S2: [0.9, 0.4, 0] },
+      [profile('p1', 'Anna', anna), profile('p2', 'Bertil', bertil)],
+      0.5
+    )
+    // S1 is nearest Anna; S2 then takes Bertil even though S2 is also Anna-like.
+    expect(suggestions).toEqual({ S1: 'Anna', S2: 'Bertil' })
+  })
+
+  it('never matches profiles with a different embedding dimension', () => {
+    const suggestions = matchSpeakerProfiles(
+      { S1: [1, 0, 0] },
+      [profile('p1', 'Anna', [1, 0])],
+      0.1
+    )
+    expect(suggestions).toEqual({})
+  })
+
+  it('returns empty for empty inputs', () => {
+    expect(matchSpeakerProfiles({}, [profile('p1', 'Anna', [1, 0])], 0.5)).toEqual({})
+    expect(matchSpeakerProfiles({ S1: [1, 0] }, [], 0.5)).toEqual({})
   })
 })
 

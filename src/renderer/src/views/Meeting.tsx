@@ -17,7 +17,8 @@ import {
   IconSearch,
   IconAlert,
   IconRetry,
-  IconClock
+  IconClock,
+  IconX
 } from '../components/icons'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import { cn } from '../components/ui/cn'
@@ -383,6 +384,7 @@ function TranscriptTab({
   const [renamed, setRenamed] = useState(false)
   const segments = useMemo(() => meeting.transcript?.segments ?? [], [meeting.transcript])
   const speakers = meeting.transcript?.speakers
+  const suggestions = meeting.transcript?.speakerSuggestions
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -393,6 +395,11 @@ function TranscriptTab({
   const renameSpeaker = async (speakerId: string, name: string): Promise<void> => {
     await window.api.renameSpeaker(meeting.id, speakerId, name)
     setRenamed(true)
+    await onChanged()
+  }
+
+  const dismissSuggestion = async (speakerId: string): Promise<void> => {
+    await window.api.dismissSpeakerSuggestion(meeting.id, speakerId)
     await onChanged()
   }
 
@@ -431,32 +438,57 @@ function TranscriptTab({
         <p className="py-10 text-center text-sm text-fg-muted">{strings.meeting.noMatches}</p>
       ) : (
         <Card className="divide-y divide-border">
-          {filtered.map((seg, i) => (
-            <SegmentRow
-              key={`${seg.startSec}-${i}`}
-              segment={seg}
-              query={query}
-              speakerName={seg.speaker ? (speakers?.[seg.speaker] ?? seg.speaker) : undefined}
-              onRenameSpeaker={renameSpeaker}
-            />
-          ))}
+          {filtered.map((seg, i) => {
+            const name = seg.speaker ? (speakers?.[seg.speaker] ?? seg.speaker) : undefined
+            // A suggestion is only shown while the speaker still has its
+            // default name — a confirmed rename always wins.
+            const suggestedName =
+              seg.speaker && name && isDefaultSpeakerName(name)
+                ? suggestions?.[seg.speaker]
+                : undefined
+            return (
+              <SegmentRow
+                key={`${seg.startSec}-${i}`}
+                segment={seg}
+                query={query}
+                speakerName={name}
+                suggestedName={suggestedName}
+                onRenameSpeaker={renameSpeaker}
+                onDismissSuggestion={dismissSuggestion}
+              />
+            )
+          })}
         </Card>
       )}
     </div>
   )
 }
 
+/**
+ * Matches the default display names assigned by diarization ('Talare 1',
+ * 'Talare 2', … — see src/main/diarize.ts). Voice-recognition suggestions are
+ * only rendered for speakers that still carry such a default name.
+ */
+function isDefaultSpeakerName(name: string): boolean {
+  return /^Talare \d+$/.test(name)
+}
+
 function SegmentRow({
   segment,
   query,
   speakerName,
-  onRenameSpeaker
+  suggestedName,
+  onRenameSpeaker,
+  onDismissSuggestion
 }: {
   segment: TranscriptSegment
   query: string
   /** Display name for the segment's speaker, when diarization ran. */
   speakerName?: string
+  /** Name suggested by voice recognition, when the speaker is still unnamed. */
+  suggestedName?: string
   onRenameSpeaker?: (speakerId: string, name: string) => Promise<void>
+  onDismissSuggestion?: (speakerId: string) => Promise<void>
 }): JSX.Element {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState('')
@@ -493,6 +525,31 @@ function SegmentRow({
                 }}
                 className="h-6 w-44 rounded-md border border-border-strong bg-surface px-1.5 text-xs font-medium text-fg placeholder:text-fg-subtle focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring"
               />
+            ) : suggestedName ? (
+              <span className="inline-flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    // Same inline rename input, prefilled with the suggestion;
+                    // Enter/blur confirms it as the speaker's name.
+                    setValue(suggestedName)
+                    setEditing(true)
+                  }}
+                  title={strings.meeting.speakerSuggestionHint}
+                  className="text-xs font-medium text-accent underline decoration-dashed decoration-1 underline-offset-2 hover:text-accent-hover transition-colors rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  {`${suggestedName}?`}
+                </button>
+                <button
+                  onClick={() => {
+                    if (segment.speaker) void onDismissSuggestion?.(segment.speaker)
+                  }}
+                  title={strings.meeting.speakerSuggestionDismiss}
+                  aria-label={strings.meeting.speakerSuggestionDismiss}
+                  className="inline-flex h-4 w-4 items-center justify-center rounded text-fg-subtle hover:text-fg-muted transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                >
+                  <IconX size={12} />
+                </button>
+              </span>
             ) : (
               <button
                 onClick={() => {

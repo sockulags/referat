@@ -9,11 +9,13 @@ import type {
   SaveTranscriptionSettings,
   SaveSummarySettings,
   SaveDiarizationSettings,
-  ConnectionTestResult
+  ConnectionTestResult,
+  SpeakerProfile
 } from '../shared/types'
 import { IPC } from './ipc'
 import * as storage from './storage'
 import * as settings from './settings'
+import * as speakerProfiles from './speakerProfiles'
 import { enqueue, retryPipeline, resummarize } from './pipeline'
 import { exportProtocol, copyProtocol } from './export'
 import { testTranscriptionConnection } from './providers/transcription'
@@ -43,6 +45,22 @@ export function registerIpcHandlers(): void {
     IPC.renameSpeaker,
     (_e, meetingId: string, speakerId: string, name: string): void =>
       storage.renameSpeaker(meetingId, speakerId, name)
+  )
+
+  ipcMain.handle(IPC.dismissSpeakerSuggestion, (_e, meetingId: string, speakerId: string): void =>
+    storage.dismissSpeakerSuggestion(meetingId, speakerId)
+  )
+
+  ipcMain.handle(IPC.listSpeakerProfiles, (): SpeakerProfile[] =>
+    speakerProfiles.listSpeakerProfiles()
+  )
+
+  ipcMain.handle(IPC.deleteSpeakerProfile, (_e, id: string): void =>
+    speakerProfiles.deleteSpeakerProfile(id)
+  )
+
+  ipcMain.handle(IPC.deleteAllSpeakerProfiles, (): void =>
+    speakerProfiles.deleteAllSpeakerProfiles()
   )
 
   // ---- Recording ----
