@@ -1,13 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>referat — Mötesanteckningar som stannar hos dig</title>
+<title>referat — Meeting notes that stay on your machine</title>
 <meta
   name="description"
-  content="referat spelar in möten, transkriberar och skriver protokollet åt dig — och du väljer själv var AI:n kör. Lokalt, på företagets server eller i molnet. Ingenting lämnar datorn utan att du valt det."
+  content="referat records your meetings, transcribes them and writes the minutes for you — and you decide where the AI runs. On your machine, on your company server or in the cloud. Nothing leaves your machine unless you choose it."
 />
 <meta name="color-scheme" content="light dark" />
 
-<!-- Sätt tema innan sidan målas för att undvika blink -->
+<!-- Set the theme before paint to avoid a flash -->
 <script>
   (function () {
     try {
@@ -20,13 +23,14 @@
 </script>
 
 <link rel="stylesheet" href="css/styles.css" />
-
-<a class="skip-link" href="#huvudinnehall">Hoppa till innehåll</a>
+</head>
+<body>
+<a class="skip-link" href="#huvudinnehall">Skip to content</a>
 
 <!-- ============ NAV ============ -->
 <header class="nav" id="top">
   <div class="wrap nav__inner">
-    <a class="wordmark" href="#top" aria-label="referat — till toppen">
+    <a class="wordmark" href="#top" aria-label="referat — back to top">
       <span class="wordmark__mark" aria-hidden="true">
         <svg viewBox="0 0 32 32" width="28" height="28" focusable="false">
           <path
@@ -42,11 +46,12 @@
       <span class="wordmark__text">referat</span>
     </a>
 
-    <nav class="nav__links" aria-label="Sidnavigering">
-      <a href="#sa-funkar-det">Så funkar det</a>
-      <a href="#integritet">Integritet</a>
-      <a href="#for-it">För IT</a>
+    <nav class="nav__links" aria-label="Site navigation">
+      <a href="#sa-funkar-det">How it works</a>
+      <a href="#integritet">Privacy</a>
+      <a href="#for-it">For IT</a>
       <a href="#faq">FAQ</a>
+      <a href="https://github.com/sockulags/referat/wiki" rel="noopener">Docs</a>
     </nav>
 
     <div class="nav__actions">
@@ -54,7 +59,7 @@
         class="theme-toggle"
         id="theme-toggle"
         type="button"
-        aria-label="Växla mörkt läge"
+        aria-label="Toggle dark mode"
         aria-pressed="false"
       >
         <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -75,8 +80,11 @@
         </svg>
       </button>
 
-      <a class="btn btn--primary btn--sm nav__cta" href="#" data-placeholder="download">
-        Ladda ner för Windows
+      <a
+        class="btn btn--primary btn--sm nav__cta"
+        href="https://github.com/sockulags/referat/releases/latest/download/referat-0.1.0-setup.exe"
+      >
+        Download for Windows
       </a>
     </div>
   </div>
@@ -87,18 +95,21 @@
   <section class="hero">
     <div class="wrap hero__inner">
       <div class="hero__copy reveal">
-        <p class="eyebrow">Windows-app för möten</p>
-        <h1 class="hero__title">Mötesanteckningar som&nbsp;stannar hos dig.</h1>
+        <p class="eyebrow">Windows app for meetings</p>
+        <h1 class="hero__title">Meeting notes that&nbsp;stay on your machine.</h1>
         <p class="hero__lead">
-          referat spelar in mötet, transkriberar och skriver ett färdigt protokoll —
-          sammanfattning, beslut och actionpunkter. Du väljer själv var AI:n kör.
-          Ingenting lämnar datorn utan att du valt det.
+          referat records the meeting, transcribes it and writes finished minutes —
+          summary, decisions and action items. You decide where the AI runs.
+          Nothing leaves your machine unless you choose it.
         </p>
         <div class="hero__cta">
-          <a class="btn btn--primary btn--lg" href="#" data-placeholder="download">
-            Ladda ner för Windows — gratis
+          <a
+            class="btn btn--primary btn--lg"
+            href="https://github.com/sockulags/referat/releases/latest/download/referat-0.1.0-setup.exe"
+          >
+            Download for Windows — free
           </a>
-          <a class="btn btn--ghost btn--lg" href="#sa-funkar-det">Se hur det funkar</a>
+          <a class="btn btn--ghost btn--lg" href="#sa-funkar-det">See how it works</a>
         </div>
         <p class="hero__note">Version 0.1 — Windows 10/11</p>
       </div>
@@ -166,6 +177,7 @@
           </div>
         </div>
         <div class="hero__glow"></div>
+        <p class="app-caption">The app ships in Swedish — an English UI is on the roadmap.</p>
       </div>
     </div>
   </section>
@@ -174,10 +186,10 @@
   <section class="section" id="integritet">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Integritet i grunden</p>
-        <h2>Din data, dina villkor.</h2>
+        <p class="eyebrow">Privacy by design</p>
+        <h2>Your data, your terms.</h2>
         <p class="section__lead">
-          referat är byggt så att känsliga samtal aldrig behöver lämna företaget mot din vilja.
+          referat is built so sensitive conversations never have to leave your company against your will.
         </p>
       </div>
 
@@ -190,10 +202,10 @@
               <circle cx="12" cy="15" r="1.6" fill="none" />
             </svg>
           </span>
-          <h3>Spelas in lokalt</h3>
+          <h3>Recorded locally</h3>
           <p>
-            Ljudet fångas och sparas på din egen dator. Inga inspelningar laddas upp automatiskt
-            till någon molntjänst — de ligger där du kan se dem.
+            Audio is captured and saved on your own machine. No recordings are uploaded automatically
+            to any cloud service — they stay where you can see them.
           </p>
         </article>
 
@@ -204,10 +216,10 @@
               <path d="M9 12.2l2.2 2.2L15.4 10" fill="none" />
             </svg>
           </span>
-          <h3>Du väljer var AI:n kör</h3>
+          <h3>You choose where the AI runs</h3>
           <p>
-            Kör AI:n lokalt på datorn, på företagets interna server eller hos en molnleverantör.
-            Valet är ditt — och det går att ändra när som helst.
+            Run the AI locally on your machine, on your company's internal server or with a cloud provider.
+            The choice is yours — and you can change it at any time.
           </p>
         </article>
 
@@ -218,24 +230,24 @@
               <path d="M8.5 12h7M12 8.5v7" fill="none" />
             </svg>
           </span>
-          <h3>Ingen prenumeration krävs</h3>
+          <h3>No subscription required</h3>
           <p>
-            Appen är gratis att ladda ner och använda. Använder du en egen eller lokal AI betalar
-            du ingenting extra — inga månadskostnader, inga konton.
+            The app is free to download and use. If you run your own or a local AI, you pay
+            nothing extra — no monthly fees, no accounts.
           </p>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- ============ SÅ FUNKAR DET ============ -->
+  <!-- ============ HOW IT WORKS ============ -->
   <section class="section section--alt" id="sa-funkar-det">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Så funkar det</p>
-        <h2>Tre steg till färdigt protokoll.</h2>
+        <p class="eyebrow">How it works</p>
+        <h2>Three steps to finished minutes.</h2>
         <p class="section__lead">
-          Från installation till delbart protokoll utan manual. Ingen terminal, inga tekniska termer.
+          From install to shareable minutes without a manual. No terminal, no technical terms.
         </p>
       </div>
 
@@ -249,11 +261,11 @@
               <line x1="24" y1="50" x2="40" y2="50" />
             </svg>
           </div>
-          <span class="step__num">Steg 1</span>
-          <h3>Spela in</h3>
+          <span class="step__num">Step 1</span>
+          <h3>Record</h3>
           <p>
-            Tryck på en stor knapp. referat fångar både din mikrofon och mötets systemljud —
-            oavsett om ni sitter i Teams, Zoom eller ett fysiskt rum.
+            Press one big button. referat captures both your microphone and the meeting's system audio —
+            whether you're in Teams, Zoom or a physical room.
           </p>
         </li>
 
@@ -266,11 +278,11 @@
               <line x1="22" y1="40" x2="34" y2="40" />
             </svg>
           </div>
-          <span class="step__num">Steg 2</span>
-          <h3>Få protokollet</h3>
+          <span class="step__num">Step 2</span>
+          <h3>Get the minutes</h3>
           <p>
-            När du stoppar transkriberar och sammanfattar appen automatiskt. Du får
-            sammanfattning, beslut och actionpunkter med ägare — plus fullt sökbart transkript.
+            When you stop, the app transcribes and summarizes automatically. You get a
+            summary, decisions and action items with owners — plus a fully searchable transcript.
           </p>
         </li>
 
@@ -281,43 +293,43 @@
               <circle cx="32" cy="32" r="22" fill="none" />
             </svg>
           </div>
-          <span class="step__num">Steg 3</span>
-          <h3>Klart att dela</h3>
+          <span class="step__num">Step 3</span>
+          <h3>Ready to share</h3>
           <p>
-            Exportera till Word eller Markdown, eller kopiera rakt in i mejlet. Protokollet är
-            redigerbart och färdigt att skickas till mötesdeltagarna.
+            Export to Word or Markdown, or copy straight into an email. The minutes are
+            editable and ready to send to the participants.
           </p>
         </li>
       </ol>
     </div>
   </section>
 
-  <!-- ============ FÖR IT-CHEFEN ============ -->
+  <!-- ============ FOR IT ============ -->
   <section class="section" id="for-it">
     <div class="wrap it">
       <div class="it__copy reveal">
-        <p class="eyebrow">För IT-chefen</p>
-        <h2>Peka appen mot er egen&nbsp;AI.</h2>
+        <p class="eyebrow">For IT</p>
+        <h2>Point the app at your own&nbsp;AI.</h2>
         <p class="section__lead">
-          referat låser dig inte till en leverantör. Transkribering och sammanfattning
-          konfigureras oberoende av varandra mot valfri OpenAI-kompatibel endpoint.
+          referat doesn't lock you into a vendor. Transcription and summarization are
+          configured independently against any OpenAI-compatible endpoint.
         </p>
         <ul class="it__list">
           <li>
-            <strong>OpenAI-kompatibla endpoints</strong> för transkribering
-            (<code>/v1/audio/transcriptions</code>) och chat completions.
+            <strong>OpenAI-compatible endpoints</strong> for transcription
+            (<code>/v1/audio/transcriptions</code>) and chat completions.
           </li>
           <li>
-            <strong>Intern server, Azure OpenAI eller Anthropic</strong> — färdiga presets,
-            eller ange en egen bas-URL.
+            <strong>Internal server, Azure OpenAI or Anthropic</strong> — ready-made presets,
+            or enter your own base URL.
           </li>
           <li>
-            <strong>Nycklar lagras krypterat lokalt</strong> via Windows DPAPI
-            (Electron safeStorage) — aldrig i klartext, aldrig i molnet.
+            <strong>Keys are stored encrypted locally</strong> with Windows DPAPI
+            (Electron safeStorage) — never in plaintext, never in the cloud.
           </li>
           <li>
-            <strong>Ingen telemetri.</strong> Appen ringer inte hem. Utgående trafik går bara
-            till de endpoints ni själva anger.
+            <strong>No telemetry.</strong> The app doesn't phone home. Outbound traffic only
+            goes to the endpoints you specify yourself.
           </li>
         </ul>
       </div>
@@ -325,13 +337,13 @@
       <div class="it__diagram reveal">
         <figure>
           <svg viewBox="0 0 340 300" width="100%" role="img" aria-labelledby="diag-title diag-desc">
-            <title id="diag-title">Dataflöde: du väljer var AI:n kör</title>
+            <title id="diag-title">Data flow: you choose where the AI runs</title>
             <desc id="diag-desc">
-              referat-appen skickar data till ett val du gör, som pekar mot antingen din lokala
-              dator, företagets interna server eller en molntjänst.
+              The referat app sends data to a choice you make, which points to either your local
+              machine, your company's internal server or a cloud service.
             </desc>
 
-            <!-- länkar -->
+            <!-- links -->
             <g class="diag-link">
               <path d="M170 66 V96" />
               <path d="M170 140 C170 165, 80 160, 80 190" />
@@ -345,30 +357,30 @@
               <text x="170" y="54" text-anchor="middle">referat</text>
             </g>
 
-            <!-- val -->
+            <!-- choice -->
             <g class="diag-node diag-node--choice">
               <rect x="120" y="102" width="100" height="36" rx="18" />
-              <text x="170" y="125" text-anchor="middle">du väljer</text>
+              <text x="170" y="125" text-anchor="middle">you choose</text>
             </g>
 
             <!-- targets -->
             <g class="diag-node">
               <rect x="26" y="192" width="108" height="82" rx="12" />
-              <text x="80" y="222" text-anchor="middle" class="diag-strong">Lokal dator</text>
-              <text x="80" y="242" text-anchor="middle" class="diag-sub">på din maskin</text>
+              <text x="80" y="222" text-anchor="middle" class="diag-strong">Local machine</text>
+              <text x="80" y="242" text-anchor="middle" class="diag-sub">on your device</text>
             </g>
             <g class="diag-node">
               <rect x="146" y="192" width="108" height="82" rx="12" />
-              <text x="200" y="222" text-anchor="middle" class="diag-strong">Intern server</text>
-              <text x="200" y="242" text-anchor="middle" class="diag-sub">i ert nät</text>
+              <text x="200" y="222" text-anchor="middle" class="diag-strong">Internal server</text>
+              <text x="200" y="242" text-anchor="middle" class="diag-sub">on your network</text>
             </g>
             <g class="diag-node">
               <rect x="266" y="192" width="60" height="82" rx="12" />
-              <text x="296" y="222" text-anchor="middle" class="diag-strong">Moln</text>
-              <text x="296" y="242" text-anchor="middle" class="diag-sub">valfritt</text>
+              <text x="296" y="222" text-anchor="middle" class="diag-strong">Cloud</text>
+              <text x="296" y="242" text-anchor="middle" class="diag-sub">optional</text>
             </g>
           </svg>
-          <figcaption>Appen skickar bara data dit du pekar den.</figcaption>
+          <figcaption>The app only sends data where you point it.</figcaption>
         </figure>
       </div>
     </div>
@@ -378,74 +390,86 @@
   <section class="section section--alt" id="faq">
     <div class="wrap wrap--narrow">
       <div class="section__head reveal">
-        <p class="eyebrow">Vanliga frågor</p>
-        <h2>Frågor och svar</h2>
+        <p class="eyebrow">Frequently asked questions</p>
+        <h2>Questions and answers</h2>
       </div>
 
       <div class="faq">
         <details class="faq__item reveal">
-          <summary>Kostar det något?</summary>
+          <summary>Does it cost anything?</summary>
           <div class="faq__body">
             <p>
-              Nej. Appen är gratis att ladda ner och använda. Väljer du att köra AI:n lokalt eller
-              mot företagets egen server tillkommer inga kostnader. Använder du en molntjänst som
-              OpenAI betalar du bara den leverantörens vanliga avgift direkt till dem.
+              No. The app is free to download and use. If you run the AI locally or against your
+              company's own server, there are no additional costs. If you use a cloud service like
+              OpenAI, you only pay that provider's usual fee directly to them.
             </p>
           </div>
         </details>
 
         <details class="faq__item reveal">
-          <summary>Var lagras inspelningarna?</summary>
+          <summary>Where are the recordings stored?</summary>
           <div class="faq__body">
             <p>
-              Lokalt på din dator. Ljudfiler, transkript och protokoll sparas på din maskin.
-              Inget laddas upp automatiskt — det enda som skickas iväg är text till den AI-tjänst
-              du själv valt för transkribering och sammanfattning.
+              Locally on your machine. Audio files, transcripts and minutes are saved on your
+              computer. Nothing is uploaded automatically — the only thing sent out is text, to the
+              AI service you chose yourself for transcription and summarization.
             </p>
           </div>
         </details>
 
         <details class="faq__item reveal">
-          <summary>Vilka AI-tjänster stöds?</summary>
+          <summary>Which AI services are supported?</summary>
           <div class="faq__body">
             <p>
-              Alla OpenAI-kompatibla endpoints för transkribering och chat, plus Anthropic för
-              sammanfattning. Det inkluderar lokala servrar (t.ex. Ollama), OpenAI, Azure OpenAI
-              och er egen interna endpoint. Transkribering och sammanfattning ställs in var för sig.
+              Any OpenAI-compatible endpoint for transcription and chat, plus Anthropic for
+              summarization. That includes local servers (such as Ollama), OpenAI, Azure OpenAI
+              and your own internal endpoint. Transcription and summarization are set up separately.
             </p>
           </div>
         </details>
 
         <details class="faq__item reveal">
-          <summary>Funkar det med Teams, Zoom och Meet?</summary>
+          <summary>Does it work with Teams, Zoom and Meet?</summary>
           <div class="faq__body">
             <p>
-              Ja. referat spelar in datorns systemljud och fungerar därför oavsett vilket
-              mötesverktyg ni använder — Teams, Zoom, Google Meet eller ett fysiskt möte i rummet.
-              Ingen plugin eller integration behövs.
+              Yes. referat records your computer's system audio and therefore works regardless of
+              which meeting tool you use — Teams, Zoom, Google Meet or a physical meeting in the
+              room. No plugin or integration is needed, and no bot joins the call.
             </p>
           </div>
         </details>
 
         <details class="faq__item reveal">
-          <summary>Behöver jag vara teknisk?</summary>
+          <summary>Do I need to be technical?</summary>
           <div class="faq__body">
             <p>
-              Nej. En guide hjälper dig igenom första starten och allt konfigureras via ett
-              vänligt gränssnitt i klarspråk. Du behöver aldrig öppna en terminal. Vill du köra
-              AI:n mot företagets server ger IT dig en adress att klistra in.
+              No. A guide walks you through first launch and everything is configured through a
+              friendly, plain-language interface. You never need to open a terminal. If you want to
+              run the AI against your company server, IT gives you an address to paste in.
             </p>
           </div>
         </details>
 
         <details class="faq__item reveal">
-          <summary>Vad krävs för att köra AI lokalt?</summary>
+          <summary>What does it take to run AI locally?</summary>
           <div class="faq__body">
             <p>
-              En lokal AI-server på datorn (t.ex. Ollama eller en Whisper-kompatibel tjänst).
-              Appen länkar till en steg-för-steg-guide för att komma igång. En någorlunda modern
-              dator med tillräckligt med minne rekommenderas — annars fungerar moln- eller
-              serverläget lika bra.
+              A local AI server on your machine (such as Ollama for the minutes and a
+              Whisper-compatible service for transcription). Our
+              <a href="https://github.com/sockulags/referat/wiki/Local-AI-Setup" rel="noopener">Local AI setup guide</a>
+              walks you through it step by step. A reasonably modern computer with enough memory is
+              recommended — otherwise the cloud or server mode works just as well.
+            </p>
+          </div>
+        </details>
+
+        <details class="faq__item reveal">
+          <summary>What language is the app in?</summary>
+          <div class="faq__body">
+            <p>
+              The app interface is currently Swedish, and the default minutes template produces
+              Swedish minutes (the transcription follows the spoken language). An English UI is on
+              the roadmap. This website and the documentation are in English.
             </p>
           </div>
         </details>
@@ -456,10 +480,13 @@
   <!-- ============ SLUT-CTA ============ -->
   <section class="cta-band">
     <div class="wrap cta-band__inner reveal">
-      <h2>Redo att prova referat?</h2>
-      <p>Ladda ner, spela in ditt nästa möte och få protokollet på köpet.</p>
-      <a class="btn btn--primary btn--lg" href="#" data-placeholder="download">
-        Ladda ner för Windows — gratis
+      <h2>Ready to try referat?</h2>
+      <p>Download it, record your next meeting and get the minutes for free.</p>
+      <a
+        class="btn btn--primary btn--lg"
+        href="https://github.com/sockulags/referat/releases/latest/download/referat-0.1.0-setup.exe"
+      >
+        Download for Windows — free
       </a>
       <p class="hero__note">Version 0.1 — Windows 10/11</p>
     </div>
@@ -479,21 +506,24 @@
         </span>
         <span class="wordmark__text">referat</span>
       </span>
-      <p class="footer__tag">Mötesanteckningar som stannar hos dig.</p>
+      <p class="footer__tag">Meeting notes that stay on your machine.</p>
     </div>
 
-    <nav class="footer__links" aria-label="Sidfot">
-      <a href="#sa-funkar-det">Så funkar det</a>
-      <a href="#integritet">Integritet</a>
-      <a href="#for-it">För IT</a>
+    <nav class="footer__links" aria-label="Footer">
+      <a href="#sa-funkar-det">How it works</a>
+      <a href="#integritet">Privacy</a>
+      <a href="#for-it">For IT</a>
       <a href="#faq">FAQ</a>
-      <a href="#" rel="noopener">GitHub</a>
+      <a href="https://github.com/sockulags/referat/wiki" rel="noopener">Docs</a>
+      <a href="https://github.com/sockulags/referat" rel="noopener">GitHub</a>
     </nav>
   </div>
   <div class="wrap footer__bottom">
-    <span>Byggd i Sverige.</span>
+    <span>Built in Sweden.</span>
     <span>© 2026 Lucas Skog</span>
   </div>
 </footer>
 
 <script src="js/main.js" defer></script>
+</body>
+</html>

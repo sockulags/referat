@@ -1,11 +1,11 @@
-/* referat — landningssida. Vanilla JS, inga beroenden. */
+/* referat — landing page. Vanilla JS, no dependencies. */
 (function () {
   "use strict";
 
   var root = document.documentElement;
   var STORAGE_KEY = "referat-theme";
 
-  /* ---------- Tema-växling ---------- */
+  /* ---------- Theme toggle ---------- */
   var toggle = document.getElementById("theme-toggle");
 
   function currentTheme() {
@@ -18,7 +18,7 @@
     toggle.setAttribute("aria-pressed", String(isDark));
     toggle.setAttribute(
       "aria-label",
-      isDark ? "Växla till ljust läge" : "Växla till mörkt läge"
+      isDark ? "Switch to light mode" : "Switch to dark mode"
     );
   }
 
@@ -38,7 +38,7 @@
     });
   }
 
-  /* Följ systemtema om användaren inte gjort ett eget val */
+  /* Follow the system theme unless the user made their own choice */
   try {
     var mq = window.matchMedia("(prefers-color-scheme: dark)");
     var onSystemChange = function (e) {
@@ -55,7 +55,7 @@
     else if (mq.addListener) mq.addListener(onSystemChange);
   } catch (e) {}
 
-  /* ---------- Nav: skugga/kant vid scroll ---------- */
+  /* ---------- Nav: shadow/border on scroll ---------- */
   var nav = document.querySelector(".nav");
   if (nav) {
     var onScroll = function () {
@@ -93,41 +93,4 @@
     });
   }
 
-  /* ---------- Placeholder-nedladdning ---------- */
-  var downloadToastTimer = null;
-
-  function hideDownloadToast() {
-    var toast = document.getElementById("download-toast");
-    if (toast) toast.classList.remove("is-visible");
-  }
-
-  function showDownloadToast() {
-    var toast = document.getElementById("download-toast");
-    if (!toast) {
-      toast = document.createElement("div");
-      toast.id = "download-toast";
-      toast.className = "download-toast";
-      toast.setAttribute("role", "status");
-      toast.innerHTML =
-        '<span class="download-toast__dot" aria-hidden="true"></span>' +
-        "<span>Nedladdningen öppnas snart — version 0.1 är på väg.</span>";
-      document.body.appendChild(toast);
-      toast.addEventListener("click", hideDownloadToast);
-    }
-    if (downloadToastTimer) clearTimeout(downloadToastTimer);
-    // Next frame so the fade-in transition runs from the hidden state.
-    requestAnimationFrame(function () {
-      toast.classList.add("is-visible");
-    });
-    downloadToastTimer = setTimeout(hideDownloadToast, 4500);
-  }
-
-  var downloads = document.querySelectorAll('[data-placeholder="download"]');
-  Array.prototype.forEach.call(downloads, function (el) {
-    el.addEventListener("click", function (e) {
-      e.preventDefault();
-      // Installer-länken kopplas in senare (version 0.1).
-      showDownloadToast();
-    });
-  });
 })();

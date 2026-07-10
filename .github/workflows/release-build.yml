@@ -1,0 +1,34 @@
+name: Release build
+
+# Verifiable CI build of the Windows installer (required for SignPath signing).
+# Runs on version tags; the unsigned artifact is uploaded for signing/release.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Local builds sign with the store-based cert (electron-builder.yml);
+      # CI builds are unsigned — signing happens via SignPath after approval.
+      - run: npx electron-builder --win --publish never -c.win.signtoolOptions=null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: referat-windows-setup
+          path: |
+            dist/*-setup.exe
+            dist/*.blockmap
+          if-no-files-found: error
