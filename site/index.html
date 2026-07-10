@@ -283,6 +283,7 @@
           <p>
             When you stop, the app transcribes and summarizes automatically. You get a
             summary, decisions and action items with owners — plus a fully searchable transcript.
+            Turn on speaker identification and the transcript also shows who said what.
           </p>
         </li>
 
@@ -326,6 +327,11 @@
           <li>
             <strong>Keys are stored encrypted locally</strong> with Windows DPAPI
             (Electron safeStorage) — never in plaintext, never in the cloud.
+          </li>
+          <li>
+            <strong>Optional speaker identification</strong> via an open-source companion
+            server you host yourself — on the user's machine or one GPU box for the whole
+            office. <a href="https://github.com/sockulags/referat/wiki/Speaker-Diarization">Setup guide</a>.
           </li>
           <li>
             <strong>No telemetry.</strong> The app doesn't phone home. Outbound traffic only
@@ -402,6 +408,21 @@
               No. The app is free to download and use. If you run the AI locally or against your
               company's own server, there are no additional costs. If you use a cloud service like
               OpenAI, you only pay that provider's usual fee directly to them.
+            </p>
+          </div>
+        </details>
+
+        <details class="faq__item reveal">
+          <summary>Can it show who said what?</summary>
+          <div class="faq__body">
+            <p>
+              Yes, as an optional feature. A small open-source companion server labels the
+              transcript by speaker ("Speaker 1", "Speaker 2"), and you can rename the labels —
+              the names carry into the minutes. IT can host one server for the whole office, or
+              power users run it on their own machine. There's also an opt-in setting that
+              recognizes saved voices at later meetings and suggests the name — always as a
+              suggestion you confirm, never applied silently. See the
+              <a href="https://github.com/sockulags/referat/wiki/Speaker-Diarization">setup guide</a>.
             </p>
           </div>
         </details>

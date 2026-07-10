@@ -31,6 +31,11 @@ Be honest with your expectations here:
   after that, everything runs offline.
 - **A Hugging Face account** (free) — the models are gated, see below.
 
+All of the above applies to **the machine hosting the server only**. The app just needs an
+address: if IT runs one server for the office (see
+[Hosting for a whole office](#hosting-for-a-whole-office)), end users need no GPU, no
+Python and no Hugging Face account.
+
 ## 1. One-time Hugging Face setup
 
 The pyannote models are **gated**: they are free, but you must accept their conditions
@@ -55,9 +60,17 @@ contacted for that download — afterwards the server runs fully offline.
 ## 2. Install and start the server
 
 The server lives in the `diarization-server/` folder of the
-[referat repository](https://github.com/sockulags/referat) and is managed with
-[uv](https://docs.astral.sh/uv/) (which also provides the right Python — nothing else to
-install first).
+[referat repository](https://github.com/sockulags/referat). The quickest path on Windows
+is the bundled installer script, which installs [uv](https://docs.astral.sh/uv/) if
+needed, creates the environment and walks through the Hugging Face login from step 1:
+
+```powershell
+cd referat\diarization-server
+powershell -ExecutionPolicy Bypass -File install.ps1
+start-server.bat
+```
+
+Or manually — uv also provides the right Python, nothing else to install first:
 
 ```powershell
 cd referat\diarization-server
@@ -69,6 +82,22 @@ uv run diarization-server
 answers on **`http://localhost:8300`**. A quick sanity check: open
 `http://localhost:8300/health` in a browser — it reports the server status, the loaded
 model and whether it is running on GPU or CPU.
+
+### Hosting for a whole office
+
+The app doesn't care where the server runs — one GPU machine on the internal network can
+serve everyone:
+
+```powershell
+start-server.bat --host 0.0.0.0
+```
+
+Users then enter `http://<server-name>:8300` as the server address in referat — no
+installation on their machines at all. The endpoint is unauthenticated HTTP and processes
+meeting audio, so keep it on the internal network. Audio is handled in memory and never
+written to disk on the server. Anything that implements the same small HTTP contract
+(`GET /health`, `POST /diarize` — see the README in `diarization-server/`) works as a
+backend; the app only sees the address.
 
 ## 3. Point referat at the server
 

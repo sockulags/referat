@@ -8,13 +8,30 @@ access is the one-time model download from Hugging Face.
 The referat app records meetings as webm/opus segments, sends them all in one
 request, and merges the returned speaker turns into the transcript.
 
+## Quick start (Windows)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install.ps1   # installs uv + environment, walks through HF login
+start-server.bat                                        # starts the server on http://127.0.0.1:8300
+```
+
+Then, in referat: **Inställningar → Talare**, enable speaker identification,
+address `http://127.0.0.1:8300`, **Testa anslutning**. The sections below
+describe the same steps manually.
+
+> **End users don't need any of this.** Only the machine *hosting* the server
+> needs uv and a Hugging Face login. If IT hosts one server for the office
+> (see [Hosting for a whole office](#hosting-for-a-whole-office)), users just
+> enter its address in the app.
+
 ## Requirements
 
 - Windows/Linux, Python 3.12 (managed by uv)
 - [uv](https://docs.astral.sh/uv/)
 - NVIDIA GPU strongly recommended (a ~1 hour meeting diarizes in well under a
   minute on a modern GPU). CPU works but is much slower.
-- A Hugging Face account with access to the gated pyannote models (free, see below)
+- A Hugging Face account with access to the gated pyannote models (free, see
+  below) — **on the hosting machine only**
 
 ## Hugging Face model access (one-time)
 
@@ -142,6 +159,24 @@ Invoke-RestMethod -Uri http://127.0.0.1:8300/diarize -Method Post -Form @{
 2. In referat: **Inställningar → Talare**, enable speaker diarization and set
    the base URL to `http://127.0.0.1:8300`.
 3. Click **Testa anslutning** — it should report the model and device.
+
+## Hosting for a whole office
+
+The app only needs a base URL — the server doesn't have to run on the user's
+machine. One GPU box on the internal network can serve everyone:
+
+```
+start-server.bat --host 0.0.0.0          # or: uv run diarization-server --host 0.0.0.0
+```
+
+Users then set **Inställningar → Talare → Serveradress** to
+`http://<server-name>:8300`. No uv, Python or Hugging Face account on their
+machines. Requests are serialized (one meeting diarized at a time), which is
+fine for a small office; audio is processed in memory and never written to
+disk on the server. The endpoint is unauthenticated HTTP, so keep it on the
+internal network. Any other service that implements the same small HTTP
+contract (see API above) works too — the app doesn't care what's behind the
+address.
 
 ## Model choice
 
