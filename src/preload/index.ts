@@ -8,7 +8,8 @@ import type {
   SaveTranscriptionSettings,
   SaveSummarySettings,
   ConnectionTestResult,
-  PipelineProgressEvent
+  PipelineProgressEvent,
+  UpdateDownloadedEvent
 } from '../shared/types'
 import { IPC } from '../main/ipc'
 
@@ -60,6 +61,15 @@ const api: RendererApi = {
     ipcRenderer.on(IPC.pipelineProgress, listener)
     return () => ipcRenderer.removeListener(IPC.pipelineProgress, listener)
   },
+  onUpdateDownloaded: (cb: (e: UpdateDownloadedEvent) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: UpdateDownloadedEvent): void =>
+      cb(data)
+    ipcRenderer.on(IPC.updateDownloaded, listener)
+    return () => ipcRenderer.removeListener(IPC.updateDownloaded, listener)
+  },
+
+  // Updates
+  installUpdateNow: (): Promise<void> => ipcRenderer.invoke(IPC.installUpdateNow),
 
   // Misc
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.openExternal, url),

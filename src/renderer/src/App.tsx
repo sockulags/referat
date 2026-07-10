@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp, applyTheme } from './store'
+import { strings } from './strings'
 import { TopBar } from './components/TopBar'
 import { Toasts } from './components/Toasts'
 import { Home } from './views/Home'
@@ -9,6 +10,33 @@ import { Meeting } from './views/Meeting'
 import { Settings } from './views/Settings'
 import { Onboarding } from './views/Onboarding'
 import { Spinner } from './components/ui/Spinner'
+
+/**
+ * Calm, persistent banner shown once an update has downloaded. It never appears
+ * over the recording view (would interrupt a live meeting); because the ready
+ * flag lives in state, leaving the recording view reveals it automatically.
+ */
+function UpdateReadyToast(): JSX.Element | null {
+  const view = useApp((s) => s.view)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => window.api.onUpdateDownloaded(() => setReady(true)), [])
+
+  if (!ready || view === 'recording') return null
+
+  return (
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-3 pl-4 pr-2 h-11 rounded-full shadow-float bg-fg text-bg text-sm font-medium animate-pop-in">
+      <span>{strings.update.ready}</span>
+      <button
+        type="button"
+        onClick={() => void window.api.installUpdateNow()}
+        className="px-3 h-8 rounded-full bg-bg/15 hover:bg-bg/25 transition-colors font-semibold"
+      >
+        {strings.update.restartNow}
+      </button>
+    </div>
+  )
+}
 
 function App(): JSX.Element {
   const view = useApp((s) => s.view)
@@ -68,6 +96,7 @@ function App(): JSX.Element {
         {view === 'settings' && <Settings />}
       </main>
       <Toasts />
+      <UpdateReadyToast />
     </div>
   )
 }

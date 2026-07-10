@@ -205,6 +205,11 @@ export const strings = {
     }
   },
 
+  update: {
+    ready: 'En ny version är redo — installeras när du stänger appen.',
+    restartNow: 'Starta om nu'
+  },
+
   errors: {
     genericTitle: 'Något gick fel',
     loadMeetings: 'Vi kunde inte läsa dina möten just nu.',

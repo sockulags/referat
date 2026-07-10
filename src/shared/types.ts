@@ -105,6 +105,14 @@ export interface PipelineProgressEvent {
   progress?: number
 }
 
+// ---------- Auto-update events (main -> renderer) ----------
+
+/** Emitted once an update has finished downloading and is staged to install. */
+export interface UpdateDownloadedEvent {
+  /** The new version that will be installed, e.g. '0.2.0'. */
+  version: string
+}
+
 // ---------- The preload API surface ----------
 
 export interface RendererApi {
@@ -143,6 +151,12 @@ export interface RendererApi {
 
   // Events
   onPipelineProgress(cb: (e: PipelineProgressEvent) => void): () => void
+  /** Fires when a new version has been downloaded and is ready to install. */
+  onUpdateDownloaded(cb: (e: UpdateDownloadedEvent) => void): () => void
+
+  // Updates
+  /** Quit and install the downloaded update immediately (toast action). */
+  installUpdateNow(): Promise<void>
 
   // Misc
   openExternal(url: string): Promise<void>

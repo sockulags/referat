@@ -27,10 +27,14 @@ export const IPC = {
   exportProtocol: 'export:protocol',
   copyProtocol: 'export:copy',
 
+  // Updates
+  installUpdateNow: 'updater:install-now',
+
   // Misc
   openExternal: 'misc:open-external',
   getAppVersion: 'misc:app-version',
 
   // Events (main -> renderer)
-  pipelineProgress: 'pipeline:progress'
+  pipelineProgress: 'pipeline:progress',
+  updateDownloaded: 'updater:downloaded'
 } as const

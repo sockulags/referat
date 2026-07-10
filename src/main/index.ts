@@ -1,4 +1,13 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, session, desktopCapturer } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  Tray,
+  Menu,
+  nativeImage,
+  session,
+  desktopCapturer,
+  ipcMain
+} from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,6 +15,8 @@ import { registerIpcHandlers } from './ipcHandlers'
 import { openExternalSafe } from './security'
 import { recoverPipeline } from './pipeline'
 import { isRecordingActive } from './storage'
+import { initAutoUpdater, installUpdateNow } from './updater'
+import { IPC } from './ipc'
 
 // Test hook: E2E harnesses point userData at a scratch directory so runs are
 // isolated and repeatable. Also keeps `electron out/main` dev runs from
@@ -136,6 +147,16 @@ app.whenReady().then(() => {
   recoverPipeline()
 
   createWindow()
+
+  // Toast action: flip isQuitting first so the hide-to-tray close handler does
+  // not swallow the restart, then quit and install the staged update.
+  ipcMain.handle(IPC.installUpdateNow, () => {
+    isQuitting = true
+    installUpdateNow()
+  })
+
+  // Background auto-updates. No-ops in dev / when not packaged.
+  initAutoUpdater(() => mainWindow)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
