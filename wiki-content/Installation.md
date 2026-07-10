@@ -7,7 +7,7 @@ referat runs on Windows 10 and 11. Installing takes a minute or two.
 Download the latest installer from the
 [releases page](https://github.com/sockulags/referat/releases/latest):
 
-`referat-0.1.0-setup.exe`
+`referat-setup.exe`
 
 The direct link is also on the [landing page](https://sockulags.github.io/referat/).
 

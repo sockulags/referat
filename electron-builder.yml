@@ -33,7 +33,9 @@ win:
     publisherName:
       - Lucas Skog
 nsis:
-  artifactName: referat-${version}-setup.${ext}
+  # Version-less artifact name so the site's /releases/latest/download/ link
+  # never rots. The version lives in the release tag and latest.yml.
+  artifactName: referat-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
