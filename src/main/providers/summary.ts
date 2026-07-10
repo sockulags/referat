@@ -8,6 +8,7 @@ import {
   HttpError,
   isConnectionError,
   isTimeoutError,
+  providerFetch,
   readBodyText,
   TEST_TIMEOUT_MS,
   trimBaseUrl,
@@ -36,7 +37,7 @@ async function openAiChat(
   maxTokens?: number
 ): Promise<string> {
   const url = `${trimBaseUrl(config.baseUrl)}/chat/completions`
-  const res = await fetch(url, {
+  const res = await providerFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders(config.apiKey) },
     body: JSON.stringify({
@@ -65,7 +66,7 @@ async function anthropicMessages(
 ): Promise<string> {
   const base = trimBaseUrl(config.baseUrl) || ANTHROPIC_DEFAULT_BASE
   const url = `${base}/v1/messages`
-  const res = await fetch(url, {
+  const res = await providerFetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

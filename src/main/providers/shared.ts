@@ -13,6 +13,23 @@ export function authHeaders(apiKey: string): Record<string, string> {
   return apiKey ? { Authorization: `Bearer ${apiKey}` } : {}
 }
 
+/**
+ * fetch that never follows redirects. Auth headers (including custom ones like
+ * x-api-key, which Node fetch does NOT strip cross-origin) must not silently
+ * travel to a redirect target; a redirecting API endpoint is a config error.
+ */
+export function providerFetch(url: string, init: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, redirect: 'manual' }).then((res) => {
+    if (res.status >= 300 && res.status < 400) {
+      throw new HttpError(
+        res.status,
+        `Unexpected redirect to ${res.headers.get('location') ?? 'unknown'}`
+      )
+    }
+    return res
+  })
+}
+
 /** Read a response body as text for diagnostics, capped in length. */
 export async function readBodyText(res: Response): Promise<string> {
   try {

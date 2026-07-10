@@ -1,6 +1,6 @@
 // Registers every IPC handler in the RendererApi contract.
 
-import { ipcMain, shell, app } from 'electron'
+import { ipcMain, app } from 'electron'
 import type {
   MeetingMeta,
   MeetingDetail,
@@ -17,6 +17,7 @@ import { enqueue, retryPipeline } from './pipeline'
 import { exportProtocol, copyProtocol } from './export'
 import { testTranscriptionConnection } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
+import { openExternalSafe } from './security'
 
 /** Called after app is ready. Registers all handlers exactly once. */
 export function registerIpcHandlers(): void {
@@ -97,7 +98,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.copyProtocol, (_e, id: string): void => copyProtocol(id))
 
   // ---- Misc ----
-  ipcMain.handle(IPC.openExternal, (_e, url: string): Promise<void> => shell.openExternal(url))
+  ipcMain.handle(IPC.openExternal, (_e, url: string): Promise<void> => openExternalSafe(url))
 
   ipcMain.handle(IPC.getAppVersion, (): string => app.getVersion())
 }

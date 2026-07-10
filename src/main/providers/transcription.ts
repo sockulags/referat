@@ -9,6 +9,7 @@ import {
   HttpError,
   isConnectionError,
   isTimeoutError,
+  providerFetch,
   readBodyText,
   TEST_TIMEOUT_MS,
   trimBaseUrl,
@@ -96,7 +97,7 @@ export async function transcribe(
   form.append('response_format', 'verbose_json')
 
   const url = `${trimBaseUrl(config.baseUrl)}/audio/transcriptions`
-  const res = await fetch(url, {
+  const res = await providerFetch(url, {
     method: 'POST',
     headers: authHeaders(config.apiKey),
     body: form,
@@ -119,7 +120,7 @@ export async function testTranscriptionConnection(
     // Prefer GET /models — any HTTP response means the server is reachable.
     let res: Response
     try {
-      res = await fetch(`${base}/models`, {
+      res = await providerFetch(`${base}/models`, {
         method: 'GET',
         headers: authHeaders(config.apiKey),
         signal: AbortSignal.timeout(TEST_TIMEOUT_MS)
@@ -127,7 +128,7 @@ export async function testTranscriptionConnection(
     } catch (inner) {
       if (isConnectionError(inner)) throw inner
       // Fall back to a HEAD on the base URL if /models itself blew up non-network.
-      res = await fetch(base, {
+      res = await providerFetch(base, {
         method: 'HEAD',
         headers: authHeaders(config.apiKey),
         signal: AbortSignal.timeout(TEST_TIMEOUT_MS)

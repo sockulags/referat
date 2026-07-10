@@ -120,23 +120,23 @@ function persist(s: StoredSettings): void {
   }
 }
 
-/** Encrypt a plaintext key to base64 ciphertext. Falls back to base64 plaintext
- * if OS encryption is unavailable (rare on Windows). */
+/** Encrypt a plaintext key to base64 ciphertext. The product promise is that
+ * keys never touch disk in plaintext, so if OS encryption is unavailable
+ * (rare on Windows) we refuse to store the key rather than fall back. */
 function encryptKey(plain: string): string {
-  if (safeStorage.isEncryptionAvailable()) {
-    return safeStorage.encryptString(plain).toString('base64')
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error(
+      'Nyckeln kan inte sparas: Windows-kryptering (DPAPI) är inte tillgänglig på den här datorn.'
+    )
   }
-  return Buffer.from(plain, 'utf-8').toString('base64')
+  return safeStorage.encryptString(plain).toString('base64')
 }
 
 function decryptKey(enc: string | undefined): string {
   if (!enc) return ''
   try {
-    const buf = Buffer.from(enc, 'base64')
-    if (safeStorage.isEncryptionAvailable()) {
-      return safeStorage.decryptString(buf)
-    }
-    return buf.toString('utf-8')
+    if (!safeStorage.isEncryptionAvailable()) return ''
+    return safeStorage.decryptString(Buffer.from(enc, 'base64'))
   } catch (err) {
     console.error('Failed to decrypt API key', err)
     return ''

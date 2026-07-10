@@ -1,17 +1,9 @@
-import {
-  app,
-  shell,
-  BrowserWindow,
-  Tray,
-  Menu,
-  nativeImage,
-  session,
-  desktopCapturer
-} from 'electron'
+import { app, BrowserWindow, Tray, Menu, nativeImage, session, desktopCapturer } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipcHandlers'
+import { openExternalSafe } from './security'
 import { recoverPipeline } from './pipeline'
 import { isRecordingActive } from './storage'
 
@@ -62,7 +54,7 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: true
     }
   })
 
@@ -85,8 +77,13 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    openExternalSafe(details.url)
     return { action: 'deny' }
+  })
+
+  // The app is a single local page; any main-frame navigation is hostile.
+  mainWindow.webContents.on('will-navigate', (event) => {
+    event.preventDefault()
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
