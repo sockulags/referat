@@ -24,7 +24,10 @@ jobs:
       - run: npm run build
       # Local builds sign with the store-based cert (electron-builder.yml);
       # CI builds are unsigned — signing happens via SignPath after approval.
-      - run: npx electron-builder --win --publish never -c.win.signtoolOptions=null
+      # electron-builder 26 parses `-c.win.signtoolOptions=null` as a config
+      # FILE path, so generate a config with the signing key stripped instead.
+      - run: node -e "const fs=require('fs'),yaml=require('js-yaml');const c=yaml.load(fs.readFileSync('electron-builder.yml','utf8'));delete c.win.signtoolOptions;fs.writeFileSync('electron-builder.ci.yml',yaml.dump(c))"
+      - run: npx electron-builder --win --publish never --config electron-builder.ci.yml
       - uses: actions/upload-artifact@v4
         with:
           name: referat-windows-setup

@@ -5,3 +5,5 @@ out
 .eslintcache
 *.log*
 e2e/artifacts
+
+electron-builder.ci.yml
