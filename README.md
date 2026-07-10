@@ -7,7 +7,14 @@ transcribes them and writes finished meeting minutes — summary, decisions and 
 You decide where the AI runs: locally on your machine, on your company's server or with a
 cloud provider. Nothing leaves your machine unless you choose it.
 
-<!-- screenshot -->
+<p align="center">
+  <img src="docs/screenshots/minutes.png" alt="Finished meeting minutes with summary, decisions and action items" width="720">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Home view with the record button and meeting list" width="360">
+  <img src="docs/screenshots/recording.png" alt="Recording view with timer and level meters" width="360">
+</p>
 
 ## Features
 
