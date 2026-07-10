@@ -28,7 +28,7 @@ jobs:
       # FILE path, so generate a config with the signing key stripped instead.
       - run: node -e "const fs=require('fs'),yaml=require('js-yaml');const c=yaml.load(fs.readFileSync('electron-builder.yml','utf8'));delete c.win.signtoolOptions;fs.writeFileSync('electron-builder.ci.yml',yaml.dump(c))"
       - run: npx electron-builder --win --publish never --config electron-builder.ci.yml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: referat-windows-setup
           path: |
