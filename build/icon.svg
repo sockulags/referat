@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2F7257"/>
+      <stop offset="1" stop-color="#22523F"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded app tile -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <!-- Waveform bars flowing into text lines: sound becomes notes -->
+  <g fill="#FAF9F7">
+    <!-- waveform (left) -->
+    <rect x="112" y="216" width="28" height="80" rx="14"/>
+    <rect x="160" y="176" width="28" height="160" rx="14"/>
+    <rect x="208" y="140" width="28" height="232" rx="14"/>
+    <!-- text lines (right) -->
+    <rect x="268" y="164" width="132" height="28" rx="14"/>
+    <rect x="268" y="242" width="132" height="28" rx="14"/>
+    <rect x="268" y="320" width="92" height="28" rx="14"/>
+  </g>
+</svg>

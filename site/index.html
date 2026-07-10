@@ -1,0 +1,498 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>referat — Mötesanteckningar som stannar hos dig</title>
+<meta
+  name="description"
+  content="referat spelar in möten, transkriberar och skriver protokollet åt dig — och du väljer själv var AI:n kör. Lokalt, på företagets server eller i molnet. Ingenting lämnar datorn utan att du valt det."
+/>
+<meta name="color-scheme" content="light dark" />
+
+<!-- Sätt tema innan sidan målas för att undvika blink -->
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem("referat-theme");
+      var mq = window.matchMedia("(prefers-color-scheme: dark)");
+      var theme = saved || (mq.matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch (e) {}
+  })();
+</script>
+
+<link rel="stylesheet" href="css/styles.css" />
+
+<a class="skip-link" href="#huvudinnehall">Hoppa till innehåll</a>
+
+<!-- ============ NAV ============ -->
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="wordmark" href="#top" aria-label="referat — till toppen">
+      <span class="wordmark__mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="28" height="28" focusable="false">
+          <path
+            class="mark-quote"
+            d="M7 9h6a2 2 0 0 1 2 2v5a5 5 0 0 1-5 5H8v-3h2a2 2 0 0 0 2-2H8a1 1 0 0 1-1-1V9Z"
+          />
+          <path
+            class="mark-quote"
+            d="M18 9h6a2 2 0 0 1 2 2v5a5 5 0 0 1-5 5h-2v-3h2a2 2 0 0 0 2-2h-4a1 1 0 0 1-1-1V9Z"
+          />
+        </svg>
+      </span>
+      <span class="wordmark__text">referat</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Sidnavigering">
+      <a href="#sa-funkar-det">Så funkar det</a>
+      <a href="#integritet">Integritet</a>
+      <a href="#for-it">För IT</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+
+    <div class="nav__actions">
+      <button
+        class="theme-toggle"
+        id="theme-toggle"
+        type="button"
+        aria-label="Växla mörkt läge"
+        aria-pressed="false"
+      >
+        <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2" />
+          <g class="sun-rays">
+            <line x1="12" y1="2.5" x2="12" y2="5" />
+            <line x1="12" y1="19" x2="12" y2="21.5" />
+            <line x1="2.5" y1="12" x2="5" y2="12" />
+            <line x1="19" y1="12" x2="21.5" y2="12" />
+            <line x1="5.4" y1="5.4" x2="7.2" y2="7.2" />
+            <line x1="16.8" y1="16.8" x2="18.6" y2="18.6" />
+            <line x1="5.4" y1="18.6" x2="7.2" y2="16.8" />
+            <line x1="16.8" y1="7.2" x2="18.6" y2="5.4" />
+          </g>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M20 14.5A8 8 0 0 1 9.5 4a0.5 0.5 0 0 0-.7-.6A9 9 0 1 0 20.6 15.2a.5.5 0 0 0-.6-.7Z" />
+        </svg>
+      </button>
+
+      <a class="btn btn--primary btn--sm nav__cta" href="#" data-placeholder="download">
+        Ladda ner för Windows
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="huvudinnehall">
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap hero__inner">
+      <div class="hero__copy reveal">
+        <p class="eyebrow">Windows-app för möten</p>
+        <h1 class="hero__title">Mötesanteckningar som&nbsp;stannar hos dig.</h1>
+        <p class="hero__lead">
+          referat spelar in mötet, transkriberar och skriver ett färdigt protokoll —
+          sammanfattning, beslut och actionpunkter. Du väljer själv var AI:n kör.
+          Ingenting lämnar datorn utan att du valt det.
+        </p>
+        <div class="hero__cta">
+          <a class="btn btn--primary btn--lg" href="#" data-placeholder="download">
+            Ladda ner för Windows — gratis
+          </a>
+          <a class="btn btn--ghost btn--lg" href="#sa-funkar-det">Se hur det funkar</a>
+        </div>
+        <p class="hero__note">Version 0.1 — Windows 10/11</p>
+      </div>
+
+      <!-- PRODUKTMOCKUP -->
+      <div class="hero__mockup reveal" aria-hidden="true">
+        <div class="app-window">
+          <div class="app-window__bar">
+            <span class="dot dot--r"></span>
+            <span class="dot dot--y"></span>
+            <span class="dot dot--g"></span>
+            <span class="app-window__title">referat</span>
+          </div>
+          <div class="app-window__body">
+            <div class="rec">
+              <div class="rec__status">
+                <span class="rec__pulse"></span>
+                <span class="rec__label">Spelar in</span>
+              </div>
+              <div class="rec__timer">00:12:47</div>
+            </div>
+
+            <div class="meter">
+              <div class="meter__head">
+                <span class="meter__name">Mikrofon</span>
+                <span class="meter__val">–18 dB</span>
+              </div>
+              <div class="meter__track">
+                <div class="meter__bars meter__bars--mic">
+                  <span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="meter">
+              <div class="meter__head">
+                <span class="meter__name">Systemljud</span>
+                <span class="meter__val">–11 dB</span>
+              </div>
+              <div class="meter__track">
+                <div class="meter__bars meter__bars--sys">
+                  <span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rec__actions">
+              <button class="rec__stop" type="button" tabindex="-1">
+                <span class="rec__stop-glyph"></span>
+                Stoppa och skapa protokoll
+              </button>
+              <button class="rec__pause" type="button" tabindex="-1" aria-label="Paus">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                  <rect x="7" y="6" width="3.4" height="12" rx="1" />
+                  <rect x="13.6" y="6" width="3.4" height="12" rx="1" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="hero__glow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INTEGRITETSPITCH ============ -->
+  <section class="section" id="integritet">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <p class="eyebrow">Integritet i grunden</p>
+        <h2>Din data, dina villkor.</h2>
+        <p class="section__lead">
+          referat är byggt så att känsliga samtal aldrig behöver lämna företaget mot din vilja.
+        </p>
+      </div>
+
+      <div class="cards">
+        <article class="card reveal">
+          <span class="card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <rect x="4" y="10" width="16" height="10" rx="2.5" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" />
+              <circle cx="12" cy="15" r="1.6" fill="none" />
+            </svg>
+          </span>
+          <h3>Spelas in lokalt</h3>
+          <p>
+            Ljudet fångas och sparas på din egen dator. Inga inspelningar laddas upp automatiskt
+            till någon molntjänst — de ligger där du kan se dem.
+          </p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path d="M12 4c3 2.2 5.5 2.8 7 2.8 0 6.4-2.4 9.9-7 12.2-4.6-2.3-7-5.8-7-12.2 1.5 0 4-.6 7-2.8Z" fill="none" />
+              <path d="M9 12.2l2.2 2.2L15.4 10" fill="none" />
+            </svg>
+          </span>
+          <h3>Du väljer var AI:n kör</h3>
+          <p>
+            Kör AI:n lokalt på datorn, på företagets interna server eller hos en molnleverantör.
+            Valet är ditt — och det går att ändra när som helst.
+          </p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6l7-3Z" fill="none" />
+              <path d="M8.5 12h7M12 8.5v7" fill="none" />
+            </svg>
+          </span>
+          <h3>Ingen prenumeration krävs</h3>
+          <p>
+            Appen är gratis att ladda ner och använda. Använder du en egen eller lokal AI betalar
+            du ingenting extra — inga månadskostnader, inga konton.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SÅ FUNKAR DET ============ -->
+  <section class="section section--alt" id="sa-funkar-det">
+    <div class="wrap">
+      <div class="section__head reveal">
+        <p class="eyebrow">Så funkar det</p>
+        <h2>Tre steg till färdigt protokoll.</h2>
+        <p class="section__lead">
+          Från installation till delbart protokoll utan manual. Ingen terminal, inga tekniska termer.
+        </p>
+      </div>
+
+      <ol class="steps">
+        <li class="step reveal">
+          <div class="step__art" aria-hidden="true">
+            <svg viewBox="0 0 64 64" width="56" height="56">
+              <rect x="26" y="12" width="12" height="24" rx="6" fill="none" />
+              <path d="M20 30a12 12 0 0 0 24 0" fill="none" />
+              <line x1="32" y1="42" x2="32" y2="50" />
+              <line x1="24" y1="50" x2="40" y2="50" />
+            </svg>
+          </div>
+          <span class="step__num">Steg 1</span>
+          <h3>Spela in</h3>
+          <p>
+            Tryck på en stor knapp. referat fångar både din mikrofon och mötets systemljud —
+            oavsett om ni sitter i Teams, Zoom eller ett fysiskt rum.
+          </p>
+        </li>
+
+        <li class="step reveal">
+          <div class="step__art" aria-hidden="true">
+            <svg viewBox="0 0 64 64" width="56" height="56">
+              <rect x="14" y="14" width="36" height="36" rx="6" fill="none" />
+              <line x1="22" y1="26" x2="42" y2="26" />
+              <line x1="22" y1="33" x2="42" y2="33" />
+              <line x1="22" y1="40" x2="34" y2="40" />
+            </svg>
+          </div>
+          <span class="step__num">Steg 2</span>
+          <h3>Få protokollet</h3>
+          <p>
+            När du stoppar transkriberar och sammanfattar appen automatiskt. Du får
+            sammanfattning, beslut och actionpunkter med ägare — plus fullt sökbart transkript.
+          </p>
+        </li>
+
+        <li class="step reveal">
+          <div class="step__art" aria-hidden="true">
+            <svg viewBox="0 0 64 64" width="56" height="56">
+              <path d="M20 33l8 8 16-18" fill="none" />
+              <circle cx="32" cy="32" r="22" fill="none" />
+            </svg>
+          </div>
+          <span class="step__num">Steg 3</span>
+          <h3>Klart att dela</h3>
+          <p>
+            Exportera till Word eller Markdown, eller kopiera rakt in i mejlet. Protokollet är
+            redigerbart och färdigt att skickas till mötesdeltagarna.
+          </p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ FÖR IT-CHEFEN ============ -->
+  <section class="section" id="for-it">
+    <div class="wrap it">
+      <div class="it__copy reveal">
+        <p class="eyebrow">För IT-chefen</p>
+        <h2>Peka appen mot er egen&nbsp;AI.</h2>
+        <p class="section__lead">
+          referat låser dig inte till en leverantör. Transkribering och sammanfattning
+          konfigureras oberoende av varandra mot valfri OpenAI-kompatibel endpoint.
+        </p>
+        <ul class="it__list">
+          <li>
+            <strong>OpenAI-kompatibla endpoints</strong> för transkribering
+            (<code>/v1/audio/transcriptions</code>) och chat completions.
+          </li>
+          <li>
+            <strong>Intern server, Azure OpenAI eller Anthropic</strong> — färdiga presets,
+            eller ange en egen bas-URL.
+          </li>
+          <li>
+            <strong>Nycklar lagras krypterat lokalt</strong> via Windows DPAPI
+            (Electron safeStorage) — aldrig i klartext, aldrig i molnet.
+          </li>
+          <li>
+            <strong>Ingen telemetri.</strong> Appen ringer inte hem. Utgående trafik går bara
+            till de endpoints ni själva anger.
+          </li>
+        </ul>
+      </div>
+
+      <div class="it__diagram reveal">
+        <figure>
+          <svg viewBox="0 0 340 300" width="100%" role="img" aria-labelledby="diag-title diag-desc">
+            <title id="diag-title">Dataflöde: du väljer var AI:n kör</title>
+            <desc id="diag-desc">
+              referat-appen skickar data till ett val du gör, som pekar mot antingen din lokala
+              dator, företagets interna server eller en molntjänst.
+            </desc>
+
+            <!-- länkar -->
+            <g class="diag-link">
+              <path d="M170 66 V96" />
+              <path d="M170 140 C170 165, 80 160, 80 190" />
+              <path d="M170 140 V190" />
+              <path d="M170 140 C170 165, 260 160, 260 190" />
+            </g>
+
+            <!-- app -->
+            <g class="diag-node diag-node--accent">
+              <rect x="118" y="30" width="104" height="38" rx="10" />
+              <text x="170" y="54" text-anchor="middle">referat</text>
+            </g>
+
+            <!-- val -->
+            <g class="diag-node diag-node--choice">
+              <rect x="120" y="102" width="100" height="36" rx="18" />
+              <text x="170" y="125" text-anchor="middle">du väljer</text>
+            </g>
+
+            <!-- targets -->
+            <g class="diag-node">
+              <rect x="26" y="192" width="108" height="82" rx="12" />
+              <text x="80" y="222" text-anchor="middle" class="diag-strong">Lokal dator</text>
+              <text x="80" y="242" text-anchor="middle" class="diag-sub">på din maskin</text>
+            </g>
+            <g class="diag-node">
+              <rect x="146" y="192" width="108" height="82" rx="12" />
+              <text x="200" y="222" text-anchor="middle" class="diag-strong">Intern server</text>
+              <text x="200" y="242" text-anchor="middle" class="diag-sub">i ert nät</text>
+            </g>
+            <g class="diag-node">
+              <rect x="266" y="192" width="60" height="82" rx="12" />
+              <text x="296" y="222" text-anchor="middle" class="diag-strong">Moln</text>
+              <text x="296" y="242" text-anchor="middle" class="diag-sub">valfritt</text>
+            </g>
+          </svg>
+          <figcaption>Appen skickar bara data dit du pekar den.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section section--alt" id="faq">
+    <div class="wrap wrap--narrow">
+      <div class="section__head reveal">
+        <p class="eyebrow">Vanliga frågor</p>
+        <h2>Frågor och svar</h2>
+      </div>
+
+      <div class="faq">
+        <details class="faq__item reveal">
+          <summary>Kostar det något?</summary>
+          <div class="faq__body">
+            <p>
+              Nej. Appen är gratis att ladda ner och använda. Väljer du att köra AI:n lokalt eller
+              mot företagets egen server tillkommer inga kostnader. Använder du en molntjänst som
+              OpenAI betalar du bara den leverantörens vanliga avgift direkt till dem.
+            </p>
+          </div>
+        </details>
+
+        <details class="faq__item reveal">
+          <summary>Var lagras inspelningarna?</summary>
+          <div class="faq__body">
+            <p>
+              Lokalt på din dator. Ljudfiler, transkript och protokoll sparas på din maskin.
+              Inget laddas upp automatiskt — det enda som skickas iväg är text till den AI-tjänst
+              du själv valt för transkribering och sammanfattning.
+            </p>
+          </div>
+        </details>
+
+        <details class="faq__item reveal">
+          <summary>Vilka AI-tjänster stöds?</summary>
+          <div class="faq__body">
+            <p>
+              Alla OpenAI-kompatibla endpoints för transkribering och chat, plus Anthropic för
+              sammanfattning. Det inkluderar lokala servrar (t.ex. Ollama), OpenAI, Azure OpenAI
+              och er egen interna endpoint. Transkribering och sammanfattning ställs in var för sig.
+            </p>
+          </div>
+        </details>
+
+        <details class="faq__item reveal">
+          <summary>Funkar det med Teams, Zoom och Meet?</summary>
+          <div class="faq__body">
+            <p>
+              Ja. referat spelar in datorns systemljud och fungerar därför oavsett vilket
+              mötesverktyg ni använder — Teams, Zoom, Google Meet eller ett fysiskt möte i rummet.
+              Ingen plugin eller integration behövs.
+            </p>
+          </div>
+        </details>
+
+        <details class="faq__item reveal">
+          <summary>Behöver jag vara teknisk?</summary>
+          <div class="faq__body">
+            <p>
+              Nej. En guide hjälper dig igenom första starten och allt konfigureras via ett
+              vänligt gränssnitt i klarspråk. Du behöver aldrig öppna en terminal. Vill du köra
+              AI:n mot företagets server ger IT dig en adress att klistra in.
+            </p>
+          </div>
+        </details>
+
+        <details class="faq__item reveal">
+          <summary>Vad krävs för att köra AI lokalt?</summary>
+          <div class="faq__body">
+            <p>
+              En lokal AI-server på datorn (t.ex. Ollama eller en Whisper-kompatibel tjänst).
+              Appen innehåller en guide för att komma igång. En någorlunda modern dator med
+              tillräckligt med minne rekommenderas — annars fungerar moln- eller serverläget lika bra.
+            </p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SLUT-CTA ============ -->
+  <section class="cta-band">
+    <div class="wrap cta-band__inner reveal">
+      <h2>Redo att prova referat?</h2>
+      <p>Ladda ner, spela in ditt nästa möte och få protokollet på köpet.</p>
+      <a class="btn btn--primary btn--lg" href="#" data-placeholder="download">
+        Ladda ner för Windows — gratis
+      </a>
+      <p class="hero__note">Version 0.1 — Windows 10/11</p>
+    </div>
+  </section>
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <div class="footer__brand">
+      <span class="wordmark wordmark--sm">
+        <span class="wordmark__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="22" height="22" focusable="false">
+            <path class="mark-quote" d="M7 9h6a2 2 0 0 1 2 2v5a5 5 0 0 1-5 5H8v-3h2a2 2 0 0 0 2-2H8a1 1 0 0 1-1-1V9Z" />
+            <path class="mark-quote" d="M18 9h6a2 2 0 0 1 2 2v5a5 5 0 0 1-5 5h-2v-3h2a2 2 0 0 0 2-2h-4a1 1 0 0 1-1-1V9Z" />
+          </svg>
+        </span>
+        <span class="wordmark__text">referat</span>
+      </span>
+      <p class="footer__tag">Mötesanteckningar som stannar hos dig.</p>
+    </div>
+
+    <nav class="footer__links" aria-label="Sidfot">
+      <a href="#sa-funkar-det">Så funkar det</a>
+      <a href="#integritet">Integritet</a>
+      <a href="#for-it">För IT</a>
+      <a href="#faq">FAQ</a>
+      <a href="#" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+  <div class="wrap footer__bottom">
+    <span>Byggd i Sverige.</span>
+    <span>© 2026 Lucas Skog</span>
+  </div>
+</footer>
+
+<script src="js/main.js" defer></script>

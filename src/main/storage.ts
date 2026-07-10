@@ -1,0 +1,209 @@
+// Storage: one folder per meeting under userData/meetings/<id>/.
+// Files: meta.json, audio.webm, transcript.json, protocol.md.
+// The folder listing is the index — no database.
+
+import { app } from 'electron'
+import { join } from 'path'
+import {
+  mkdirSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  rmSync,
+  readdirSync,
+  createWriteStream
+} from 'fs'
+import type { WriteStream } from 'fs'
+import type { MeetingMeta, MeetingDetail, Transcript } from '../shared/types'
+
+function meetingsDir(): string {
+  const dir = join(app.getPath('userData'), 'meetings')
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+function meetingDir(id: string): string {
+  return join(meetingsDir(), id)
+}
+
+function metaPath(id: string): string {
+  return join(meetingDir(id), 'meta.json')
+}
+
+export function audioPath(id: string): string {
+  return join(meetingDir(id), 'audio.webm')
+}
+
+function transcriptPath(id: string): string {
+  return join(meetingDir(id), 'transcript.json')
+}
+
+function protocolPath(id: string): string {
+  return join(meetingDir(id), 'protocol.md')
+}
+
+/** Timestamp-based id with a short random suffix — sortable and collision-safe. */
+function generateId(): string {
+  const ts = new Date()
+    .toISOString()
+    .replace(/[-:.TZ]/g, '')
+    .slice(0, 14)
+  const rand = Math.random().toString(36).slice(2, 8)
+  return `${ts}-${rand}`
+}
+
+export function readMeta(id: string): MeetingMeta | null {
+  try {
+    const raw = readFileSync(metaPath(id), 'utf-8')
+    return JSON.parse(raw) as MeetingMeta
+  } catch {
+    return null
+  }
+}
+
+export function writeMeta(meta: MeetingMeta): void {
+  const dir = meetingDir(meta.id)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  writeFileSync(metaPath(meta.id), JSON.stringify(meta, null, 2), 'utf-8')
+}
+
+/** Patch selected fields of a meeting's meta and persist. Returns the new meta. */
+export function updateMeta(id: string, patch: Partial<MeetingMeta>): MeetingMeta | null {
+  const current = readMeta(id)
+  if (!current) return null
+  const next: MeetingMeta = { ...current, ...patch }
+  writeMeta(next)
+  return next
+}
+
+/** Meetings currently being recorded (start -> finish/cancel). Drives hide-to-tray. */
+const recordingIds = new Set<string>()
+
+export function isRecordingActive(): boolean {
+  return recordingIds.size > 0
+}
+
+export function createMeeting(title: string): MeetingMeta {
+  const id = generateId()
+  const meta: MeetingMeta = {
+    id,
+    title: title.trim() || 'Nytt möte',
+    createdAt: new Date().toISOString(),
+    durationSec: 0,
+    status: 'recording'
+  }
+  writeMeta(meta)
+  recordingIds.add(id)
+  return meta
+}
+
+export function listMeetings(): MeetingMeta[] {
+  const dir = meetingsDir()
+  let entries: string[]
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+  } catch {
+    return []
+  }
+  const metas: MeetingMeta[] = []
+  for (const id of entries) {
+    const meta = readMeta(id)
+    if (meta) metas.push(meta)
+  }
+  // Newest first (ids and createdAt both sort chronologically).
+  metas.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
+  return metas
+}
+
+export function readTranscript(id: string): Transcript | undefined {
+  try {
+    return JSON.parse(readFileSync(transcriptPath(id), 'utf-8')) as Transcript
+  } catch {
+    return undefined
+  }
+}
+
+export function writeTranscript(id: string, transcript: Transcript): void {
+  writeFileSync(transcriptPath(id), JSON.stringify(transcript, null, 2), 'utf-8')
+}
+
+export function hasTranscript(id: string): boolean {
+  return existsSync(transcriptPath(id))
+}
+
+export function readProtocol(id: string): string | undefined {
+  try {
+    return readFileSync(protocolPath(id), 'utf-8')
+  } catch {
+    return undefined
+  }
+}
+
+export function writeProtocol(id: string, markdown: string): void {
+  writeFileSync(protocolPath(id), markdown, 'utf-8')
+}
+
+export function getMeeting(id: string): MeetingDetail | null {
+  const meta = readMeta(id)
+  if (!meta) return null
+  return {
+    ...meta,
+    transcript: readTranscript(id),
+    protocol: readProtocol(id)
+  }
+}
+
+export function deleteMeeting(id: string): void {
+  const dir = meetingDir(id)
+  if (existsSync(dir)) rmSync(dir, { recursive: true, force: true })
+}
+
+export function renameMeeting(id: string, title: string): void {
+  updateMeta(id, { title: title.trim() || 'Nytt möte' })
+}
+
+// ---- Recording: streamed audio append ----
+
+const activeStreams = new Map<string, WriteStream>()
+
+function getStream(id: string): WriteStream {
+  let stream = activeStreams.get(id)
+  if (!stream) {
+    const dir = meetingDir(id)
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    // 'a' — append; chunks are streamed straight to disk, never buffered in memory.
+    stream = createWriteStream(audioPath(id), { flags: 'a' })
+    activeStreams.set(id, stream)
+  }
+  return stream
+}
+
+export function appendAudioChunk(id: string, chunk: ArrayBuffer): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const stream = getStream(id)
+    stream.write(Buffer.from(chunk), (err) => (err ? reject(err) : resolve()))
+  })
+}
+
+function closeStream(id: string): Promise<void> {
+  const stream = activeStreams.get(id)
+  activeStreams.delete(id)
+  if (!stream) return Promise.resolve()
+  return new Promise((resolve) => stream.end(() => resolve()))
+}
+
+/** Close the audio stream and stamp duration + status 'recorded'. */
+export async function finishRecording(id: string, durationSec: number): Promise<void> {
+  await closeStream(id)
+  recordingIds.delete(id)
+  updateMeta(id, { durationSec: Math.max(0, Math.round(durationSec)), status: 'recorded' })
+}
+
+/** Close the audio stream and remove the whole folder. */
+export async function cancelRecording(id: string): Promise<void> {
+  await closeStream(id)
+  recordingIds.delete(id)
+  deleteMeeting(id)
+}

@@ -4,12 +4,7 @@
 // ---------- Meetings ----------
 
 export type MeetingStatus =
-  | 'recording'
-  | 'recorded'
-  | 'transcribing'
-  | 'summarizing'
-  | 'done'
-  | 'error'
+  'recording' | 'recorded' | 'transcribing' | 'summarizing' | 'done' | 'error'
 
 export interface MeetingMeta {
   id: string

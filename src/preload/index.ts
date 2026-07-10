@@ -1,12 +1,72 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type {
+  RendererApi,
+  MeetingMeta,
+  MeetingDetail,
+  RecordingHandle,
+  AppSettings,
+  SaveTranscriptionSettings,
+  SaveSummarySettings,
+  ConnectionTestResult,
+  PipelineProgressEvent
+} from '../shared/types'
+import { IPC } from '../main/ipc'
 
-// Custom APIs for renderer
-const api = {}
+const api: RendererApi = {
+  // Meetings
+  listMeetings: (): Promise<MeetingMeta[]> => ipcRenderer.invoke(IPC.listMeetings),
+  getMeeting: (id: string): Promise<MeetingDetail | null> => ipcRenderer.invoke(IPC.getMeeting, id),
+  deleteMeeting: (id: string): Promise<void> => ipcRenderer.invoke(IPC.deleteMeeting, id),
+  renameMeeting: (id: string, title: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.renameMeeting, id, title),
+  retryPipeline: (id: string): Promise<void> => ipcRenderer.invoke(IPC.retryPipeline, id),
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+  // Recording
+  startRecording: (title: string): Promise<RecordingHandle> =>
+    ipcRenderer.invoke(IPC.startRecording, title),
+  appendAudioChunk: (meetingId: string, chunk: ArrayBuffer): Promise<void> =>
+    ipcRenderer.invoke(IPC.appendAudioChunk, meetingId, chunk),
+  finishRecording: (meetingId: string, durationSec: number): Promise<void> =>
+    ipcRenderer.invoke(IPC.finishRecording, meetingId, durationSec),
+  cancelRecording: (meetingId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.cancelRecording, meetingId),
+
+  // Settings
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.getSettings),
+  saveTranscriptionSettings: (s: SaveTranscriptionSettings): Promise<void> =>
+    ipcRenderer.invoke(IPC.saveTranscriptionSettings, s),
+  saveSummarySettings: (s: SaveSummarySettings): Promise<void> =>
+    ipcRenderer.invoke(IPC.saveSummarySettings, s),
+  saveGeneralSettings: (s: {
+    microphoneId?: string
+    captureSystemAudio?: boolean
+    theme?: AppSettings['theme']
+    onboardingCompleted?: boolean
+  }): Promise<void> => ipcRenderer.invoke(IPC.saveGeneralSettings, s),
+  testTranscriptionConnection: (): Promise<ConnectionTestResult> =>
+    ipcRenderer.invoke(IPC.testTranscriptionConnection),
+  testSummaryConnection: (): Promise<ConnectionTestResult> =>
+    ipcRenderer.invoke(IPC.testSummaryConnection),
+
+  // Export
+  exportProtocol: (id: string, format: 'md' | 'docx'): Promise<{ savedTo: string | null }> =>
+    ipcRenderer.invoke(IPC.exportProtocol, id, format),
+  copyProtocol: (id: string): Promise<void> => ipcRenderer.invoke(IPC.copyProtocol, id),
+
+  // Events
+  onPipelineProgress: (cb: (e: PipelineProgressEvent) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: PipelineProgressEvent): void =>
+      cb(data)
+    ipcRenderer.on(IPC.pipelineProgress, listener)
+    return () => ipcRenderer.removeListener(IPC.pipelineProgress, listener)
+  },
+
+  // Misc
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.openExternal, url),
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke(IPC.getAppVersion)
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)

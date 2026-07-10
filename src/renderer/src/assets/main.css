@@ -1,171 +1,273 @@
-@import './base.css';
+@import 'tailwindcss';
 
-body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Class-based dark mode (settings-controlled, applied on <html class="dark">). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * referat design system — see docs/design.md.
+ * Warm, calm, Scandinavian. Forest-green accent, coral only for recording.
+ * Semantic tokens are CSS variables that flip between light/dark; @theme inline
+ * exposes them as Tailwind utilities that resolve via var() at runtime.
+ */
+@theme inline {
+  --font-sans: 'Inter', system-ui, 'Segoe UI', sans-serif;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+
+  --color-rec: var(--rec);
+  --color-rec-soft: var(--rec-soft);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-fg: var(--danger-fg);
+
+  --color-ring: var(--ring);
+
+  --radius-lg: 12px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
+
+  --shadow-card: 0 1px 2px rgb(20 30 25 / 0.04), 0 1px 3px rgb(20 30 25 / 0.06);
+  --shadow-float: 0 8px 30px rgb(20 30 25 / 0.14), 0 2px 8px rgb(20 30 25 / 0.08);
+}
+
+:root {
+  /* Light — warm off-white */
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --surface-2: #f4f2ee;
+  --fg: #1c211e;
+  --fg-muted: #56605a;
+  --fg-subtle: #8a938c;
+  --border: #e7e3dc;
+  --border-strong: #d6d0c6;
+
+  --accent: #2d6a4f;
+  --accent-hover: #245a43;
+  --accent-active: #1e4a37;
+  --accent-fg: #ffffff;
+  --accent-soft: #e6efe9;
+  --accent-soft-fg: #245a43;
+
+  --rec: #e04f3d;
+  --rec-soft: #fbe9e5;
+
+  --success: #2d6a4f;
+  --success-soft: #e6efe9;
+  --warning: #b7791f;
+  --warning-soft: #f8efdd;
+  --danger: #c23b30;
+  --danger-hover: #a83128;
+  --danger-soft: #fbe9e5;
+  --danger-fg: #ffffff;
+
+  --ring: #40916c;
+}
+
+.dark {
+  /* Dark — deep warm gray, never coal black */
+  --bg: #1a1917;
+  --surface: #232220;
+  --surface-2: #2c2b28;
+  --fg: #ecebe6;
+  --fg-muted: #a8a59d;
+  --fg-subtle: #7c7972;
+  --border: #34322e;
+  --border-strong: #423f3a;
+
+  --accent: #52b788;
+  --accent-hover: #74c69d;
+  --accent-active: #40916c;
+  --accent-fg: #10231a;
+  --accent-soft: #22352b;
+  --accent-soft-fg: #95d5b2;
+
+  --rec: #f0705f;
+  --rec-soft: #3a2723;
+
+  --success: #52b788;
+  --success-soft: #22352b;
+  --warning: #e0b055;
+  --warning-soft: #382f1e;
+  --danger: #e5776b;
+  --danger-hover: #ef8b80;
+  --danger-soft: #3a2723;
+  --danger-fg: #1a1917;
+
+  --ring: #52b788;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+
+  ::selection {
+    background-color: var(--accent-soft);
+    color: var(--accent-soft-fg);
+  }
+
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Calm, thin scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--fg-subtle);
+  }
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@utility animate-fade-in {
+  animation: fade-in 160ms ease-out;
+}
+@utility animate-pop-in {
+  animation: pop-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@utility animate-rise-in {
+  animation: rise-in 240ms ease-out both;
+}
+@utility animate-spin-slow {
+  animation: spin 900ms linear infinite;
+}
+@utility animate-breathe {
+  animation: breathe 3.4s ease-in-out infinite;
+}
+
+/* Skeleton loading shimmer */
+@utility skeleton {
+  position: relative;
   overflow: hidden;
-  background-image: url('./wavy-lines.svg');
-  background-size: cover;
-  user-select: none;
+  background-color: var(--surface-2);
+  border-radius: var(--radius-sm);
 }
-
-code {
-  font-weight: 600;
-  padding: 3px 5px;
-  border-radius: 2px;
-  background-color: var(--color-background-mute);
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    SF Mono,
-    Menlo,
-    Consolas,
-    Liberation Mono,
-    monospace;
-  font-size: 85%;
-}
-
-#root {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  margin-bottom: 80px;
-}
-
-.logo {
-  margin-bottom: 20px;
-  -webkit-user-drag: none;
-  height: 128px;
-  width: 128px;
-  will-change: filter;
-  transition: filter 300ms;
-}
-
-.logo:hover {
-  filter: drop-shadow(0 0 1.2em #6988e6aa);
-}
-
-.creator {
-  font-size: 14px;
-  line-height: 16px;
-  color: var(--ev-c-text-2);
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.text {
-  font-size: 28px;
-  color: var(--ev-c-text-1);
-  font-weight: 700;
-  line-height: 32px;
-  text-align: center;
-  margin: 0 10px;
-  padding: 16px 0;
-}
-
-.tip {
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--ev-c-text-2);
-  font-weight: 600;
-}
-
-.react {
-  background: -webkit-linear-gradient(315deg, #087ea4 55%, #7c93ee);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-
-.ts {
-  background: -webkit-linear-gradient(315deg, #3178c6 45%, #f0dc4e);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-
-.actions {
-  display: flex;
-  padding-top: 32px;
-  margin: -6px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-}
-
-.action {
-  flex-shrink: 0;
-  padding: 6px;
-}
-
-.action a {
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  border: 1px solid transparent;
-  text-align: center;
-  font-weight: 600;
-  white-space: nowrap;
-  border-radius: 20px;
-  padding: 0 20px;
-  line-height: 38px;
-  font-size: 14px;
-  border-color: var(--ev-button-alt-border);
-  color: var(--ev-button-alt-text);
-  background-color: var(--ev-button-alt-bg);
-}
-
-.action a:hover {
-  border-color: var(--ev-button-alt-hover-border);
-  color: var(--ev-button-alt-hover-text);
-  background-color: var(--ev-button-alt-hover-bg);
-}
-
-.versions {
+.skeleton::after {
+  content: '';
   position: absolute;
-  bottom: 30px;
-  margin: 0 auto;
-  padding: 15px 0;
-  font-family: 'Menlo', 'Lucida Console', monospace;
-  display: inline-flex;
-  overflow: hidden;
-  align-items: center;
-  border-radius: 22px;
-  background-color: #202127;
-  backdrop-filter: blur(24px);
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.1), transparent);
+  animation: shimmer 1.5s infinite;
 }
 
-.versions li {
-  display: block;
-  float: left;
-  border-right: 1px solid var(--ev-c-gray-1);
-  padding: 0 20px;
-  font-size: 14px;
-  line-height: 14px;
-  opacity: 0.8;
-  &:last-child {
-    border: none;
-  }
-}
-
-@media (max-width: 720px) {
-  .text {
-    font-size: 20px;
-  }
-}
-
-@media (max-width: 620px) {
-  .versions {
-    display: none;
-  }
-}
-
-@media (max-width: 350px) {
-  .tip,
-  .actions {
-    display: none;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
