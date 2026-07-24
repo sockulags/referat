@@ -4,10 +4,66 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
+    groups:
+      # Majors that only move in lockstep: vite 8 needs electron-vite 6, and
+      # @vitejs/plugin-react 6 needs vite 8. Separate PRs for these can never
+      # be merged individually — npm ci fails on the peer range.
+      build-toolchain:
+        patterns:
+          - "vite"
+          - "vitest"
+          - "@vitejs/*"
+          - "@vitest/*"
+          - "electron-vite"
+          - "tailwindcss"
+          - "@tailwindcss/*"
+      # eslint majors land only once every plugin accepts them.
+      lint-toolchain:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@electron-toolkit/eslint-*"
+          - "prettier"
+      # The shipped runtime plus the harness that has to be able to launch it.
+      electron:
+        patterns:
+          - "electron"
+          - "electron-builder"
+          - "electron-updater"
+          - "@electron-toolkit/*"
+          - "playwright-core"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Everything else arrives as one PR per week no matter how many bumps
+      # there are, so a stuck major can never seal the queue again.
+      routine:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # typescript-eslint's peer range is ">=4.8.4 <6.1.0" and TS 7 removed the
+      # compiler API its type-aware rules build on. Revisit when typescript-eslint
+      # supports TS 7 (upstream issue typescript-eslint#12518).
+      - dependency-name: "typescript"
+        versions: [">=6"]
+      # Electron 39 ships a Node 22 runtime and depends on @types/node ^22.7.7.
+      # Newer types would typecheck APIs the runtime does not have.
+      - dependency-name: "@types/node"
+        versions: [">=23"]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
