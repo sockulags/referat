@@ -74,6 +74,17 @@ async function main() {
   if (!fs.existsSync(mainEntry)) {
     throw new Error(`Missing build output: ${mainEntry} — run \`npm run build\` first`)
   }
+  // Electron 43 dropped the postinstall hook that used to fetch this binary, so
+  // a missing dist/ is now a plausible state after a plain install. Playwright
+  // reports it as a bare "Process failed to launch!", which says nothing about
+  // the cause — check it here and name the fix instead.
+  if (!fs.existsSync(electronExe)) {
+    throw new Error(
+      `Missing Electron binary: ${electronExe}\n` +
+        'The electron package no longer downloads it on install. Run `npm run postinstall` ' +
+        '(or `npx install-electron`) before the E2E run.'
+    )
+  }
 
   app = await electron.launch({
     executablePath: electronExe,

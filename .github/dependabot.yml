@@ -61,10 +61,11 @@ updates:
       # supports TS 7 (upstream issue typescript-eslint#12518).
       - dependency-name: "typescript"
         versions: [">=6"]
-      # Electron 39 ships a Node 22 runtime and depends on @types/node ^22.7.7.
-      # Newer types would typecheck APIs the runtime does not have.
+      # Electron 43 ships a Node 24 runtime (24.18.0) and itself depends on
+      # @types/node ^24.9.0. Keep the types on the major the app actually runs:
+      # newer ones would typecheck APIs that are not there at runtime.
       - dependency-name: "@types/node"
-        versions: [">=23"]
+        versions: [">=25"]
       # vite 8 cannot be installed at all: electron-vite 5.0.0 (latest stable)
       # peers on vite ^5 || ^6 || ^7, and @vitejs/plugin-react 6 requires vite 8.
       # Both land together once electron-vite 6 ships stable.
