@@ -18,6 +18,11 @@ updates:
           - "electron-vite"
           - "tailwindcss"
           - "@tailwindcss/*"
+        # Minor and patch only: a blocked major inside the group would hold
+        # every safe bump in it hostage behind a red check.
+        update-types:
+          - "minor"
+          - "patch"
       # eslint majors land only once every plugin accepts them.
       lint-toolchain:
         patterns:
@@ -25,6 +30,9 @@ updates:
           - "eslint-*"
           - "@electron-toolkit/eslint-*"
           - "prettier"
+        update-types:
+          - "minor"
+          - "patch"
       # The shipped runtime plus the harness that has to be able to launch it.
       electron:
         patterns:
@@ -57,6 +65,17 @@ updates:
       # Newer types would typecheck APIs the runtime does not have.
       - dependency-name: "@types/node"
         versions: [">=23"]
+      # vite 8 cannot be installed at all: electron-vite 5.0.0 (latest stable)
+      # peers on vite ^5 || ^6 || ^7, and @vitejs/plugin-react 6 requires vite 8.
+      # Both land together once electron-vite 6 ships stable.
+      - dependency-name: "vite"
+        versions: [">=8"]
+      - dependency-name: "@vitejs/plugin-react"
+        versions: [">=6"]
+      # eslint-plugin-react 7.37.5 is the latest release and still caps at
+      # eslint ^9.7. No published version accepts eslint 10 yet.
+      - dependency-name: "eslint"
+        versions: [">=10"]
 
   - package-ecosystem: github-actions
     directory: /
