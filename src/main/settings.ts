@@ -24,6 +24,7 @@ interface StoredTranscription {
 
 interface StoredSummary {
   preset: AppSettings['summary']['preset']
+  backend: AppSettings['summary']['backend']
   apiFlavor: AppSettings['summary']['apiFlavor']
   baseUrl: string
   model: string
@@ -83,6 +84,7 @@ function defaults(): StoredSettings {
     },
     summary: {
       preset: 'local',
+      backend: 'http',
       apiFlavor: 'openai-compatible',
       baseUrl: 'http://localhost:11434/v1',
       model: '',
@@ -190,6 +192,7 @@ export function getSettings(): AppSettings {
     },
     summary: {
       preset: s.summary.preset,
+      backend: s.summary.backend,
       apiFlavor: s.summary.apiFlavor,
       baseUrl: s.summary.baseUrl,
       model: s.summary.model,
@@ -224,6 +227,7 @@ export function saveSummarySettings(payload: SaveSummarySettings): void {
   const s = load()
   s.summary = {
     preset: payload.preset,
+    backend: payload.backend,
     apiFlavor: payload.apiFlavor,
     baseUrl: payload.baseUrl,
     model: payload.model,
@@ -267,6 +271,7 @@ export interface TranscriptionConfig {
 }
 
 export interface SummaryConfig {
+  backend: AppSettings['summary']['backend']
   apiFlavor: 'openai-compatible' | 'anthropic'
   baseUrl: string
   model: string
@@ -302,6 +307,7 @@ export function getDiarizationConfig(): DiarizationConfig {
 export function getSummaryConfig(): SummaryConfig {
   const s = load()
   return {
+    backend: s.summary.backend,
     apiFlavor: s.summary.apiFlavor,
     baseUrl: s.summary.baseUrl,
     model: s.summary.model,

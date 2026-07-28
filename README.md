@@ -34,8 +34,8 @@ explicitly configure an external endpoint.
 
 ## From conversation to decisions
 
-| 1. Record | 2. Process | 3. Use the result |
-| --- | --- | --- |
+| 1. Record                                                    | 2. Process                                                                  | 3. Use the result                                                |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | Capture microphone and Windows system audio with one button. | Transcribe, optionally identify speakers, then generate structured minutes. | Review the transcript and export the result as Markdown or Word. |
 
 <p align="center">
@@ -48,7 +48,8 @@ explicitly configure an external endpoint.
 - **No meeting bot.** System-audio capture works across meeting tools and for in-person
   conversations.
 - **Deployment is a product choice.** Use local OpenAI-compatible services, internal
-  endpoints, OpenAI, Azure OpenAI, or Anthropic for the steps they support.
+  endpoints, OpenAI, Azure OpenAI, Anthropic, or an already authenticated Codex CLI for
+  minutes generation.
 - **Local-first data handling.** Meeting files live under the user's Windows app-data
   directory. API keys are encrypted with Windows DPAPI through Electron `safeStorage`.
 - **Useful output, not just a transcript.** The default flow produces a summary, decisions,
@@ -72,19 +73,22 @@ flowchart LR
       L[Local machine]
       I[Internal server]
       P[Cloud provider]
+      K[Existing Codex CLI login]
     end
 
     Choice -. OpenAI-compatible APIs .-> C
     Choice -. OpenAI-compatible or Anthropic .-> E
+    K -. Ephemeral text-only run .-> E
 ```
 
-| Boundary | Behaviour |
-| --- | --- |
-| Audio and meeting files | Stored locally by default; uploaded only to the transcription endpoint you configure. |
-| API credentials | Encrypted with Windows DPAPI; plaintext keys are never sent back to the renderer. |
-| Renderer access | Sandboxed Electron renderer with context isolation and a typed preload boundary. |
-| Provider redirects | Authentication-bearing requests reject redirects instead of forwarding credentials. |
-| Telemetry | None. |
+| Boundary                | Behaviour                                                                                       |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| Audio and meeting files | Stored locally by default; uploaded only to the transcription endpoint you configure.           |
+| API credentials         | Encrypted with Windows DPAPI; plaintext keys are never sent back to the renderer.               |
+| Codex                   | Reuses the local CLI login; runs ephemerally with shell, apps, plugins and web search disabled. |
+| Renderer access         | Sandboxed Electron renderer with context isolation and a typed preload boundary.                |
+| Provider redirects      | Authentication-bearing requests reject redirects instead of forwarding credentials.             |
+| Telemetry               | None.                                                                                           |
 
 Read the full [architecture and security model](https://github.com/sockulags/referat/wiki/Architecture).
 
@@ -94,6 +98,7 @@ Read the full [architecture and security model](https://github.com/sockulags/ref
 - Swedish and multilingual transcription through configurable providers
 - Optional local speaker diarization
 - Customizable prompt/template for meeting minutes
+- Optional minutes generation through an existing authenticated Codex CLI, without an API key
 - Markdown and `.docx` export, plus clipboard copy
 - Provider connection tests in the app
 - Crash recovery and per-step retry

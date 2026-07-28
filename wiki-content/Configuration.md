@@ -28,17 +28,18 @@ The service that writes out what was said. Any OpenAI-compatible
 
 **Presets**
 
-| Preset       | Base URL                                   | Model (default)          | API key |
-| ------------ | ------------------------------------------ | ------------------------ | ------- |
-| Local server | `http://localhost:8000/v1`                 | `KBLab/kb-whisper-large` | no      |
-| OpenAI       | `https://api.openai.com/v1`                | `whisper-1`              | yes     |
-| Azure OpenAI | `https://<resource>.openai.azure.com/openai/v1` | `whisper`           | yes     |
-| Custom       | *(empty — enter your own)*                 | *(empty)*                | depends |
+| Preset       | Base URL                                        | Model (default)          | API key |
+| ------------ | ----------------------------------------------- | ------------------------ | ------- |
+| Local server | `http://localhost:8000/v1`                      | `KBLab/kb-whisper-large` | no      |
+| OpenAI       | `https://api.openai.com/v1`                     | `whisper-1`              | yes     |
+| Azure OpenAI | `https://<resource>.openai.azure.com/openai/v1` | `whisper`                | yes     |
+| Custom       | _(empty — enter your own)_                      | _(empty)_                | depends |
 
 ## Summarization
 
-The service that turns the transcript into the actual minutes. Two API flavors are
-supported: **OpenAI-compatible** chat completions and **Anthropic** messages.
+The service that turns the transcript into the actual minutes. HTTP providers support
+**OpenAI-compatible** chat completions and **Anthropic** messages. The separate **Codex
+(work account)** preset can instead reuse an already authenticated local Codex CLI.
 
 **Fields**
 
@@ -52,13 +53,38 @@ supported: **OpenAI-compatible** chat completions and **Anthropic** messages.
 
 **Presets**
 
-| Preset       | API type          | Base URL                                        | Model (default)             | API key |
-| ------------ | ----------------- | ----------------------------------------------- | --------------------------- | ------- |
-| Local server | OpenAI-compatible | `http://localhost:11434/v1`                     | `llama3.1`                  | no      |
-| OpenAI       | OpenAI-compatible | `https://api.openai.com/v1`                     | `gpt-4o-mini`               | yes     |
-| Azure OpenAI | OpenAI-compatible | `https://<resource>.openai.azure.com/openai/v1` | `gpt-4o`                    | yes     |
-| Anthropic    | Anthropic         | `https://api.anthropic.com`                     | `claude-3-5-sonnet-latest`  | yes     |
-| Custom       | OpenAI-compatible | *(empty — enter your own)*                      | *(empty)*                   | depends |
+| Preset               | API type          | Base URL                                        | Model (default)            | API key |
+| -------------------- | ----------------- | ----------------------------------------------- | -------------------------- | ------- |
+| Local server         | OpenAI-compatible | `http://localhost:11434/v1`                     | `llama3.1`                 | no      |
+| OpenAI               | OpenAI-compatible | `https://api.openai.com/v1`                     | `gpt-4o-mini`              | yes     |
+| Azure OpenAI         | OpenAI-compatible | `https://<resource>.openai.azure.com/openai/v1` | `gpt-4o`                   | yes     |
+| Anthropic            | Anthropic         | `https://api.anthropic.com`                     | `claude-3-5-sonnet-latest` | yes     |
+| Codex (work account) | Codex CLI         | _(uses the installed CLI)_                      | _(workspace default)_      | no      |
+| Custom               | OpenAI-compatible | _(empty — enter your own)_                      | _(empty)_                  | depends |
+
+### Codex CLI preset
+
+Choose **Codex (work account)** when Codex CLI is installed and authenticated through your
+ChatGPT work account but you do not have an OpenAI Platform API key. Verify the prerequisite
+in PowerShell:
+
+```powershell
+codex login status
+codex exec --ephemeral --skip-git-repo-check "Svara endast OK"
+```
+
+referat sends the rendered minutes prompt through stdin and reads only the final message from
+stdout. Each run is ephemeral and uses an empty temporary working directory. User config,
+rules, shell commands, apps, plugins, web search and local Codex history are disabled for the
+run. The temporary directory is removed afterwards. The CLI still sends the prompt and
+transcript to the ChatGPT workspace associated with the saved Codex login, subject to that
+workspace's policies and usage limits.
+
+No API key or ChatGPT token is stored by referat for this preset. Keys previously saved for
+HTTP presets remain encrypted so switching provider does not erase them, but they are never
+sent to Codex. **Do not use this preset for meetings classified Highly Confidential unless
+your organization's policy explicitly permits it.** Use **Test Codex** in Settings to
+perform a small authenticated end-to-end request.
 
 ### Azure OpenAI specifics
 
@@ -82,7 +108,7 @@ strips it so the path doesn't become `/v1/v1/messages`. Leave the base URL as
 
 ### The minutes template
 
-The **minutes template** (under *Advanced*) is the prompt that shapes the output. It
+The **minutes template** (under _Advanced_) is the prompt that shapes the output. It
 contains a **`{{transcript}}`** placeholder, which referat replaces with the meeting
 transcript before sending. (If you remove the placeholder, the transcript is appended to the
 end of your prompt instead.)
@@ -107,20 +133,20 @@ group is called **Talare**.
 
 **Fields**
 
-- **Identify speakers** (*Identifiera talare*) — the on/off toggle. When off, meetings are
+- **Identify speakers** (_Identifiera talare_) — the on/off toggle. When off, meetings are
   processed exactly as before.
-- **Server address** (*Serveradress*) — the diarization server's address. Default
+- **Server address** (_Serveradress_) — the diarization server's address. Default
   `http://localhost:8300`.
-- **Test connection** (*Testa anslutning*) — checks the server's `/health` endpoint; a
+- **Test connection** (_Testa anslutning_) — checks the server's `/health` endpoint; a
   network error means the address is wrong or the server isn't running.
-- **Recognize speakers across meetings** (*Känn igen talare mellan möten*) — optional
+- **Recognize speakers across meetings** (_Känn igen talare mellan möten_) — optional
   sub-toggle, off by default; only shown when speaker identification is on. When on,
   renaming a speaker saves a local voiceprint, and in later meetings a matching voice is
   suggested with a question mark ("Anna?") for you to confirm or dismiss. Voiceprints are
   biometric data and everything is stored locally — see
   [Speaker Diarization](Speaker-Diarization) for details, data locations and the GDPR
   notes.
-- **Saved voices** (*Sparade röster*) — the list of saved voice profiles, shown when
+- **Saved voices** (_Sparade röster_) — the list of saved voice profiles, shown when
   recognition is on. Each entry has a **"Glöm rösten"** button that removes that voice;
   **"Glöm alla röster"** removes all of them (with a confirmation — it can't be undone).
   Names already written in transcripts are unaffected.

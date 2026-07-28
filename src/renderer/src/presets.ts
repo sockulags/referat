@@ -4,7 +4,14 @@ import type { SummaryPreset, TranscriptionPreset, SummarySettings } from '../../
 import { strings } from './strings'
 
 export const TRANSCRIPTION_PRESETS: TranscriptionPreset[] = ['local', 'openai', 'azure', 'custom']
-export const SUMMARY_PRESETS: SummaryPreset[] = ['local', 'openai', 'azure', 'anthropic', 'custom']
+export const SUMMARY_PRESETS: SummaryPreset[] = [
+  'local',
+  'openai',
+  'azure',
+  'anthropic',
+  'codex',
+  'custom'
+]
 
 export function presetLabel(preset: TranscriptionPreset | SummaryPreset): string {
   return strings.settings.presets[preset]
@@ -38,6 +45,7 @@ export function transcriptionDefaults(preset: TranscriptionPreset): Transcriptio
 }
 
 interface SummaryDefaults {
+  backend: SummarySettings['backend']
   baseUrl: string
   model: string
   apiFlavor: SummarySettings['apiFlavor']
@@ -48,6 +56,7 @@ export function summaryDefaults(preset: SummaryPreset): SummaryDefaults {
   switch (preset) {
     case 'local':
       return {
+        backend: 'http',
         baseUrl: 'http://localhost:11434/v1',
         model: 'llama3.1',
         apiFlavor: 'openai-compatible',
@@ -55,6 +64,7 @@ export function summaryDefaults(preset: SummaryPreset): SummaryDefaults {
       }
     case 'openai':
       return {
+        backend: 'http',
         baseUrl: 'https://api.openai.com/v1',
         model: 'gpt-4o-mini',
         apiFlavor: 'openai-compatible',
@@ -62,6 +72,7 @@ export function summaryDefaults(preset: SummaryPreset): SummaryDefaults {
       }
     case 'azure':
       return {
+        backend: 'http',
         baseUrl: 'https://<resurs>.openai.azure.com/openai/v1',
         model: 'gpt-4o',
         apiFlavor: 'openai-compatible',
@@ -69,12 +80,27 @@ export function summaryDefaults(preset: SummaryPreset): SummaryDefaults {
       }
     case 'anthropic':
       return {
+        backend: 'http',
         baseUrl: 'https://api.anthropic.com',
         model: 'claude-3-5-sonnet-latest',
         apiFlavor: 'anthropic',
         needsKey: true
       }
+    case 'codex':
+      return {
+        backend: 'codex-cli',
+        baseUrl: '',
+        model: '',
+        apiFlavor: 'openai-compatible',
+        needsKey: false
+      }
     case 'custom':
-      return { baseUrl: '', model: '', apiFlavor: 'openai-compatible', needsKey: false }
+      return {
+        backend: 'http',
+        baseUrl: '',
+        model: '',
+        apiFlavor: 'openai-compatible',
+        needsKey: false
+      }
   }
 }

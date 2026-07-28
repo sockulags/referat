@@ -185,6 +185,11 @@ export const strings = {
       title: 'Sammanfattning',
       description: 'Tjänsten som skapar själva protokollet från transkriptet.',
       flavor: 'API-typ',
+      codexTitle: 'Använder din befintliga Codex-inloggning',
+      codexDescription:
+        'Referat kör den Codex CLI som redan finns på datorn. Codex kräver ingen API-nyckel och varje protokoll körs utan beständig Codex-historik.',
+      codexClassification: 'Skicka inte möten som är klassade Highly Confidential.',
+      testCodex: 'Testa Codex',
       advanced: 'Avancerat: protokollmall',
       promptTemplate: 'Protokollmall',
       promptHint: 'Instruktionen som styr protokollet. {{transcript}} byts mot transkriptet.'
@@ -235,6 +240,7 @@ export const strings = {
       openai: 'OpenAI',
       azure: 'Azure OpenAI',
       anthropic: 'Anthropic',
+      codex: 'Codex (jobbkonto)',
       custom: 'Egen adress'
     }
   },
