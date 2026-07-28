@@ -141,6 +141,39 @@ async function main() {
   await page.waitForTimeout(1000)
   await shot('settings')
   assert(await seen('Identifiera talare'), 'settings shows the speaker section')
+
+  // Codex summary backend: selecting it hides HTTP/key fields, explains the
+  // existing-login behavior, and persists the backend discriminator.
+  const summaryCard = page
+    .getByRole('heading', { name: 'Sammanfattning', exact: true })
+    .locator('../..')
+  await summaryCard.getByLabel('Förval').selectOption('codex')
+  await page.waitForTimeout(300)
+  assert(
+    await seen('Använder din befintliga Codex-inloggning'),
+    'Codex preset explains that it reuses the existing login'
+  )
+  assert(
+    (await summaryCard.getByLabel('API-nyckel').count()) === 0,
+    'Codex preset does not ask for an API key'
+  )
+  assert(
+    await seen('Skicka inte möten som är klassade Highly Confidential.'),
+    'Codex preset shows the classification warning'
+  )
+  await summaryCard.getByRole('button', { name: 'Spara', exact: true }).click()
+  const savedCodexSettings = await page.evaluate(() => window.api.getSettings())
+  assert(
+    savedCodexSettings.summary.backend === 'codex-cli',
+    'Codex preset persists the codex-cli backend'
+  )
+  await shot('settings-codex')
+
+  // Restore the mock HTTP summary provider used by the rest of this walkthrough.
+  await summaryCard.getByLabel('Förval').selectOption('custom')
+  await summaryCard.getByLabel('Bas-URL').fill('http://localhost:8000/v1')
+  await summaryCard.getByRole('button', { name: 'Spara', exact: true }).click()
+
   await page.getByLabel('Identifiera talare').click()
   await page.waitForTimeout(300)
   // Voice recognition across meetings (renaming a speaker saves a profile).

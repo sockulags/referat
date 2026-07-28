@@ -71,6 +71,7 @@ export function Onboarding(): JSX.Element {
       })
       await window.api.saveSummarySettings({
         preset: 'local',
+        backend: 'http',
         apiFlavor: 'openai-compatible',
         baseUrl: ds.baseUrl,
         model: ds.model,
@@ -86,6 +87,7 @@ export function Onboarding(): JSX.Element {
       })
       await window.api.saveSummarySettings({
         preset: 'custom',
+        backend: 'http',
         apiFlavor: 'openai-compatible',
         baseUrl: serverAddress,
         model: '',
@@ -104,6 +106,7 @@ export function Onboarding(): JSX.Element {
       })
       await window.api.saveSummarySettings({
         preset: 'openai',
+        backend: 'http',
         apiFlavor: 'openai-compatible',
         baseUrl: ds.baseUrl,
         model: ds.model,

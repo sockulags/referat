@@ -64,7 +64,8 @@ export interface MeetingDetail extends MeetingMeta {
 // ---------- Settings & providers ----------
 
 export type TranscriptionPreset = 'local' | 'openai' | 'azure' | 'custom'
-export type SummaryPreset = 'local' | 'openai' | 'azure' | 'anthropic' | 'custom'
+export type SummaryPreset = 'local' | 'openai' | 'azure' | 'anthropic' | 'codex' | 'custom'
+export type SummaryBackend = 'http' | 'codex-cli'
 
 export interface TranscriptionSettings {
   preset: TranscriptionPreset
@@ -80,6 +81,11 @@ export interface TranscriptionSettings {
 
 export interface SummarySettings {
   preset: SummaryPreset
+  /**
+   * HTTP calls a configured model endpoint. codex-cli reuses an existing,
+   * locally authenticated Codex CLI session and never needs an API key.
+   */
+  backend: SummaryBackend
   /** 'openai-compatible' covers OpenAI, Azure, Ollama, internal servers. */
   apiFlavor: 'openai-compatible' | 'anthropic'
   baseUrl: string

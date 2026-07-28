@@ -244,6 +244,7 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
   const toast = useApp((s) => s.toast)
   const s = settings.summary
   const [preset, setPreset] = useState<SummaryPreset>(s.preset)
+  const [backend, setBackend] = useState(s.backend)
   const [flavor, setFlavor] = useState(s.apiFlavor)
   const [baseUrl, setBaseUrl] = useState(s.baseUrl)
   const [model, setModel] = useState(s.model)
@@ -255,6 +256,7 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
   const onPreset = (p: SummaryPreset): void => {
     setPreset(p)
     const d = summaryDefaults(p)
+    setBackend(d.backend)
     setBaseUrl(d.baseUrl)
     setModel(d.model)
     setFlavor(d.apiFlavor)
@@ -265,6 +267,7 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
     try {
       await window.api.saveSummarySettings({
         preset,
+        backend,
         apiFlavor: flavor,
         baseUrl,
         model,
@@ -275,6 +278,7 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
         summary: {
           ...s,
           preset,
+          backend,
           apiFlavor: flavor,
           baseUrl,
           model,
@@ -300,28 +304,45 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
         options={SUMMARY_PRESETS}
         onChange={(v) => onPreset(v as SummaryPreset)}
       />
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          label={strings.settings.transcription.baseUrl}
-          value={baseUrl}
-          onChange={(e) => setBaseUrl(e.target.value)}
-          placeholder="https://…"
-        />
-        <Input
-          label={strings.settings.transcription.model}
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-        />
-      </div>
-      <Select
-        label={strings.settings.summary.flavor}
-        value={flavor}
-        onChange={(e) => setFlavor(e.target.value as typeof flavor)}
-      >
-        <option value="openai-compatible">OpenAI-kompatibel</option>
-        <option value="anthropic">Anthropic</option>
-      </Select>
-      <ApiKeyField hasApiKey={s.hasApiKey} value={apiKey} onChange={setApiKey} />
+      {backend === 'codex-cli' ? (
+        <div
+          role="note"
+          className="rounded-xl border border-border-strong bg-surface-2 px-4 py-3.5"
+        >
+          <p className="text-sm font-medium text-fg">{strings.settings.summary.codexTitle}</p>
+          <p className="mt-1 text-sm leading-relaxed text-fg-muted">
+            {strings.settings.summary.codexDescription}
+          </p>
+          <p className="mt-2 text-xs font-medium text-warning">
+            {strings.settings.summary.codexClassification}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label={strings.settings.transcription.baseUrl}
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="https://…"
+            />
+            <Input
+              label={strings.settings.transcription.model}
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+            />
+          </div>
+          <Select
+            label={strings.settings.summary.flavor}
+            value={flavor}
+            onChange={(e) => setFlavor(e.target.value as typeof flavor)}
+          >
+            <option value="openai-compatible">OpenAI-kompatibel</option>
+            <option value="anthropic">Anthropic</option>
+          </Select>
+          <ApiKeyField hasApiKey={s.hasApiKey} value={apiKey} onChange={setApiKey} />
+        </>
+      )}
 
       <div className="border-t border-border pt-2">
         <button
@@ -351,6 +372,7 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
       <SaveRow onSave={save} saving={saving} />
       <div className="pt-4 border-t border-border">
         <ConnectionTest
+          label={backend === 'codex-cli' ? strings.settings.summary.testCodex : undefined}
           run={async () => {
             await save()
             return window.api.testSummaryConnection()
