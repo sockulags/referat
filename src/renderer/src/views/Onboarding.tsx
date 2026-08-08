@@ -61,10 +61,10 @@ export function Onboarding(): JSX.Element {
   const saveProvider = async (): Promise<void> => {
     const template = settings?.summary.promptTemplate ?? ''
     if (choice === 'local') {
-      const dt = transcriptionDefaults('local')
+      const dt = transcriptionDefaults('built-in')
       const ds = summaryDefaults('local')
       await window.api.saveTranscriptionSettings({
-        preset: 'local',
+        preset: 'built-in',
         baseUrl: dt.baseUrl,
         model: dt.model,
         language: 'sv'
@@ -312,7 +312,8 @@ function ProviderStep({
       </div>
 
       {choice === 'local' && (
-        <div className="mt-3 animate-fade-in">
+        <div className="mt-3 animate-fade-in flex flex-col items-start gap-3">
+          <OnboardingTranscriptionInstall />
           <LocalAiHelpLink />
         </div>
       )}
@@ -347,6 +348,48 @@ function ProviderStep({
           />
         </div>
       )}
+    </div>
+  )
+}
+
+function OnboardingTranscriptionInstall(): JSX.Element {
+  const [status, setStatus] = useState<
+    Awaited<ReturnType<typeof window.api.listLocalAiComponents>>[number] | undefined
+  >()
+
+  useEffect(() => {
+    void window.api
+      .listLocalAiComponents()
+      .then((items) => setStatus(items.find((item) => item.component === 'transcription-cpu')))
+    return window.api.onLocalAiComponentProgress((next) => {
+      if (next.component === 'transcription-cpu') setStatus(next)
+    })
+  }, [])
+
+  const installed = status?.state === 'installed' || status?.state === 'running'
+  const busy = status?.state === 'downloading' || status?.state === 'installing'
+  return (
+    <div className="w-full rounded-xl border border-border bg-surface-2 p-3.5">
+      <p className="text-sm font-medium text-fg">{strings.settings.transcription.builtInTitle}</p>
+      <p className="mt-0.5 text-xs leading-relaxed text-fg-muted">
+        {strings.settings.transcription.builtInSize}
+      </p>
+      <div className="mt-3 flex items-center gap-3">
+        <Button
+          size="sm"
+          variant="secondary"
+          loading={busy}
+          disabled={installed}
+          onClick={() =>
+            void window.api.installLocalAiComponent('transcription-cpu').then(setStatus)
+          }
+        >
+          {installed ? 'Installerad' : 'Installera transkribering'}
+        </Button>
+        {status?.state === 'error' && (
+          <span className="text-xs text-danger">{status.detail || status.message}</span>
+        )}
+      </div>
     </div>
   )
 }

@@ -39,10 +39,8 @@ The pyannote pipelines are gated: you must accept their conditions before the
 server can download them.
 
 1. Create/log in to a [Hugging Face](https://huggingface.co) account.
-2. Visit each model page and accept the conditions:
+2. Visit the default model page and accept the conditions:
    - https://huggingface.co/pyannote/speaker-diarization-community-1
-   - https://huggingface.co/pyannote/speaker-diarization-3.1
-   - https://huggingface.co/pyannote/segmentation-3.0
 3. Log in locally so the server can use your token:
 
    ```

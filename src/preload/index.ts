@@ -11,7 +11,9 @@ import type {
   ConnectionTestResult,
   PipelineProgressEvent,
   UpdateDownloadedEvent,
-  SpeakerProfile
+  SpeakerProfile,
+  LocalAiComponent,
+  LocalAiComponentStatus
 } from '../shared/types'
 import { IPC } from '../main/ipc'
 
@@ -65,6 +67,12 @@ const api: RendererApi = {
     ipcRenderer.invoke(IPC.testSummaryConnection),
   testDiarizationConnection: (): Promise<ConnectionTestResult> =>
     ipcRenderer.invoke(IPC.testDiarizationConnection),
+  listLocalAiComponents: (): Promise<LocalAiComponentStatus[]> =>
+    ipcRenderer.invoke(IPC.listLocalAiComponents),
+  installLocalAiComponent: (component: LocalAiComponent): Promise<LocalAiComponentStatus> =>
+    ipcRenderer.invoke(IPC.installLocalAiComponent, component),
+  removeLocalAiComponent: (component: LocalAiComponent): Promise<void> =>
+    ipcRenderer.invoke(IPC.removeLocalAiComponent, component),
 
   // Export
   exportProtocol: (id: string, format: 'md' | 'docx'): Promise<{ savedTo: string | null }> =>
@@ -83,6 +91,12 @@ const api: RendererApi = {
       cb(data)
     ipcRenderer.on(IPC.updateDownloaded, listener)
     return () => ipcRenderer.removeListener(IPC.updateDownloaded, listener)
+  },
+  onLocalAiComponentProgress: (cb: (e: LocalAiComponentStatus) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: LocalAiComponentStatus): void =>
+      cb(data)
+    ipcRenderer.on(IPC.localAiComponentProgress, listener)
+    return () => ipcRenderer.removeListener(IPC.localAiComponentProgress, listener)
   },
 
   // Updates

@@ -10,7 +10,9 @@ import type {
   SaveSummarySettings,
   SaveDiarizationSettings,
   ConnectionTestResult,
-  SpeakerProfile
+  SpeakerProfile,
+  LocalAiComponent,
+  LocalAiComponentStatus
 } from '../shared/types'
 import { IPC } from './ipc'
 import * as storage from './storage'
@@ -22,6 +24,11 @@ import { testTranscriptionConnection } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
 import { testDiarizationConnection } from './providers/diarization'
 import { openExternalSafe } from './security'
+import {
+  installLocalAiComponent,
+  listLocalAiComponents,
+  removeLocalAiComponent
+} from './localAiComponents'
 
 /** Called after app is ready. Registers all handlers exactly once. */
 export function registerIpcHandlers(): void {
@@ -125,6 +132,16 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.testDiarizationConnection, (): Promise<ConnectionTestResult> =>
     testDiarizationConnection(settings.getDiarizationConfig())
+  )
+
+  ipcMain.handle(IPC.listLocalAiComponents, (): LocalAiComponentStatus[] => listLocalAiComponents())
+  ipcMain.handle(
+    IPC.installLocalAiComponent,
+    (_e, component: LocalAiComponent): Promise<LocalAiComponentStatus> =>
+      installLocalAiComponent(component)
+  )
+  ipcMain.handle(IPC.removeLocalAiComponent, (_e, component: LocalAiComponent): Promise<void> =>
+    removeLocalAiComponent(component)
   )
 
   // ---- Export ----

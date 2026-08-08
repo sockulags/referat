@@ -11,12 +11,15 @@ dependencies = [
     "python-multipart>=0.0.20",
     "av>=14.0",
     "numpy>=1.26",
-    "torch>=2.7",
-    "torchaudio>=2.7",
+    "torch>=2.11,<2.12",
+    "torchaudio>=2.11,<2.12",
 ]
 
 [project.scripts]
 diarization-server = "diarization_server.app:main"
+
+[dependency-groups]
+dev = ["pyinstaller>=6.10"]
 
 [build-system]
 requires = ["hatchling"]

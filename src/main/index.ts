@@ -12,6 +12,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipcHandlers'
+import { stopAllLocalAiComponents } from './localAiComponents'
 import { openExternalSafe } from './security'
 import { recoverPipeline } from './pipeline'
 import { isRecordingActive } from './storage'
@@ -164,6 +165,7 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
+  stopAllLocalAiComponents()
   isQuitting = true
 })
 

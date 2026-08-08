@@ -142,6 +142,16 @@ async function main() {
   await shot('settings')
   assert(await seen('Identifiera talare'), 'settings shows the speaker section')
 
+  const transcriptionCard = page
+    .getByRole('heading', { name: 'Transkribering', exact: true })
+    .locator('../..')
+  await transcriptionCard.getByLabel('Förval').selectOption('built-in')
+  assert(
+    await seen('Lokal CPU-transkribering'),
+    'built-in transcription preset shows the managed installer'
+  )
+  await transcriptionCard.getByLabel('Förval').selectOption('custom')
+
   // Codex summary backend: selecting it hides HTTP/key fields, explains the
   // existing-login behavior, and persists the backend discriminator.
   const summaryCard = page
@@ -180,6 +190,7 @@ async function main() {
   assert(await seen('Känn igen talare mellan möten'), 'settings shows the voice recognition toggle')
   await page.getByLabel('Känn igen talare mellan möten').click()
   await page.waitForTimeout(300)
+  await page.getByLabel('Kör talaridentifiering').selectOption('server')
   await page.getByLabel('Serveradress').fill('http://localhost:8000')
   // Only Transkribering, Sammanfattning and Talare have a Spara button; Talare is last.
   await page.getByRole('button', { name: 'Spara', exact: true }).last().click()

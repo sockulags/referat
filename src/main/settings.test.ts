@@ -1,8 +1,14 @@
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { app } from 'electron'
 import { join } from 'node:path'
-import { rmSync, writeFileSync } from 'node:fs'
-import { getSettings, getSummaryConfig, saveSummarySettings } from './settings'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  getDiarizationConfig,
+  getSettings,
+  getSummaryConfig,
+  saveDiarizationSettings,
+  saveSummarySettings
+} from './settings'
 
 vi.mock('electron', async () => {
   const { mkdtempSync } = await import('node:fs')
@@ -12,9 +18,9 @@ vi.mock('electron', async () => {
   return {
     app: { getPath: (): string => dir },
     safeStorage: {
-      isEncryptionAvailable: (): boolean => false,
-      encryptString: (): Buffer => Buffer.alloc(0),
-      decryptString: (): string => ''
+      isEncryptionAvailable: (): boolean => true,
+      encryptString: (plain: string): Buffer => Buffer.from(`encrypted:${plain}`),
+      decryptString: (value: Buffer): string => value.toString().replace(/^encrypted:/, '')
     }
   }
 })
@@ -65,5 +71,24 @@ describe('summary backend settings', () => {
       promptTemplate: 'Skriv protokoll av {{transcript}}',
       apiKey: ''
     })
+  })
+
+  it('migrates diarization defaults and keeps the Hugging Face token encrypted at rest', () => {
+    expect(getSettings().diarization).toMatchObject({
+      backend: 'built-in',
+      hasHfToken: false
+    })
+
+    saveDiarizationSettings({
+      enabled: true,
+      backend: 'built-in',
+      baseUrl: 'http://127.0.0.1:8300',
+      recognitionEnabled: false,
+      hfToken: 'hf_secret_token'
+    })
+
+    expect(getSettings().diarization.hasHfToken).toBe(true)
+    expect(getDiarizationConfig().hfToken).toBe('hf_secret_token')
+    expect(readFileSync(join(userData, 'settings.json'), 'utf8')).not.toContain('hf_secret_token')
   })
 })

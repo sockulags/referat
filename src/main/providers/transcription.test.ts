@@ -6,6 +6,7 @@ import { transcribe, testTranscriptionConnection } from './transcription'
 import type { TranscriptionConfig } from '../settings'
 
 const config: TranscriptionConfig = {
+  preset: 'custom',
   baseUrl: 'http://localhost:8000/v1',
   model: 'whisper-1',
   language: 'sv',

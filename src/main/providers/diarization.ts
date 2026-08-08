@@ -6,6 +6,7 @@ import { readFile } from 'fs/promises'
 import { basename } from 'path'
 import type { ConnectionTestResult } from '../../shared/types'
 import type { DiarizationConfig } from '../settings'
+import { ensureLocalAiComponentRunning, listLocalAiComponents } from '../localAiComponents'
 import {
   errorDetail,
   HttpError,
@@ -85,6 +86,15 @@ export async function diarize(
   audioFilePaths: string[],
   config: DiarizationConfig
 ): Promise<DiarizationResult> {
+  if (config.backend === 'built-in') {
+    const statuses = listLocalAiComponents()
+    const gpuInstalled = statuses.some(
+      (status) => status.component === 'diarization-gpu' && status.state !== 'not-installed'
+    )
+    await ensureLocalAiComponentRunning(gpuInstalled ? 'diarization-gpu' : 'diarization-cpu', {
+      hfToken: config.hfToken
+    })
+  }
   const form = new FormData()
   for (const path of audioFilePaths) {
     const bytes = await readFile(path)
@@ -119,6 +129,23 @@ interface HealthResponse {
 export async function testDiarizationConnection(
   config: DiarizationConfig
 ): Promise<ConnectionTestResult> {
+  if (config.backend === 'built-in') {
+    try {
+      const statuses = listLocalAiComponents()
+      const gpuInstalled = statuses.some(
+        (status) => status.component === 'diarization-gpu' && status.state !== 'not-installed'
+      )
+      await ensureLocalAiComponentRunning(gpuInstalled ? 'diarization-gpu' : 'diarization-cpu', {
+        hfToken: config.hfToken
+      })
+    } catch (err) {
+      return {
+        ok: false,
+        message: 'Den lokala talaridentifieringen är inte redo',
+        detail: errorDetail(err)
+      }
+    }
+  }
   const base = trimBaseUrl(config.baseUrl)
   try {
     const res = await providerFetch(`${base}/health`, {

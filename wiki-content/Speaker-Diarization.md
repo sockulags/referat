@@ -2,16 +2,14 @@
 
 Speaker diarization answers **"who said what"**. When enabled, referat labels each
 transcript segment with a speaker — **Talare 1**, **Talare 2**, and so on — after
-transcription. Click a label in the transcript tab to rename it (for example to *Anna*);
+transcription. Click a label in the transcript tab to rename it (for example to _Anna_);
 the name is saved with the meeting, and when the minutes are regenerated the transcript sent
 to the summarization model is speaker-attributed (`Anna: …`), so the minutes can reflect who
 raised each point.
 
-The feature is **optional and off by default**. It requires a local companion server that
-ships in the repository (`diarization-server/`) — Python with
-[pyannote.audio](https://github.com/pyannote/pyannote-audio), served over HTTP on
-`localhost`. The app talks to it the same way it talks to speaches or Ollama: you start the
-server, paste an address into settings and press **Test connection**.
+The feature is **optional and off by default**. The normal setup is installed directly under
+**Settings → Speakers**: referat downloads a packaged [pyannote.audio](https://github.com/pyannote/pyannote-audio)
+runtime and starts it locally when needed. An externally managed server remains available.
 
 Diarization is deliberately non-blocking: **a diarization failure never stops the minutes**.
 If the server is down or errors mid-processing, the meeting gets a plain-language warning
@@ -24,9 +22,9 @@ Be honest with your expectations here:
 - **An NVIDIA GPU is strongly recommended.** The server runs on CPU too, but CPU
   diarization is many times slower than realtime — a one-hour meeting can take several
   hours. With a GPU it is fast.
-- **Recent GPUs need recent CUDA-enabled PyTorch.** The project's uv setup handles this for
-  you; you don't pick PyTorch versions by hand.
-- **Disk space.** The first install downloads a Python environment of several gigabytes,
+- **Recent GPUs need recent CUDA-enabled PyTorch.** The packaged NVIDIA component contains the
+  matching runtime; you don't pick PyTorch versions by hand.
+- **Disk space.** The CPU package is hundreds of megabytes; the NVIDIA package is several gigabytes,
   and the first server start downloads the model weights. Both are cached locally —
   after that, everything runs offline.
 - **A Hugging Face account** (free) — the models are gated, see below.
@@ -42,22 +40,21 @@ The pyannote models are **gated**: they are free, but you must accept their cond
 once, while logged in to a [Hugging Face](https://huggingface.co) account.
 
 1. Create a Hugging Face account (or log in).
-2. Open each of these model pages and accept the conditions on all three (the second and
-   third are dependencies and benchmark alternatives of the first):
+2. Open the model page and accept its conditions:
    - [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1)
-   - [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0)
-   - [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1)
-3. Create an access token (huggingface.co → *Settings → Access Tokens*, a **read** token is
-   enough) and log in locally:
-
-```powershell
-hf auth login
-```
+3. Create a fine-grained access token with read access to gated repositories and paste it into
+   referat. The token is encrypted with Windows DPAPI.
 
 The model weights download on the server's first start and are cached. Hugging Face is only
 contacted for that download — afterwards the server runs fully offline.
 
-## 2. Install and start the server
+## 2. Install in referat
+
+Enable speaker identification, choose **On this computer**, confirm that the model conditions are
+accepted and install **CPU** or **NVIDIA GPU**. Save, then press **Test connection**. The first test
+downloads and warms the model and can take several minutes. Managed Pyannote telemetry is disabled.
+
+## Advanced: install and start an external server
 
 The server lives in the `diarization-server/` folder of the
 [referat repository](https://github.com/sockulags/referat). The quickest path on Windows
@@ -103,12 +100,12 @@ backend; the app only sees the address.
 
 In **Settings → Speakers** (the app's Swedish UI calls the group **Talare**):
 
-| Field                                      | Value                                       |
-| ------------------------------------------ | ------------------------------------------- |
-| **Identify speakers** (*Identifiera talare*) | on                                        |
-| **Server address** (*Serveradress*)        | `http://localhost:8300`                     |
+| Field                                        | Value                   |
+| -------------------------------------------- | ----------------------- |
+| **Identify speakers** (_Identifiera talare_) | on                      |
+| **Server address** (_Serveradress_)          | `http://localhost:8300` |
 
-Press **Test connection** (*Testa anslutning*) — a green check means referat can reach the
+Press **Test connection** (_Testa anslutning_) — a green check means referat can reach the
 server. From then on, every new meeting runs
 `transcribe → identify speakers → summarize`, and the transcript tab shows the labels.
 
@@ -134,8 +131,8 @@ an option when speaker identification itself is on.
 ### How it works
 
 1. **Enroll on rename.** With the toggle on, the diarization server also returns a voice
-   embedding (a *voiceprint* — a numeric fingerprint of how a voice sounds) for each
-   speaker. When you rename a speaker in the transcript — *Talare 2* → *Anna* — referat
+   embedding (a _voiceprint_ — a numeric fingerprint of how a voice sounds) for each
+   speaker. When you rename a speaker in the transcript — _Talare 2_ → _Anna_ — referat
    stores that voiceprint together with the name as a local voice profile.
 2. **Suggestion at the next meeting.** When a later meeting is diarized, the speakers'
    voiceprints are compared with the saved profiles. A match shows up as a **suggestion**:
@@ -185,8 +182,8 @@ Be aware of what this feature stores: a voiceprint used to recognize a person is
   room. The settings text prompts the user to inform meeting participants; obtaining
   whatever legal basis your organization requires (typically explicit consent for
   article 9 data) is up to you.
-- **Right to erasure** maps directly to the forget buttons: *Glöm rösten* removes one
-  person's profile, *Glöm alla röster* removes all, and deleting a meeting removes that
+- **Right to erasure** maps directly to the forget buttons: _Glöm rösten_ removes one
+  person's profile, _Glöm alla röster_ removes all, and deleting a meeting removes that
   meeting's embeddings.
 - If you roll this out across an organization, consider whether a **DPIA** (data
   protection impact assessment) is warranted — systematic processing of biometric data is
@@ -216,7 +213,7 @@ Be aware of what this feature stores: a voiceprint used to recognize a person is
 
 The privacy story doesn't change. The diarization server is a **local** service; referat
 only ever talks to endpoints you configured yourself. Your meeting audio goes to the
-address in the *Server address* field — `localhost` in the default setup — and nowhere
+address in the _Server address_ field — `localhost` in the default setup — and nowhere
 else. The only time the machine talks to the internet on the feature's behalf is the
 one-time model download from Hugging Face; after that, diarization runs fully offline.
 

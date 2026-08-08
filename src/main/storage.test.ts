@@ -44,7 +44,12 @@ function baseTranscript(): Transcript {
 }
 
 function setRecognition(recognitionEnabled: boolean): void {
-  saveDiarizationSettings({ enabled: true, baseUrl: 'http://localhost:8300', recognitionEnabled })
+  saveDiarizationSettings({
+    enabled: true,
+    backend: 'server',
+    baseUrl: 'http://localhost:8300',
+    recognitionEnabled
+  })
 }
 
 beforeEach(() => {

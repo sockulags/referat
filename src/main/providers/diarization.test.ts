@@ -7,8 +7,10 @@ import type { DiarizationConfig } from '../settings'
 
 const config: DiarizationConfig = {
   enabled: true,
+  backend: 'server',
   baseUrl: 'http://localhost:8300',
-  recognitionEnabled: false
+  recognitionEnabled: false,
+  hfToken: ''
 }
 
 const recognitionConfig: DiarizationConfig = { ...config, recognitionEnabled: true }

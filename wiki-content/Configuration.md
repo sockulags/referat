@@ -28,12 +28,13 @@ The service that writes out what was said. Any OpenAI-compatible
 
 **Presets**
 
-| Preset       | Base URL                                        | Model (default)          | API key |
-| ------------ | ----------------------------------------------- | ------------------------ | ------- |
-| Local server | `http://localhost:8000/v1`                      | `KBLab/kb-whisper-large` | no      |
-| OpenAI       | `https://api.openai.com/v1`                     | `whisper-1`              | yes     |
-| Azure OpenAI | `https://<resource>.openai.azure.com/openai/v1` | `whisper`                | yes     |
-| Custom       | _(empty — enter your own)_                      | _(empty)_                | depends |
+| Preset               | Base URL                                        | Model (default)          | API key |
+| -------------------- | ----------------------------------------------- | ------------------------ | ------- |
+| Built-in local model | managed by referat                              | `KBLab/kb-whisper-small` | no      |
+| Local server         | `http://localhost:8000/v1`                      | `KBLab/kb-whisper-large` | no      |
+| OpenAI               | `https://api.openai.com/v1`                     | `whisper-1`              | yes     |
+| Azure OpenAI         | `https://<resource>.openai.azure.com/openai/v1` | `whisper`                | yes     |
+| Custom               | _(empty — enter your own)_                      | _(empty)_                | depends |
 
 ## Summarization
 
@@ -127,7 +128,10 @@ structure, language or tone; the default works without any changes.
 
 Optional speaker identification ("who said what") — transcript segments are labelled
 **Talare 1**, **Talare 2**, … and the labels can be renamed; the names flow into the minutes
-when the protocol is regenerated. Off by default. Requires the local companion server — see
+when the protocol is regenerated. Off by default. Install the managed CPU or NVIDIA component
+in Settings, or use an external companion server. The managed component asks you to accept the
+Pyannote model conditions and paste a read-enabled Hugging Face token; the token is encrypted
+with Windows DPAPI. See
 [Speaker Diarization](Speaker-Diarization) for the full setup. In the app's Swedish UI the
 group is called **Talare**.
 
@@ -135,7 +139,8 @@ group is called **Talare**.
 
 - **Identify speakers** (_Identifiera talare_) — the on/off toggle. When off, meetings are
   processed exactly as before.
-- **Server address** (_Serveradress_) — the diarization server's address. Default
+- **Run speaker identification** — choose the managed component or an external server.
+- **Server address** (_Serveradress_) — the external diarization server's address. Default
   `http://localhost:8300`.
 - **Test connection** (_Testa anslutning_) — checks the server's `/health` endpoint; a
   network error means the address is wrong or the server isn't running.

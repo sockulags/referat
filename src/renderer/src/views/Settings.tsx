@@ -2,6 +2,8 @@ import type { JSX, ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import type {
   AppSettings,
+  LocalAiComponent,
+  LocalAiComponentStatus,
   SpeakerProfile,
   SummaryPreset,
   TranscriptionPreset
@@ -157,6 +159,7 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
   const [language, setLanguage] = useState(t.language)
   const [apiKey, setApiKey] = useState('')
   const [saving, setSaving] = useState(false)
+  const components = useLocalAiComponents()
 
   const onPreset = (p: TranscriptionPreset): void => {
     setPreset(p)
@@ -203,18 +206,31 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
         options={TRANSCRIPTION_PRESETS}
         onChange={(v) => onPreset(v as TranscriptionPreset)}
       />
-      <Input
-        label={strings.settings.transcription.baseUrl}
-        value={baseUrl}
-        onChange={(e) => setBaseUrl(e.target.value)}
-        placeholder="https://…/v1"
-      />
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          label={strings.settings.transcription.model}
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
+      {preset === 'built-in' ? (
+        <ComponentInstallCard
+          component="transcription-cpu"
+          title={strings.settings.transcription.builtInTitle}
+          description={strings.settings.transcription.builtInDescription}
+          detail={strings.settings.transcription.builtInSize}
+          manager={components}
         />
+      ) : (
+        <>
+          <Input
+            label={strings.settings.transcription.baseUrl}
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+            placeholder="https://…/v1"
+          />
+          <Input
+            label={strings.settings.transcription.model}
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          />
+          <ApiKeyField hasApiKey={t.hasApiKey} value={apiKey} onChange={setApiKey} />
+        </>
+      )}
+      <div>
         <Input
           label={strings.settings.transcription.language}
           value={language}
@@ -223,7 +239,6 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
           hint={strings.settings.transcription.languageHint}
         />
       </div>
-      <ApiKeyField hasApiKey={t.hasApiKey} value={apiKey} onChange={setApiKey} />
       <SaveRow onSave={save} saving={saving} />
       <div className="pt-4 border-t border-border">
         <ConnectionTest
@@ -390,15 +405,34 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
   const toast = useApp((s) => s.toast)
   const d = settings.diarization
   const [enabled, setEnabled] = useState(d.enabled)
+  const [backend, setBackend] = useState(d.backend)
   const [baseUrl, setBaseUrl] = useState(d.baseUrl)
   const [recognitionEnabled, setRecognitionEnabled] = useState(d.recognitionEnabled)
+  const [hfToken, setHfToken] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [saving, setSaving] = useState(false)
+  const components = useLocalAiComponents()
 
   const save = async (): Promise<void> => {
     setSaving(true)
     try {
-      await window.api.saveDiarizationSettings({ enabled, baseUrl, recognitionEnabled })
-      patchSettings({ diarization: { enabled, baseUrl, recognitionEnabled } })
+      await window.api.saveDiarizationSettings({
+        enabled,
+        backend,
+        baseUrl,
+        recognitionEnabled,
+        hfToken: hfToken || undefined
+      })
+      patchSettings({
+        diarization: {
+          enabled,
+          backend,
+          baseUrl,
+          recognitionEnabled,
+          hasHfToken: d.hasHfToken || !!hfToken
+        }
+      })
+      setHfToken('')
       toast(strings.common.saved)
     } finally {
       setSaving(false)
@@ -418,6 +452,16 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
         description={strings.settings.diarization.enableHint}
       />
       {enabled && (
+        <Select
+          label={strings.settings.diarization.backend}
+          value={backend}
+          onChange={(e) => setBackend(e.target.value as typeof backend)}
+        >
+          <option value="built-in">{strings.settings.diarization.builtIn}</option>
+          <option value="server">{strings.settings.diarization.server}</option>
+        </Select>
+      )}
+      {enabled && (
         <Toggle
           id="diarization-recognition"
           checked={recognitionEnabled}
@@ -426,13 +470,73 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
           description={strings.settings.diarization.recognition.enableHint}
         />
       )}
-      <Input
-        label={strings.settings.diarization.baseUrl}
-        value={baseUrl}
-        onChange={(e) => setBaseUrl(e.target.value)}
-        placeholder="http://…"
-        hint={strings.settings.diarization.baseUrlHint}
-      />
+      {enabled && backend === 'built-in' ? (
+        <div className="rounded-xl border border-border bg-surface-2 p-4 flex flex-col gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-fg">
+              {strings.settings.diarization.setupTitle}
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-fg-muted">
+              {strings.settings.diarization.setupDescription}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              void window.api.openExternal(
+                'https://huggingface.co/pyannote/speaker-diarization-community-1'
+              )
+            }
+          >
+            {strings.settings.diarization.openTerms}
+          </Button>
+          <label className="flex items-start gap-2 text-sm text-fg-muted">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5"
+            />
+            {strings.settings.diarization.acceptedTerms}
+          </label>
+          <Input
+            label={strings.settings.diarization.token}
+            type="password"
+            value={hfToken}
+            onChange={(e) => setHfToken(e.target.value)}
+            placeholder={
+              d.hasHfToken
+                ? strings.settings.apiKeySavedPlaceholder
+                : strings.settings.apiKeyNewPlaceholder
+            }
+            hint={strings.settings.diarization.tokenHint}
+            autoComplete="off"
+          />
+          <ComponentInstallCard
+            component="diarization-cpu"
+            title={strings.settings.diarization.cpuTitle}
+            description={strings.settings.diarization.cpuDescription}
+            manager={components}
+            disabled={!acceptedTerms || (!hfToken && !d.hasHfToken)}
+          />
+          <ComponentInstallCard
+            component="diarization-gpu"
+            title={strings.settings.diarization.gpuTitle}
+            description={strings.settings.diarization.gpuDescription}
+            manager={components}
+            disabled={!acceptedTerms || (!hfToken && !d.hasHfToken)}
+          />
+        </div>
+      ) : enabled && backend === 'server' ? (
+        <Input
+          label={strings.settings.diarization.baseUrl}
+          value={baseUrl}
+          onChange={(e) => setBaseUrl(e.target.value)}
+          placeholder="http://…"
+          hint={strings.settings.diarization.baseUrlHint}
+        />
+      ) : null}
       <SaveRow onSave={save} saving={saving} />
       <div className="pt-4 border-t border-border">
         <ConnectionTest
@@ -444,6 +548,103 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
       </div>
       {enabled && recognitionEnabled && <SpeakerProfilesBlock />}
     </Section>
+  )
+}
+
+interface LocalAiManager {
+  statuses: LocalAiComponentStatus[]
+  install(component: LocalAiComponent): Promise<void>
+  remove(component: LocalAiComponent): Promise<void>
+}
+
+function useLocalAiComponents(): LocalAiManager {
+  const [statuses, setStatuses] = useState<LocalAiComponentStatus[]>([])
+
+  useEffect(() => {
+    let active = true
+    void window.api.listLocalAiComponents().then((items) => active && setStatuses(items))
+    const unsubscribe = window.api.onLocalAiComponentProgress((next) => {
+      setStatuses((current) => [
+        ...current.filter((item) => item.component !== next.component),
+        next
+      ])
+    })
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  return {
+    statuses,
+    install: async (component) => {
+      const status = await window.api.installLocalAiComponent(component)
+      setStatuses((current) => [...current.filter((item) => item.component !== component), status])
+    },
+    remove: async (component) => {
+      await window.api.removeLocalAiComponent(component)
+      setStatuses((current) => [
+        ...current.filter((item) => item.component !== component),
+        { component, state: 'not-installed' }
+      ])
+    }
+  }
+}
+
+function ComponentInstallCard({
+  component,
+  title,
+  description,
+  detail,
+  manager,
+  disabled = false
+}: {
+  component: LocalAiComponent
+  title: string
+  description: string
+  detail?: string
+  manager: LocalAiManager
+  disabled?: boolean
+}): JSX.Element {
+  const status = manager.statuses.find((item) => item.component === component)
+  const busy = status?.state === 'downloading' || status?.state === 'installing'
+  const installed = status?.state === 'installed' || status?.state === 'running'
+
+  return (
+    <div className="rounded-xl border border-border-strong bg-surface px-4 py-3.5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-fg">{title}</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-fg-muted">{description}</p>
+          {detail && <p className="mt-1 text-xs text-fg-subtle">{detail}</p>}
+          {status?.message && <p className="mt-1 text-xs text-accent">{status.message}</p>}
+          {status?.detail && <p className="mt-1 text-xs text-danger">{status.detail}</p>}
+        </div>
+        {installed ? (
+          <Button variant="ghost" size="sm" onClick={() => void manager.remove(component)}>
+            {strings.common.delete}
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={busy}
+            disabled={disabled || busy}
+            onClick={() => void manager.install(component)}
+          >
+            Installera
+          </Button>
+        )}
+      </div>
+      {busy && status?.progress !== undefined && (
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-3">
+          <div
+            className="h-full rounded-full bg-accent transition-[width]"
+            style={{ width: `${Math.round(status.progress * 100)}%` }}
+          />
+        </div>
+      )}
+    </div>
   )
 }
 

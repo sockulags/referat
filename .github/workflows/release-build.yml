@@ -35,3 +35,23 @@ jobs:
             dist/*-setup.exe
             dist/*.blockmap
           if-no-files-found: error
+
+  build-local-ai-components:
+    name: Local AI ${{ matrix.component }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [transcription-cpu, diarization-cpu, diarization-gpu]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: '3.12'
+      - shell: pwsh
+        run: ./scripts/build-local-ai-components.ps1 -Component ${{ matrix.component }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: referat-${{ matrix.component }}-win-x64
+          path: dist/local-ai-components/*
+          if-no-files-found: error

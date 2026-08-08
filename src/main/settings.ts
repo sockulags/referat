@@ -35,9 +35,11 @@ interface StoredSummary {
 /** Local unauthenticated companion server — no API key to store. */
 interface StoredDiarization {
   enabled: boolean
+  backend: 'built-in' | 'server'
   baseUrl: string
   /** Voice recognition across meetings (biometric data) — off by default. */
   recognitionEnabled: boolean
+  hfTokenEnc?: string
 }
 
 interface StoredSettings {
@@ -77,9 +79,9 @@ Transkription:
 function defaults(): StoredSettings {
   return {
     transcription: {
-      preset: 'local',
-      baseUrl: 'http://localhost:8000/v1',
-      model: 'KBLab/kb-whisper-large',
+      preset: 'built-in',
+      baseUrl: 'http://127.0.0.1:8310/v1',
+      model: 'KBLab/kb-whisper-small',
       language: 'sv'
     },
     summary: {
@@ -92,7 +94,8 @@ function defaults(): StoredSettings {
     },
     diarization: {
       enabled: false,
-      baseUrl: 'http://localhost:8300',
+      backend: 'built-in',
+      baseUrl: 'http://127.0.0.1:8300',
       recognitionEnabled: false
     },
     microphoneId: '',
@@ -201,8 +204,10 @@ export function getSettings(): AppSettings {
     },
     diarization: {
       enabled: s.diarization.enabled,
+      backend: s.diarization.backend,
       baseUrl: s.diarization.baseUrl,
-      recognitionEnabled: s.diarization.recognitionEnabled
+      recognitionEnabled: s.diarization.recognitionEnabled,
+      hasHfToken: !!s.diarization.hfTokenEnc
     },
     microphoneId: s.microphoneId,
     captureSystemAudio: s.captureSystemAudio,
@@ -241,8 +246,10 @@ export function saveDiarizationSettings(payload: SaveDiarizationSettings): void 
   const s = load()
   s.diarization = {
     enabled: payload.enabled,
+    backend: payload.backend,
     baseUrl: payload.baseUrl,
-    recognitionEnabled: payload.recognitionEnabled
+    recognitionEnabled: payload.recognitionEnabled,
+    hfTokenEnc: resolveKey(payload.hfToken, s.diarization.hfTokenEnc)
   }
   persist(s)
 }
@@ -264,6 +271,7 @@ export function saveGeneralSettings(payload: {
 // ---- Internal config accessors (main-only; include decrypted key) ----
 
 export interface TranscriptionConfig {
+  preset: AppSettings['transcription']['preset']
   baseUrl: string
   model: string
   language: string
@@ -282,6 +290,7 @@ export interface SummaryConfig {
 export function getTranscriptionConfig(): TranscriptionConfig {
   const s = load()
   return {
+    preset: s.transcription.preset,
     baseUrl: s.transcription.baseUrl,
     model: s.transcription.model,
     language: s.transcription.language,
@@ -291,16 +300,20 @@ export function getTranscriptionConfig(): TranscriptionConfig {
 
 export interface DiarizationConfig {
   enabled: boolean
+  backend: 'built-in' | 'server'
   baseUrl: string
   recognitionEnabled: boolean
+  hfToken: string
 }
 
 export function getDiarizationConfig(): DiarizationConfig {
   const s = load()
   return {
     enabled: s.diarization.enabled,
+    backend: s.diarization.backend,
     baseUrl: s.diarization.baseUrl,
-    recognitionEnabled: s.diarization.recognitionEnabled
+    recognitionEnabled: s.diarization.recognitionEnabled,
+    hfToken: decryptKey(s.diarization.hfTokenEnc)
   }
 }
 

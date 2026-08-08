@@ -126,7 +126,7 @@ export const strings = {
       body: 'Det här avgör vart ditt ljud och din text tar vägen. Du kan ändra det när som helst i inställningarna.',
       local: {
         title: 'På den här datorn',
-        body: 'Inget lämnar din dator. Kräver en lokal AI-server — vi hjälper dig igång.'
+        body: 'Referat installerar transkriberingen åt dig. Ljudet stannar på datorn.'
       },
       localGuide: 'Så installerar du en lokal AI-server',
       server: {
@@ -179,7 +179,11 @@ export const strings = {
       baseUrl: 'Bas-URL',
       model: 'Modell',
       language: 'Språk',
-      languageHint: 'Lämna tomt för automatisk igenkänning, eller ange t.ex. sv.'
+      languageHint: 'Lämna tomt för automatisk igenkänning, eller ange t.ex. sv.',
+      builtInTitle: 'Lokal CPU-transkribering',
+      builtInDescription:
+        'Referat installerar en svensk Whisper-modell och kör den lokalt. Ingen Docker, serveradress eller API-nyckel behövs.',
+      builtInSize: 'Cirka 700 MB efter installation.'
     },
     summary: {
       title: 'Sammanfattning',
@@ -202,6 +206,20 @@ export const strings = {
         'Kräver en lokal talarserver på din dator eller i nätverket — se guiden på webbplatsen. Namnen går att ändra i efterhand.',
       baseUrl: 'Serveradress',
       baseUrlHint: 'Adressen till talarservern, t.ex. http://localhost:8300',
+      backend: 'Kör talaridentifiering',
+      builtIn: 'På den här datorn',
+      server: 'Egen server',
+      setupTitle: 'Installera lokal talaridentifiering',
+      setupDescription:
+        'Modellen kommer från Pyannote på Hugging Face. Öppna villkoren, acceptera dem och klistra sedan in en lästoken här.',
+      openTerms: 'Öppna modellvillkoren',
+      token: 'Hugging Face-token',
+      tokenHint: 'Sparas krypterat med Windows DPAPI och används bara för modellhämtning.',
+      acceptedTerms: 'Jag har accepterat modellvillkoren på Hugging Face',
+      cpuTitle: 'CPU',
+      cpuDescription: 'Fungerar utan Nvidia-GPU men kan ta lång tid för ett helt möte.',
+      gpuTitle: 'Nvidia GPU',
+      gpuDescription: 'Rekommenderas för långa möten. Komponenten kräver flera GB diskutrymme.',
       recognition: {
         enable: 'Känn igen talare mellan möten',
         enableHint:
@@ -236,6 +254,7 @@ export const strings = {
     rerunOnboarding: 'Kör introduktionen igen',
     version: 'Version',
     presets: {
+      'built-in': 'Inbyggd lokal modell',
       local: 'Lokal server',
       openai: 'OpenAI',
       azure: 'Azure OpenAI',

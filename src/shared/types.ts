@@ -63,7 +63,7 @@ export interface MeetingDetail extends MeetingMeta {
 
 // ---------- Settings & providers ----------
 
-export type TranscriptionPreset = 'local' | 'openai' | 'azure' | 'custom'
+export type TranscriptionPreset = 'built-in' | 'local' | 'openai' | 'azure' | 'custom'
 export type SummaryPreset = 'local' | 'openai' | 'azure' | 'anthropic' | 'codex' | 'custom'
 export type SummaryBackend = 'http' | 'codex-cli'
 
@@ -98,6 +98,8 @@ export interface SummarySettings {
 export interface DiarizationSettings {
   /** Off by default — speaker identification is a power feature. */
   enabled: boolean
+  /** Built-in managed component or an externally managed server. */
+  backend: 'built-in' | 'server'
   /** Base URL of the local diarization server, e.g. http://localhost:8300 */
   baseUrl: string
   /**
@@ -105,6 +107,8 @@ export interface DiarizationSettings {
    * profiles. Off by default — voiceprints are biometric data (GDPR).
    */
   recognitionEnabled: boolean
+  /** True if a Hugging Face token has been saved (never returned to renderer). */
+  hasHfToken: boolean
 }
 
 export interface AppSettings {
@@ -127,7 +131,22 @@ export interface SaveSummarySettings extends Omit<SummarySettings, 'hasApiKey'> 
   apiKey?: string
 }
 /** The diarization server is local-only and unauthenticated — no key handling. */
-export type SaveDiarizationSettings = DiarizationSettings
+export interface SaveDiarizationSettings extends Omit<DiarizationSettings, 'hasHfToken'> {
+  /** Include only to replace/clear the encrypted token. */
+  hfToken?: string
+}
+
+export type LocalAiComponent = 'transcription-cpu' | 'diarization-cpu' | 'diarization-gpu'
+export type LocalAiComponentState =
+  'not-installed' | 'downloading' | 'installing' | 'installed' | 'starting' | 'running' | 'error'
+
+export interface LocalAiComponentStatus {
+  component: LocalAiComponent
+  state: LocalAiComponentState
+  progress?: number
+  message?: string
+  detail?: string
+}
 
 export interface ConnectionTestResult {
   ok: boolean
@@ -207,6 +226,9 @@ export interface RendererApi {
   testTranscriptionConnection(): Promise<ConnectionTestResult>
   testSummaryConnection(): Promise<ConnectionTestResult>
   testDiarizationConnection(): Promise<ConnectionTestResult>
+  listLocalAiComponents(): Promise<LocalAiComponentStatus[]>
+  installLocalAiComponent(component: LocalAiComponent): Promise<LocalAiComponentStatus>
+  removeLocalAiComponent(component: LocalAiComponent): Promise<void>
 
   // Export
   exportProtocol(id: string, format: 'md' | 'docx'): Promise<{ savedTo: string | null }>
@@ -216,6 +238,7 @@ export interface RendererApi {
   onPipelineProgress(cb: (e: PipelineProgressEvent) => void): () => void
   /** Fires when a new version has been downloaded and is ready to install. */
   onUpdateDownloaded(cb: (e: UpdateDownloadedEvent) => void): () => void
+  onLocalAiComponentProgress(cb: (e: LocalAiComponentStatus) => void): () => void
 
   // Updates
   /** Quit and install the downloaded update immediately (toast action). */

@@ -48,13 +48,9 @@ if ((Test-Path $tokenPath) -or $env:HF_TOKEN) {
     Write-Host '[3/3] One-time Hugging Face setup.'
     Write-Host ''
     Write-Host '      The speaker models are gated: you need a free Hugging Face account' -ForegroundColor Yellow
-    Write-Host '      and must accept the conditions on these model pages (opening them now):' -ForegroundColor Yellow
+    Write-Host '      and must accept the conditions on this model page (opening it now):' -ForegroundColor Yellow
     Write-Host ''
-    $pages = @(
-        'https://huggingface.co/pyannote/speaker-diarization-community-1',
-        'https://huggingface.co/pyannote/speaker-diarization-3.1',
-        'https://huggingface.co/pyannote/segmentation-3.0'
-    )
+    $pages = @('https://huggingface.co/pyannote/speaker-diarization-community-1')
     foreach ($p in $pages) { Write-Host "        $p"; Start-Process $p }
     Write-Host ''
     Write-Host '      When done, create an access token (Settings -> Access Tokens -> read),'

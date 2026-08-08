@@ -4,6 +4,7 @@ import { readFile } from 'fs/promises'
 import { basename } from 'path'
 import type { ConnectionTestResult, Transcript, TranscriptSegment } from '../../shared/types'
 import type { TranscriptionConfig } from '../settings'
+import { ensureLocalAiComponentRunning } from '../localAiComponents'
 import {
   authHeaders,
   errorDetail,
@@ -128,6 +129,9 @@ export async function transcribe(
   if (audioFilePaths.length === 0) {
     throw new Error('Ingen ljudfil att transkribera')
   }
+  if (config.preset === 'built-in') {
+    await ensureLocalAiComponentRunning('transcription-cpu')
+  }
 
   // Even split as a fallback when a server returns no per-segment timings.
   const fallbackPerSegment = durationSec > 0 ? durationSec / audioFilePaths.length : 0
@@ -164,6 +168,17 @@ export async function transcribe(
 export async function testTranscriptionConnection(
   config: TranscriptionConfig
 ): Promise<ConnectionTestResult> {
+  if (config.preset === 'built-in') {
+    try {
+      await ensureLocalAiComponentRunning('transcription-cpu')
+    } catch (err) {
+      return {
+        ok: false,
+        message: 'Den lokala transkriberingen är inte redo',
+        detail: errorDetail(err)
+      }
+    }
+  }
   const base = trimBaseUrl(config.baseUrl)
   try {
     // Prefer GET /models — any HTTP response means the server is reachable.

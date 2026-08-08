@@ -24,6 +24,9 @@ referat follows Electron's standard main/renderer separation.
   OpenAI-compatible transcription, OpenAI-compatible chat completions, Anthropic
   messages and the local speaker-diarization server, plus a per-provider connection test.
 - **Settings** — JSON in `userData`; API keys encrypted with `safeStorage`.
+- **Managed local AI** — version-matched, SHA-256-verified runtime archives are installed under
+  `%LOCALAPPDATA%/referat/local-ai/`, started on loopback only when needed and stopped with the
+  app. Downloaded models share the component directory's `models/` folder.
 
 ### Preload (`src/preload/`)
 
@@ -56,7 +59,7 @@ process encrypts it and stores ciphertext. The plaintext key is never sent back.
 
 ## Storage layout
 
-The folder listing *is* the index — there is no database. Each meeting is one folder:
+The folder listing _is_ the index — there is no database. Each meeting is one folder:
 
 ```
 %APPDATA%\referat\meetings\<id>\
@@ -78,7 +81,7 @@ crash mid-write can't truncate it and make the meeting vanish from the index.
   rejects files over 25 MB). At transcription time the segments are processed in order and
   concatenated, offsetting each segment's timestamps by the cumulative duration.
 - **Sequential pipeline.** A single-flight queue runs `transcribe → diarize (optional) →
-  summarize` for one meeting at a time. Status transitions
+summarize` for one meeting at a time. Status transitions
   (`recording → recorded → transcribing → diarizing → summarizing → done`, or `error`) are
   persisted to `meta.json` and broadcast to the interface. The diarization step only runs
   when speaker identification is enabled, and a failure there degrades gracefully: the
@@ -118,6 +121,9 @@ Honest and specific:
 - **Encrypted keys.** API keys are encrypted with Windows DPAPI via `safeStorage` and stored
   as base64 ciphertext. If OS encryption is unavailable, the app refuses to store the key
   rather than falling back to plaintext.
+- **Hugging Face token.** The optional Pyannote token uses the same encrypted storage path and
+  is passed only to the managed diarization process for gated model access.
+- **No Pyannote metrics.** Managed diarization starts with `PYANNOTE_METRICS_ENABLED=0`.
 
 ## Related pages
 

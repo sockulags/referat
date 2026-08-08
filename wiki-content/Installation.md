@@ -17,7 +17,7 @@ The 0.1 build is signed with a **self-signed certificate**, which Windows does n
 trust by default, so when you run the installer SmartScreen will most likely show
 a blue dialog:
 
-> *Windows protected your PC*
+> _Windows protected your PC_
 
 This is expected for a new app from an independent developer without a CA-issued
 certificate — it is not a sign that anything is wrong. To continue:
@@ -47,8 +47,8 @@ A brief description of what the app does. No configuration here — just click *
 This is the key choice. It decides where your audio and text are sent. You can change it
 any time in Settings. Three options:
 
-- **On this computer** — nothing leaves your machine. Requires a local AI server running on
-  your computer. See **[Local AI Setup](Local-AI-Setup)** for the full guide.
+- **On this computer** — nothing leaves your machine. Install the packaged CPU transcription
+  component directly in the setup guide; no Python, Docker or server address is required.
 - **On the company server** — your IT department gives you an address (a base URL) and, if
   needed, an API key to paste in.
 - **Cloud service** — use OpenAI or Azure OpenAI by entering your API key.
@@ -59,7 +59,7 @@ you can, for example, transcribe locally and summarize in the cloud. See
 
 ### Step 3 — Connection test
 
-referat runs a real request against both the transcription and summarization providers and
+referat starts the installed transcription component and runs a real request against both the transcription and summarization providers and
 shows a green check for each, or a plain-language explanation if one fails (for example
 "wrong or missing API key" or "the server isn't responding — check the address"). You can
 **Continue anyway** if you want to finish setup and fix a provider later.

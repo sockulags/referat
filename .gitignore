@@ -7,3 +7,13 @@ out
 e2e/artifacts
 
 electron-builder.ci.yml
+
+# Generated local-AI runtime build output
+transcription-server/.venv/
+transcription-server/build/
+transcription-server/dist/
+transcription-server/*.spec
+transcription-server/**/__pycache__/
+diarization-server/build/
+diarization-server/dist/
+diarization-server/*.spec

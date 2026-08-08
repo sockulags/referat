@@ -32,6 +32,9 @@ export const IPC = {
   testTranscriptionConnection: 'settings:test-transcription',
   testSummaryConnection: 'settings:test-summary',
   testDiarizationConnection: 'settings:test-diarization',
+  listLocalAiComponents: 'local-ai:list',
+  installLocalAiComponent: 'local-ai:install',
+  removeLocalAiComponent: 'local-ai:remove',
 
   // Export
   exportProtocol: 'export:protocol',
@@ -46,5 +49,6 @@ export const IPC = {
 
   // Events (main -> renderer)
   pipelineProgress: 'pipeline:progress',
-  updateDownloaded: 'updater:downloaded'
+  updateDownloaded: 'updater:downloaded',
+  localAiComponentProgress: 'local-ai:progress'
 } as const

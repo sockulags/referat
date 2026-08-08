@@ -47,7 +47,7 @@ explicitly configure an external endpoint.
 
 - **No meeting bot.** System-audio capture works across meeting tools and for in-person
   conversations.
-- **Deployment is a product choice.** Use local OpenAI-compatible services, internal
+- **Deployment is a product choice.** Install managed local components, use OpenAI-compatible services, internal
   endpoints, OpenAI, Azure OpenAI, Anthropic, or an already authenticated Codex CLI for
   minutes generation.
 - **Local-first data handling.** Meeting files live under the user's Windows app-data
@@ -123,9 +123,17 @@ explains the limitation and the exact steps. Windows 10 and 11 are supported.
 
 ## Run the AI locally
 
-referat talks to standard `/v1` APIs. A fully local setup can use
-[speaches](https://github.com/speaches-ai/speaches) for Whisper transcription and
-[Ollama](https://ollama.com/) for minutes generation.
+Choose **Built-in local model** under **Settings → Transcription** and click **Install**.
+referat downloads a packaged CPU runtime plus KB-Whisper Small, verifies the package checksum,
+and starts it only when a meeting needs processing. Python, Docker and administrator access are
+not required.
+
+Speaker identification is a separate optional component under **Settings → Speakers**. Choose
+CPU or NVIDIA GPU, open and accept the Pyannote model conditions, then paste a read-enabled
+Hugging Face token. The token is encrypted with Windows DPAPI and Pyannote telemetry is disabled.
+
+Advanced deployments can still use standard `/v1` APIs. For example, use Speaches for
+transcription and Ollama for minutes generation:
 
 ```bash
 # Transcription server
@@ -136,7 +144,7 @@ ollama pull llama3.1
 ollama serve
 ```
 
-Configure transcription as `http://localhost:8000/v1` and minutes generation as
+Configure the external transcription server as `http://localhost:8000/v1` and minutes generation as
 `http://localhost:11434/v1`. No API key is required for either local service. For model
 selection and troubleshooting, use the complete
 [local AI guide](https://github.com/sockulags/referat/wiki/Local-AI-Setup).

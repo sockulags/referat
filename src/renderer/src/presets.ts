@@ -3,7 +3,13 @@
 import type { SummaryPreset, TranscriptionPreset, SummarySettings } from '../../shared/types'
 import { strings } from './strings'
 
-export const TRANSCRIPTION_PRESETS: TranscriptionPreset[] = ['local', 'openai', 'azure', 'custom']
+export const TRANSCRIPTION_PRESETS: TranscriptionPreset[] = [
+  'built-in',
+  'local',
+  'openai',
+  'azure',
+  'custom'
+]
 export const SUMMARY_PRESETS: SummaryPreset[] = [
   'local',
   'openai',
@@ -25,6 +31,12 @@ interface TranscriptionDefaults {
 
 export function transcriptionDefaults(preset: TranscriptionPreset): TranscriptionDefaults {
   switch (preset) {
+    case 'built-in':
+      return {
+        baseUrl: 'http://127.0.0.1:8310/v1',
+        model: 'KBLab/kb-whisper-small',
+        needsKey: false
+      }
     case 'local':
       return {
         baseUrl: 'http://localhost:8000/v1',
