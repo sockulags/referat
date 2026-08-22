@@ -5,7 +5,7 @@ import { spawn, type ChildProcessByStdio } from 'node:child_process'
 import { statSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
-import { delimiter, extname, join } from 'node:path'
+import { join, posix as posixPath, win32 as winPath, type PlatformPath } from 'node:path'
 import type { Readable, Writable } from 'node:stream'
 
 const CODEX_COMMAND = 'codex'
@@ -83,9 +83,16 @@ function realLookup(): CodexLookup {
   }
 }
 
+// The rules of the target platform, not of the machine running this code, so
+// the lookup stays a pure function of what it is handed.
+function pathRules(platform: NodeJS.Platform): PlatformPath {
+  return platform === 'win32' ? winPath : posixPath
+}
+
 /** Directories the official installers and the common package managers use. */
 export function codexInstallCandidates(lookup: CodexLookup): string[] {
   const { platform, env, home } = lookup
+  const { join } = pathRules(platform)
   if (platform === 'win32') {
     const localAppData = env.LOCALAPPDATA ?? join(home, 'AppData', 'Local')
     const appData = env.APPDATA ?? join(home, 'AppData', 'Roaming')
@@ -107,6 +114,7 @@ export function codexInstallCandidates(lookup: CodexLookup): string[] {
 
 function pathCandidates(lookup: CodexLookup): string[] {
   const { platform, env } = lookup
+  const { join, delimiter } = pathRules(platform)
   const dirs = (env.PATH ?? env.Path ?? '').split(delimiter).filter(Boolean)
   const extensions =
     platform === 'win32' ? (env.PATHEXT ?? '.EXE;.CMD;.BAT').split(';').filter(Boolean) : ['']
@@ -163,7 +171,7 @@ export function codexSpawnArgs(
   args: readonly string[],
   lookup: Pick<CodexLookup, 'platform' | 'env'>
 ): { command: string; args: string[]; verbatim: boolean } {
-  const extension = extname(executable).toLowerCase()
+  const extension = pathRules(lookup.platform).extname(executable).toLowerCase()
   if (lookup.platform === 'win32' && (extension === '.cmd' || extension === '.bat')) {
     const line = [executable, ...args].map(quoteForCmd).join(' ')
     return {
