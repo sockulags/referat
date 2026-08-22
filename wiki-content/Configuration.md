@@ -87,6 +87,13 @@ sent to Codex. **Do not use this preset for meetings classified Highly Confident
 your organization's policy explicitly permits it.** Use **Test Codex** in Settings to
 perform a small authenticated end-to-end request.
 
+**If the test reports that the CLI was not found** while `codex` works in your terminal, the
+app was started with an environment that does not carry the Codex directory on `PATH` — a
+shortcut or launcher created before the install, for instance. referat therefore also looks in
+the standard install locations (`%LOCALAPPDATA%\Programs\OpenAI\Codex\bin`, `~/.codex/bin`, the
+global npm directory, and Homebrew on macOS). The error detail lists every location tried. For
+an install outside those, set `REFERAT_CODEX_PATH` to the full path of the executable.
+
 ### Azure OpenAI specifics
 
 referat targets Azure's **OpenAI-compatible v1 endpoint**, whose base URL is shaped:
