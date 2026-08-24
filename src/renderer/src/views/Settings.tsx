@@ -328,9 +328,6 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
           <p className="mt-1 text-sm leading-relaxed text-fg-muted">
             {strings.settings.summary.codexDescription}
           </p>
-          <p className="mt-2 text-xs font-medium text-warning">
-            {strings.settings.summary.codexClassification}
-          </p>
         </div>
       ) : (
         <>
