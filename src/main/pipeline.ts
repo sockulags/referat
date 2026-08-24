@@ -15,6 +15,7 @@ import {
   writeTranscript
 } from './storage'
 import { getDiarizationConfig, getSummaryConfig, getTranscriptionConfig } from './settings'
+import { applyGlossary, glossaryPromptBlock, listGlossaryTerms } from './glossary'
 import { transcribe } from './providers/transcription'
 import { summarize } from './providers/summary'
 import { diarize } from './providers/diarization'
@@ -134,6 +135,23 @@ function applyRecognition(
   return next
 }
 
+/**
+ * Correct misheard terms in the stored transcript from the glossary. Cheap,
+ * local string work — no provider involved — so it runs on every pipeline pass
+ * and can also be called on its own the moment the user adds a term.
+ *
+ * Returns the number of replacements, or null when there is no transcript yet.
+ */
+export function applyGlossaryToMeeting(meetingId: string): number | null {
+  const transcript = readTranscript(meetingId)
+  if (!transcript) return null
+  const { transcript: next, hits } = applyGlossary(transcript, listGlossaryTerms())
+  // Always write: a removed term un-corrects the transcript, which is a change
+  // worth persisting even though it produces no hits.
+  writeTranscript(meetingId, next)
+  return hits
+}
+
 async function runJob(job: Job): Promise<void> {
   const { meetingId, mode } = job
   if (!readMeta(meetingId)) return // deleted meanwhile
@@ -164,6 +182,11 @@ async function runJob(job: Job): Promise<void> {
     await runDiarization(meetingId)
   }
 
+  // Correct misheard terms before summarizing. This also runs for a plain
+  // re-summarize, so editing the glossary and pressing "update protocol" is
+  // enough to re-correct the transcript along with the minutes.
+  applyGlossaryToMeeting(meetingId)
+
   updateMeta(meetingId, { status: 'summarizing' })
   emit({ meetingId, status: 'summarizing' })
   try {
@@ -171,7 +194,11 @@ async function runJob(job: Job): Promise<void> {
     if (!transcript) throw new Error('Transkript saknas — kan inte sammanfatta')
     // With speakers merged in, the prompt gets speaker-attributed text
     // ("Anna: …"); without speakers this is exactly transcript.text.
-    const protocol = await summarize(speakerAttributedText(transcript), getSummaryConfig())
+    const protocol = await summarize(
+      speakerAttributedText(transcript),
+      getSummaryConfig(),
+      glossaryPromptBlock(listGlossaryTerms())
+    )
     if (!protocol.trim()) {
       // Reasoning-heavy models can burn the whole context budget on thinking
       // and return an empty answer. Surface it instead of writing an empty

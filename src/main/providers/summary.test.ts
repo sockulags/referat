@@ -93,6 +93,34 @@ describe('summarize (openai-compatible)', () => {
     const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
     expect(content).toBe('Instruktion utan token\n\nBODY')
   })
+
+  it('substitutes {{ordlista}} with the glossary block', async () => {
+    const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
+    await summarize(
+      'MÖTESTEXT',
+      baseConfig({ promptTemplate: 'Regler\n\n{{ordlista}}\n\nText:\n{{transcript}}' }),
+      '- Kubernetes'
+    )
+    const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
+    expect(content).toBe('Regler\n\n- Kubernetes\n\nText:\nMÖTESTEXT')
+  })
+
+  it('leaves no blank gap when {{ordlista}} resolves to nothing', async () => {
+    const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
+    await summarize(
+      'MÖTESTEXT',
+      baseConfig({ promptTemplate: 'Regler\n\n{{ordlista}}\n\nText:\n{{transcript}}' })
+    )
+    const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
+    expect(content).toBe('Regler\n\nText:\nMÖTESTEXT')
+  })
+
+  it('prepends the glossary when a hand-edited template has no {{ordlista}}', async () => {
+    const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
+    await summarize('MÖTESTEXT', baseConfig(), '- Kubernetes')
+    const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
+    expect(content).toBe('- Kubernetes\n\nSammanfatta:\nMÖTESTEXT')
+  })
 })
 
 describe('summarize (anthropic)', () => {

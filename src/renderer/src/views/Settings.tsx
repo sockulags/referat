@@ -2,6 +2,7 @@ import type { JSX, ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import type {
   AppSettings,
+  GlossaryTerm,
   LocalAiComponent,
   LocalAiComponentStatus,
   SpeakerProfile,
@@ -59,6 +60,7 @@ export function Settings(): JSX.Element {
         <AudioSection settings={settings} />
         <TranscriptionSection settings={settings} />
         <SummarySection settings={settings} />
+        <GlossarySection />
         <DiarizationSection settings={settings} />
         <AppearanceSection settings={settings} />
       </div>
@@ -731,6 +733,161 @@ function SpeakerProfilesBlock(): JSX.Element {
       >
         <p className="text-sm text-fg-muted leading-relaxed">{r.forgetAllConfirmBody}</p>
       </Modal>
+    </div>
+  )
+}
+
+// ---------- Glossary ----------
+
+/**
+ * The glossary is filled from the transcript view, where the misheard word is
+ * in front of you. This section is for going back over it: fixing a spelling,
+ * adding a variant you remember, removing a term that over-corrects.
+ */
+function GlossarySection(): JSX.Element {
+  const g = strings.settings.glossary
+  const [terms, setTerms] = useState<GlossaryTerm[]>([])
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+
+  const refresh = useCallback(async (): Promise<void> => {
+    try {
+      setTerms(await window.api.listGlossaryTerms())
+    } catch {
+      setTerms([])
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    window.api
+      .listGlossaryTerms()
+      .then((t) => {
+        if (!cancelled) setTerms(t)
+      })
+      .catch(() => {
+        if (!cancelled) setTerms([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const remove = async (id: string): Promise<void> => {
+    await window.api.deleteGlossaryTerm(id)
+    setConfirmId(null)
+    setOpenId(null)
+    await refresh()
+  }
+
+  return (
+    <Section title={g.title} description={g.description}>
+      {terms.length === 0 ? (
+        <p className="text-sm text-fg-muted leading-relaxed">{g.empty}</p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-border">
+          {terms.map((term) => (
+            <li key={term.id} className="py-2">
+              {openId === term.id ? (
+                <GlossaryTermEditor
+                  term={term}
+                  onDone={async () => {
+                    setOpenId(null)
+                    await refresh()
+                  }}
+                  onDelete={() => setConfirmId(term.id)}
+                />
+              ) : (
+                <button
+                  onClick={() => setOpenId(term.id)}
+                  className="flex w-full items-center justify-between gap-3 rounded text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <span className="min-w-0 truncate text-sm font-medium text-fg">
+                    {term.canonical}
+                  </span>
+                  <span className="shrink-0 text-xs text-fg-muted tabular-nums">
+                    {g.variantCount(term.variants.length)}
+                  </span>
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Modal
+        open={confirmId !== null}
+        onClose={() => setConfirmId(null)}
+        title={g.deleteConfirmTitle}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmId(null)}>
+              {strings.common.cancel}
+            </Button>
+            <Button variant="danger" onClick={() => void (confirmId && remove(confirmId))}>
+              {g.deleteConfirm}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-muted leading-relaxed">{g.deleteConfirmBody}</p>
+      </Modal>
+    </Section>
+  )
+}
+
+function GlossaryTermEditor({
+  term,
+  onDone,
+  onDelete
+}: {
+  term: GlossaryTerm
+  onDone: () => Promise<void>
+  onDelete: () => void
+}): JSX.Element {
+  const g = strings.settings.glossary
+  const [canonical, setCanonical] = useState(term.canonical)
+  // One variant per line is the shape people already expect from a word list.
+  const [variants, setVariants] = useState(term.variants.join('\n'))
+  const [saving, setSaving] = useState(false)
+
+  const save = async (): Promise<void> => {
+    if (!canonical.trim() || saving) return
+    setSaving(true)
+    try {
+      await window.api.updateGlossaryTerm(term.id, {
+        canonical,
+        variants: variants.split('\n')
+      })
+      await onDone()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 py-1 animate-fade-in">
+      <Input label={g.canonical} value={canonical} onChange={(e) => setCanonical(e.target.value)} />
+      <Textarea
+        label={g.variants}
+        hint={g.variantsHint}
+        value={variants}
+        onChange={(e) => setVariants(e.target.value)}
+        rows={Math.min(8, Math.max(3, term.variants.length + 1))}
+      />
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" onClick={onDelete}>
+          {g.delete}
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => void onDone()}>
+            {strings.common.cancel}
+          </Button>
+          <Button size="sm" onClick={() => void save()} disabled={!canonical.trim() || saving}>
+            {strings.common.save}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
