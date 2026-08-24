@@ -39,8 +39,8 @@ The service that writes out what was said. Any OpenAI-compatible
 ## Summarization
 
 The service that turns the transcript into the actual minutes. HTTP providers support
-**OpenAI-compatible** chat completions and **Anthropic** messages. The separate **Codex
-(work account)** preset can instead reuse an already authenticated local Codex CLI.
+**OpenAI-compatible** chat completions and **Anthropic** messages. The separate **Codex CLI**
+preset can instead run the summarization through a locally installed Codex CLI.
 
 **Fields**
 
@@ -54,20 +54,19 @@ The service that turns the transcript into the actual minutes. HTTP providers su
 
 **Presets**
 
-| Preset               | API type          | Base URL                                        | Model (default)            | API key |
-| -------------------- | ----------------- | ----------------------------------------------- | -------------------------- | ------- |
-| Local server         | OpenAI-compatible | `http://localhost:11434/v1`                     | `llama3.1`                 | no      |
-| OpenAI               | OpenAI-compatible | `https://api.openai.com/v1`                     | `gpt-4o-mini`              | yes     |
-| Azure OpenAI         | OpenAI-compatible | `https://<resource>.openai.azure.com/openai/v1` | `gpt-4o`                   | yes     |
-| Anthropic            | Anthropic         | `https://api.anthropic.com`                     | `claude-3-5-sonnet-latest` | yes     |
-| Codex (work account) | Codex CLI         | _(uses the installed CLI)_                      | _(workspace default)_      | no      |
-| Custom               | OpenAI-compatible | _(empty — enter your own)_                      | _(empty)_                  | depends |
+| Preset       | API type          | Base URL                                        | Model (default)            | API key |
+| ------------ | ----------------- | ----------------------------------------------- | -------------------------- | ------- |
+| Local server | OpenAI-compatible | `http://localhost:11434/v1`                     | `llama3.1`                 | no      |
+| OpenAI       | OpenAI-compatible | `https://api.openai.com/v1`                     | `gpt-4o-mini`              | yes     |
+| Azure OpenAI | OpenAI-compatible | `https://<resource>.openai.azure.com/openai/v1` | `gpt-4o`                   | yes     |
+| Anthropic    | Anthropic         | `https://api.anthropic.com`                     | `claude-3-5-sonnet-latest` | yes     |
+| Codex CLI    | Codex CLI         | _(uses the installed CLI)_                      | _(CLI default)_            | no      |
+| Custom       | OpenAI-compatible | _(empty — enter your own)_                      | _(empty)_                  | depends |
 
 ### Codex CLI preset
 
-Choose **Codex (work account)** when Codex CLI is installed and authenticated through your
-ChatGPT work account but you do not have an OpenAI Platform API key. Verify the prerequisite
-in PowerShell:
+Choose **Codex CLI** when Codex CLI is installed and authenticated on the machine. Verify the
+prerequisite in PowerShell:
 
 ```powershell
 codex login status
@@ -78,14 +77,11 @@ referat sends the rendered minutes prompt through stdin and reads only the final
 stdout. Each run is ephemeral and uses an empty temporary working directory. User config,
 rules, shell commands, apps, plugins, web search and local Codex history are disabled for the
 run. The temporary directory is removed afterwards. The CLI still sends the prompt and
-transcript to the ChatGPT workspace associated with the saved Codex login, subject to that
-workspace's policies and usage limits.
+transcript onward under its own login, subject to that account's policies and usage limits.
 
-No API key or ChatGPT token is stored by referat for this preset. Keys previously saved for
-HTTP presets remain encrypted so switching provider does not erase them, but they are never
-sent to Codex. **Do not use this preset for meetings classified Highly Confidential unless
-your organization's policy explicitly permits it.** Use **Test Codex** in Settings to
-perform a small authenticated end-to-end request.
+No API key is stored by referat for this preset. Keys previously saved for HTTP presets remain
+encrypted so switching provider does not erase them, but they are never sent to Codex. Use
+**Test Codex** in Settings to perform a small authenticated end-to-end request.
 
 **If the test reports that the CLI was not found** while `codex` works in your terminal, the
 app was started with an environment that does not carry the Codex directory on `PATH` — a

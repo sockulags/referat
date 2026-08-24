@@ -167,10 +167,6 @@ async function main() {
     (await summaryCard.getByLabel('API-nyckel').count()) === 0,
     'Codex preset does not ask for an API key'
   )
-  assert(
-    await seen('Skicka inte möten som är klassade Highly Confidential.'),
-    'Codex preset shows the classification warning'
-  )
   await summaryCard.getByRole('button', { name: 'Spara', exact: true }).click()
   const savedCodexSettings = await page.evaluate(() => window.api.getSettings())
   assert(
