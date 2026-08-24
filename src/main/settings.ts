@@ -73,6 +73,8 @@ Regler:
 - Använd endast information som finns i transkriptionen. Hitta aldrig på namn, beslut eller siffror.
 - Var koncis och saklig.
 
+{{ordlista}}
+
 Transkription:
 {{transcript}}`
 

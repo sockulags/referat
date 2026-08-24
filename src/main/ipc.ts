@@ -17,6 +17,13 @@ export const IPC = {
   deleteSpeakerProfile: 'speakers:delete-profile',
   deleteAllSpeakerProfiles: 'speakers:delete-all-profiles',
 
+  // Glossary
+  listGlossaryTerms: 'glossary:list',
+  addGlossaryEntry: 'glossary:add',
+  updateGlossaryTerm: 'glossary:update',
+  deleteGlossaryTerm: 'glossary:delete',
+  applyGlossary: 'glossary:apply',
+
   // Recording
   startRecording: 'recording:start',
   appendAudioChunk: 'recording:append-chunk',

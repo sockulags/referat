@@ -11,6 +11,7 @@
 ## Processansvar
 
 ### Main-process (`src/main/`)
+
 - Fönster- och traylivscykel, IPC-registrering.
 - **Storage**: app-datamapp (`app.getPath('userData')/meetings/`). En mapp per möte:
   `<id>/meta.json`, `<id>/audio.webm`, `<id>/transcript.json`, `<id>/protocol.md`.
@@ -24,15 +25,23 @@
   `TranscriptionProvider { transcribe(file, opts): Promise<Transcript> }`,
   `SummaryProvider { summarize(transcript, template): Promise<string> }`.
   Även `testConnection(): Promise<{ok, message}>` per provider.
+- **Ordlista** (`src/main/glossary.ts`): `userData/glossary.json`, en global lista där varje
+  term har en korrekt stavning och flera felhörda varianter. Appliceras i pipelinen före
+  sammanfattningen och kan köras separat direkt när användaren lägger till en term. Icke
+  förstörande: providerns text sparas i `originalText` och varje applicering utgår från den,
+  så en borttagen term backar rättningen. Kanoniska stavningar skickas dessutom med i
+  prompten via `{{ordlista}}` så modellen inte rättar tillbaka.
 - **Settings**: JSON i userData; API-nycklar krypteras med `safeStorage` och lagras
   som base64-ciphertext. Klartextnyckel exponeras aldrig till renderer — renderer
   skickar nyckel EN gång vid spar, main krypterar.
 
 ### Preload (`src/preload/`)
+
 Typad `contextBridge`-API-yta: `window.api.*`. contextIsolation på, nodeIntegration av.
 All IPC har TypeScript-typer delade via `src/shared/types.ts`.
 
 ### Renderer (`src/renderer/`)
+
 - **Ljudinfångst**: mikrofon via `getUserMedia`; systemljud via `desktopCapturer`
   (Electron stöder WASAPI loopback-audio på Windows via `setDisplayMediaRequestHandler`
   i main med `audio: 'loopback'`). Två `MediaStream`s mixas med WebAudio

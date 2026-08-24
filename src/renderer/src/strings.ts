@@ -104,6 +104,19 @@ export const strings = {
     speakersChangedHint:
       'Du har ändrat talarnamn. Skapa protokollet igen så används de nya namnen.',
     updateProtocol: 'Uppdatera protokollet',
+    addToGlossary: 'Lägg till i ordlistan',
+    glossaryTitle: 'Lägg till i ordlistan',
+    glossaryIntro:
+      'Transkriberingen hör ofta fel på tekniska ord och namn. Lägg till det som hördes och vad det ska vara, så rättas det här och i alla kommande möten.',
+    glossaryHeard: 'Hördes som',
+    glossaryCorrect: 'Ska vara',
+    glossaryCorrectHint: 'Skrivs exakt så här i transkriptet och protokollet.',
+    glossaryPickExisting: 'Eller välj en term du redan har',
+    glossaryPickNew: 'Ny term',
+    glossarySave: 'Spara i ordlistan',
+    glossaryCorrectedTitle: 'Rättad från ordlistan',
+    glossaryChangedHint: 'Transkriptet är rättat från ordlistan. Skapa protokollet igen.',
+    glossaryNoChange: 'Termen sparades, men den förekommer inte i det här transkriptet.',
     steps: {
       recorded: 'Inspelad',
       transcribing: 'Transkriberar',
@@ -234,6 +247,22 @@ export const strings = {
           'Alla sparade röstavtryck tas bort. Namn som redan står i transkript påverkas inte. Det går inte att ångra.',
         forgetAllConfirm: 'Ja, glöm alla'
       }
+    },
+    glossary: {
+      title: 'Ordlista',
+      description:
+        'Termer som transkriberingen hör fel på. Varje term kan ha flera varianter — samma ord blir olika beroende på vem som talar. Listan gäller alla möten.',
+      empty:
+        'Ordlistan är tom. Markera ett felhört ord i ett transkript och välj "Lägg till i ordlistan".',
+      canonical: 'Korrekt stavning',
+      variants: 'Hördes som',
+      variantsHint: 'En variant per rad.',
+      variantCount: (n: number): string => (n === 1 ? '1 variant' : `${n} varianter`),
+      delete: 'Ta bort termen',
+      deleteConfirmTitle: 'Ta bort termen?',
+      deleteConfirmBody:
+        'Termen tas bort ur ordlistan. Transkript som redan rättats behåller rättningen tills protokollet skapas om.',
+      deleteConfirm: 'Ja, ta bort'
     },
     appearance: {
       title: 'Utseende',

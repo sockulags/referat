@@ -258,6 +258,51 @@ async function main() {
       'old label "Talare 1" is gone after the rename'
     )
     await shot('transcript-renamed')
+
+    // Glossary: select a misheard word in the transcript, give it the correct
+    // spelling, and the transcript is rewritten in place.
+    const selected = await page.evaluate(() => {
+      const p = Array.from(document.querySelectorAll('p')).find((el) =>
+        el.textContent?.includes('annonsmall')
+      )
+      const node = p?.firstChild
+      if (!node || !node.textContent) return false
+      const start = node.textContent.indexOf('annonsmall')
+      const range = document.createRange()
+      range.setStart(node, start)
+      range.setEnd(node, start + 'annonsmall'.length)
+      const sel = window.getSelection()
+      sel.removeAllRanges()
+      sel.addRange(range)
+      // The transcript view acts on pointerup, once a selection is finished.
+      document.dispatchEvent(new Event('pointerup', { bubbles: true }))
+      return true
+    })
+    assert(selected, 'a word in the transcript can be selected')
+    await page.waitForTimeout(400)
+    assert(
+      await seen('Lägg till i ordlistan', 3000),
+      'selecting transcript text offers "add to glossary"'
+    )
+    await page.getByText('Lägg till i ordlistan', { exact: true }).first().click()
+    await page.waitForTimeout(400)
+    await shot('glossary-modal')
+
+    const heardField = page.getByLabel('Hördes som')
+    assert(
+      (await heardField.inputValue()) === 'annonsmall',
+      'the dialog is prefilled with the selected word'
+    )
+    await page.getByLabel('Ska vara').fill('Annonsmall CMS')
+    await page.getByText('Spara i ordlistan', { exact: true }).click()
+    await page.waitForTimeout(1200)
+
+    assert(await seen('Annonsmall CMS', 5000), 'the transcript is corrected from the glossary')
+    assert(
+      await seen('Transkriptet är rättat från ordlistan. Skapa protokollet igen.', 5000),
+      'the glossary change offers to rebuild the protocol'
+    )
+    await shot('transcript-glossary')
   }
 
   // --- Back home: list shows the Klar chip
@@ -307,6 +352,21 @@ async function main() {
   assert(await seen('Sparade röster', 8000), 'settings shows the saved voices list')
   assert(await seen('Anna', 5000), 'saved voice "Anna" is listed under "Sparade röster"')
   await shot('settings-voices')
+
+  // --- Settings: the glossary term added from the transcript is listed
+  assert(await seen('Ordlista', 8000), 'settings shows the glossary section')
+  assert(
+    await seen('Annonsmall CMS', 5000),
+    'the term added from the transcript is listed in the glossary'
+  )
+  assert(await seen('1 variant', 5000), 'the glossary term shows its variant count')
+  // Open the term so the artifact shows the editor, not just the collapsed row.
+  await page.getByText('Annonsmall CMS', { exact: true }).first().click()
+  await page.waitForTimeout(500)
+  await page.getByText('Ordlista', { exact: true }).first().scrollIntoViewIfNeeded()
+  await page.waitForTimeout(300)
+  assert(await seen('Hördes som', 3000), 'the glossary term opens into an editor')
+  await shot('settings-glossary')
 
   console.log('CONSOLE_ERRORS:', JSON.stringify(consoleErrors, null, 2))
   assert(consoleErrors.length === 0, 'no renderer console errors during the run')

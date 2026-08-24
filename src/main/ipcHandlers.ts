@@ -11,6 +11,7 @@ import type {
   SaveDiarizationSettings,
   ConnectionTestResult,
   SpeakerProfile,
+  GlossaryTerm,
   LocalAiComponent,
   LocalAiComponentStatus
 } from '../shared/types'
@@ -18,7 +19,8 @@ import { IPC } from './ipc'
 import * as storage from './storage'
 import * as settings from './settings'
 import * as speakerProfiles from './speakerProfiles'
-import { enqueue, retryPipeline, resummarize } from './pipeline'
+import * as glossary from './glossary'
+import { applyGlossaryToMeeting, enqueue, retryPipeline, resummarize } from './pipeline'
 import { exportProtocol, copyProtocol } from './export'
 import { testTranscriptionConnection } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
@@ -68,6 +70,25 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.deleteAllSpeakerProfiles, (): void =>
     speakerProfiles.deleteAllSpeakerProfiles()
+  )
+
+  // ---- Glossary ----
+  ipcMain.handle(IPC.listGlossaryTerms, (): GlossaryTerm[] => glossary.listGlossaryTerms())
+
+  ipcMain.handle(IPC.addGlossaryEntry, (_e, canonical: string, variant: string): GlossaryTerm =>
+    glossary.addGlossaryEntry(canonical, variant)
+  )
+
+  ipcMain.handle(
+    IPC.updateGlossaryTerm,
+    (_e, id: string, patch: { canonical?: string; variants?: string[] }): GlossaryTerm | null =>
+      glossary.updateGlossaryTerm(id, patch)
+  )
+
+  ipcMain.handle(IPC.deleteGlossaryTerm, (_e, id: string): void => glossary.deleteGlossaryTerm(id))
+
+  ipcMain.handle(IPC.applyGlossary, (_e, meetingId: string): number | null =>
+    applyGlossaryToMeeting(meetingId)
   )
 
   // ---- Recording ----

@@ -12,6 +12,7 @@ import type {
   PipelineProgressEvent,
   UpdateDownloadedEvent,
   SpeakerProfile,
+  GlossaryTerm,
   LocalAiComponent,
   LocalAiComponentStatus
 } from '../shared/types'
@@ -36,6 +37,18 @@ const api: RendererApi = {
   deleteSpeakerProfile: (id: string): Promise<void> =>
     ipcRenderer.invoke(IPC.deleteSpeakerProfile, id),
   deleteAllSpeakerProfiles: (): Promise<void> => ipcRenderer.invoke(IPC.deleteAllSpeakerProfiles),
+
+  // Glossary
+  listGlossaryTerms: (): Promise<GlossaryTerm[]> => ipcRenderer.invoke(IPC.listGlossaryTerms),
+  addGlossaryEntry: (canonical: string, variant: string): Promise<GlossaryTerm> =>
+    ipcRenderer.invoke(IPC.addGlossaryEntry, canonical, variant),
+  updateGlossaryTerm: (
+    id: string,
+    patch: { canonical?: string; variants?: string[] }
+  ): Promise<GlossaryTerm | null> => ipcRenderer.invoke(IPC.updateGlossaryTerm, id, patch),
+  deleteGlossaryTerm: (id: string): Promise<void> => ipcRenderer.invoke(IPC.deleteGlossaryTerm, id),
+  applyGlossary: (meetingId: string): Promise<number | null> =>
+    ipcRenderer.invoke(IPC.applyGlossary, meetingId),
 
   // Recording
   startRecording: (title: string): Promise<RecordingHandle> =>

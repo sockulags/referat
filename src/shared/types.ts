@@ -27,6 +27,12 @@ export interface TranscriptSegment {
   text: string
   /** Canonical speaker id ('S1', 'S2', …) when diarization ran. */
   speaker?: string
+  /**
+   * What the transcription provider actually returned, kept only on segments
+   * the glossary rewrote. Correcting a transcript must stay reversible, and
+   * re-applying always starts from this text — never from a previous result.
+   */
+  originalText?: string
 }
 
 export interface Transcript {
@@ -43,6 +49,25 @@ export interface Transcript {
   speakerEmbeddings?: Record<string, number[]>
   /** Speaker id -> suggested display name from voice recognition ("Anna?"). */
   speakerSuggestions?: Record<string, string>
+  /** Uncorrected full text, kept only when the glossary rewrote something. */
+  originalText?: string
+  /** Number of glossary replacements in the last apply. Absent means none. */
+  glossaryHits?: number
+}
+
+/**
+ * One entry in the glossary: the correct spelling plus every misheard form
+ * that should become it. Several variants per term is the normal case — the
+ * same word comes out differently depending on who is speaking.
+ */
+export interface GlossaryTerm {
+  id: string
+  /** The correct spelling, written to the transcript verbatim. */
+  canonical: string
+  /** Misheard forms. Matched case-insensitively, spaces and hyphens alike. */
+  variants: string[]
+  /** ISO 8601 timestamp of the last edit. */
+  updatedAt: string
 }
 
 /** A locally stored voice profile (the embedding itself never crosses IPC). */
@@ -203,6 +228,25 @@ export interface RendererApi {
   listSpeakerProfiles(): Promise<SpeakerProfile[]>
   deleteSpeakerProfile(id: string): Promise<void>
   deleteAllSpeakerProfiles(): Promise<void>
+
+  // Glossary: one global list of misheard terms, shared by every meeting.
+  listGlossaryTerms(): Promise<GlossaryTerm[]>
+  /**
+   * Add a misheard form to the term with this spelling, creating it when new.
+   * Rejects when either string is blank.
+   */
+  addGlossaryEntry(canonical: string, variant: string): Promise<GlossaryTerm>
+  updateGlossaryTerm(
+    id: string,
+    patch: { canonical?: string; variants?: string[] }
+  ): Promise<GlossaryTerm | null>
+  deleteGlossaryTerm(id: string): Promise<void>
+  /**
+   * Re-correct one meeting's transcript from the current glossary. Returns the
+   * number of replacements, or null when the meeting has no transcript yet.
+   * Local string work — no provider call, so it is safe to run on every edit.
+   */
+  applyGlossary(meetingId: string): Promise<number | null>
 
   // Recording: renderer captures & encodes; main persists chunks.
   startRecording(title: string): Promise<RecordingHandle>

@@ -1,8 +1,8 @@
 # Configuration
 
-All settings live under **Settings** in the app. There are five groups: **Audio**,
-**Transcription**, **Summarization**, **Speakers** and **Appearance**. This page explains
-every field.
+All settings live under **Settings** in the app. There are six groups: **Audio**,
+**Transcription**, **Summarization**, **Ordlista** (glossary), **Speakers** and
+**Appearance**. This page explains every field.
 
 referat uses two independent providers: **transcription** (speech → text) and
 **summarization** (text → minutes). You configure them separately, so you can mix modes —
@@ -117,6 +117,11 @@ contains a **`{{transcript}}`** placeholder, which referat replaces with the mee
 transcript before sending. (If you remove the placeholder, the transcript is appended to the
 end of your prompt instead.)
 
+A second placeholder, **`{{ordlista}}`**, is replaced with your [glossary](#glossary) — the
+correct spellings, so the model does not turn an unfamiliar product name back into a word it
+recognizes. It resolves to nothing when the glossary is empty. If your template does not use
+it, the block is placed ahead of the template instead.
+
 The default template is in Swedish and asks the model for four sections — **Sammanfattning**
 (summary), **Beslut** (decisions), **Actionpunkter** (action items with owner and deadline)
 and **Öppna frågor** (open questions) — and instructs it to answer in the transcript's
@@ -126,6 +131,35 @@ structure, language or tone; the default works without any changes.
 > **Tip:** prefer a non-reasoning model. Reasoning-heavy models can return an empty answer,
 > which referat surfaces as an error instead of saving empty minutes. See
 > [Local AI Setup](Local-AI-Setup).
+
+## Glossary
+
+Speech recognition mangles technical vocabulary, product names and workplace-specific words,
+and Swedish models do it more often because many of these terms are not Swedish words at all.
+The glossary maps every misheard form back to one correct spelling.
+
+**Filling it.** Open a meeting's **Transkript** tab, select the word that came out wrong, and
+choose **Lägg till i ordlistan**. The selection is prefilled as the misheard form; you type
+the correct spelling, or pick a term you already have. The transcript is corrected on the
+spot, and the banner offers to rebuild the minutes with the corrected text.
+
+**One term, several variants.** The same word comes out differently depending on who is
+speaking, so a term holds a list of forms — all of them map to the one correct spelling. Add
+variants as you meet them; the list is global and applies to every meeting, past and future.
+
+**Matching** is literal, not fuzzy: only the forms you entered, case-insensitively, and
+tolerant of the word splits the transcriber introduces (`kubber nätes` also catches
+`kubber-nätes`). A term never matches inside a longer word. Fuzzy matching is deliberately
+absent — a wrong correction in the minutes is worse than a missed one.
+
+**Corrections are reversible.** referat keeps what the provider actually returned and
+re-derives the corrected text from it, so every apply starts from the original. Removing a
+term un-corrects the transcript on the next run; corrected words carry a dotted underline in
+the transcript so a correction is visible rather than silent.
+
+**Editing the list.** **Settings → Ordlista** lists every term. Open one to fix the spelling,
+add or remove variants (one per line), or delete the term. The glossary lives in
+`%APPDATA%\referat\glossary.json`.
 
 ## Speakers
 

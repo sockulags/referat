@@ -96,6 +96,7 @@ Read the full [architecture and security model](https://github.com/sockulags/ref
 - Microphone and Windows WASAPI loopback recording
 - Swedish and multilingual transcription through configurable providers
 - Optional local speaker diarization
+- Glossary for terms the transcriber mishears, filled by selecting a word in the transcript
 - Customizable prompt/template for meeting minutes
 - Optional minutes generation through a locally installed Codex CLI
 - Markdown and `.docx` export, plus clipboard copy

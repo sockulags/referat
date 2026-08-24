@@ -25,6 +25,7 @@ ett vänligt GUI med klarspråk — inga tekniska termer utan förklaring.
 ## Användarflöde
 
 ### Första start (onboarding-wizard)
+
 1. Välkomstskärm — vad appen gör, 15 sekunder att läsa.
 2. "Var ska AI:n köra?" — tre kort med klarspråk:
    - **På den här datorn** (kräver lokal AI-server, guide finns)
@@ -36,6 +37,7 @@ ett vänligt GUI med klarspråk — inga tekniska termer utan förklaring.
 Wizarden går att hoppa över och nås igen från inställningar.
 
 ### Vardagsflödet
+
 1. Öppna appen → stor "Starta inspelning"-knapp. Valfritt: mötestitel.
 2. Under inspelning: timer, ljudnivåmätare (mick + systemljud separat), paus/stopp.
    Appen kan minimeras till systray; diskret indikator på att inspelning pågår.
@@ -45,6 +47,15 @@ Wizarden går att hoppa över och nås igen från inställningar.
    **Transkript**-flik (fulltext, sökbar). Export: Markdown, Word (.docx), kopiera.
 5. Startsidan listar tidigare möten med statuschip: Inspelad / Transkriberad / Klar /
    Fel (med "försök igen").
+
+### Ordlista för felhörda termer
+
+Transkriberingen hör fel på tekniska ord, produktnamn och interna begrepp — särskilt på
+svenska, där termerna sällan är svenska ord. I transkriptet markerar användaren ordet som
+blev fel och väljer "Lägg till i ordlistan", anger korrekt stavning och får transkriptet
+rättat direkt. En term samlar flera varianter, eftersom samma ord blir olika beroende på vem
+som talar. Listan är global och gäller alla möten. Rättningarna följer med till protokollet,
+och de korrekta stavningarna skickas med i prompten så att modellen behåller dem.
 
 ## AI-provider-modell (säljargumentet)
 
