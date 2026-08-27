@@ -86,7 +86,12 @@ export const strings = {
     tabProtocol: 'Protokoll',
     tabTranscript: 'Transkript',
     renameHint: 'Klicka för att byta namn',
-    protocolEmpty: 'Protokollet är inte klart än.',
+    summariesAllDeleted:
+      'Du har tagit bort alla sammanfattningar av det här mötet. Transkriptet finns kvar — skapa en ny sammanfattning från valfri mall.',
+    deleteSummary: 'Ta bort',
+    deleteSummaryTitle: 'Ta bort sammanfattningen?',
+    deleteSummaryBody: (name: string): string =>
+      `Sammanfattningen "${name}" och dess fil tas bort. Transkriptet och mötets övriga sammanfattningar påverkas inte. Det går inte att ångra.`,
     newSummary: 'Ny sammanfattning',
     newSummaryTitle: 'Ny sammanfattning',
     newSummaryIntro:

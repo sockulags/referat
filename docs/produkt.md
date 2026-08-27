@@ -91,6 +91,10 @@ Ett långt möte avhandlar flera saker, och en sammanfattning av alltihop blir o
 tunn för var och en av dem. Därför har dialogen en fokusruta: fritext som avgränsar
 sammanfattningen till en del av mötet ("bara upphandlingen"), med samma mall.
 
+En sammanfattning går att ta bort efter en bekräftelse, den sista med. Transkriptet blir
+kvar, så en ny går alltid att skapa — den som experimenterar med mallar och fokus ska
+inte tvingas leva med resultatet.
+
 ## Talardiarisering (tillval)
 
 "Vem sa vad" — transkriptet kan märkas upp per talare ("Talare 1", "Talare 2") och

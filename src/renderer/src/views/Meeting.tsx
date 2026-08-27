@@ -24,6 +24,7 @@ import {
   IconAlert,
   IconRetry,
   IconClock,
+  IconTrash,
   IconX
 } from '../components/icons'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
@@ -335,6 +336,7 @@ function ProtocolTab({
   const [copied, setCopied] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const summaries = meeting.summaries
   const generating = meeting.status === 'summarizing'
@@ -371,10 +373,13 @@ function ProtocolTab({
     await onChanged()
   }
 
-  if (!selected) {
-    return (
-      <p className="py-12 text-center text-sm text-fg-muted">{strings.meeting.protocolEmpty}</p>
-    )
+  const remove = async (): Promise<void> => {
+    if (!selected) return
+    await window.api.deleteSummary(meeting.id, selected.id)
+    setDeleting(false)
+    // Fall back to whatever is left; the id being gone resolves to the first.
+    setSelectedId(null)
+    await onChanged()
   }
 
   return (
@@ -385,7 +390,7 @@ function ProtocolTab({
             <SummaryChip
               key={summary.id}
               summary={summary}
-              active={summary.id === selected.id}
+              active={summary.id === selected?.id}
               onClick={() => setSelectedId(summary.id)}
             />
           ))}
@@ -405,46 +410,84 @@ function ProtocolTab({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 pb-4">
-        <Button
-          variant={copied ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={copy}
-          iconLeft={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-        >
-          {copied ? strings.meeting.copied : strings.meeting.copy}
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => save('md')}
-          iconLeft={<IconDownload size={16} />}
-        >
-          {strings.meeting.saveMarkdown}
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => save('docx')}
-          iconLeft={<IconDownload size={16} />}
-        >
-          {strings.meeting.saveWord}
-        </Button>
-      </div>
+      {selected ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2 pb-4">
+            <Button
+              variant={copied ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={copy}
+              iconLeft={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+            >
+              {copied ? strings.meeting.copied : strings.meeting.copy}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => save('md')}
+              iconLeft={<IconDownload size={16} />}
+            >
+              {strings.meeting.saveMarkdown}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => save('docx')}
+              iconLeft={<IconDownload size={16} />}
+            >
+              {strings.meeting.saveWord}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDeleting(true)}
+              disabled={generating}
+              iconLeft={<IconTrash size={16} />}
+            >
+              {strings.meeting.deleteSummary}
+            </Button>
+          </div>
 
-      {selected.focus && (
-        <p className="pb-3 text-sm text-fg-muted">
-          {strings.meeting.summaryFocusLabel(selected.focus)}
-        </p>
+          {selected.focus && (
+            <p className="pb-3 text-sm text-fg-muted">
+              {strings.meeting.summaryFocusLabel(selected.focus)}
+            </p>
+          )}
+
+          <Card className="px-8 py-9 sm:px-10">
+            <article className="mx-auto max-w-[70ch] text-[15px]">
+              <Markdown source={selected.markdown} />
+            </article>
+          </Card>
+        </>
+      ) : (
+        !generating && (
+          <p className="mx-auto max-w-md py-12 text-center text-sm text-fg-muted leading-relaxed">
+            {strings.meeting.summariesAllDeleted}
+          </p>
+        )
       )}
 
-      <Card className="px-8 py-9 sm:px-10">
-        <article className="mx-auto max-w-[70ch] text-[15px]">
-          <Markdown source={selected.markdown} />
-        </article>
-      </Card>
-
       <NewSummaryModal open={creating} onClose={() => setCreating(false)} onCreate={create} />
+      <Modal
+        open={deleting}
+        onClose={() => setDeleting(false)}
+        title={strings.meeting.deleteSummaryTitle}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleting(false)}>
+              {strings.common.cancel}
+            </Button>
+            <Button variant="danger" onClick={() => void remove()}>
+              {strings.common.delete}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-muted leading-relaxed">
+          {strings.meeting.deleteSummaryBody(selected?.templateName ?? '')}
+        </p>
+      </Modal>
     </div>
   )
 }

@@ -262,6 +262,11 @@ export interface RendererApi {
    * result arrives as a pipeline progress event.
    */
   generateSummary(meetingId: string, templateId: string, focus: string): Promise<void>
+  /**
+   * Remove one summary and its file. Removing the last one is allowed — a new
+   * one can always be generated from the transcript.
+   */
+  deleteSummary(meetingId: string, summaryId: string): Promise<void>
 
   // Speakers
   /**

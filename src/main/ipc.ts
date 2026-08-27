@@ -10,6 +10,7 @@ export const IPC = {
   retryPipeline: 'pipeline:retry',
   resummarize: 'pipeline:resummarize',
   generateSummary: 'summaries:generate',
+  deleteSummary: 'summaries:delete',
 
   // Speakers
   renameSpeaker: 'speakers:rename',

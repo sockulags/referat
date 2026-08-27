@@ -267,11 +267,26 @@ async function main() {
   )
   const chips = await page.locator('button[aria-pressed]').allTextContents()
   assert(
-    chips.some((c) => c.includes('Protokoll')) &&
-      chips.some((c) => c.includes('Uppföljningsmejl')),
+    chips.some((c) => c.includes('Protokoll')) && chips.some((c) => c.includes('Uppföljningsmejl')),
     `both summaries are listed side by side (chips: ${JSON.stringify(chips)})`
   )
   await shot('two-summaries')
+
+  // --- Removing a summary leaves the other one alone.
+  await page.getByText('Ta bort', { exact: true }).first().click()
+  await page.waitForTimeout(400)
+  assert(await seen('Ta bort sammanfattningen?', 3000), 'deleting a summary asks for confirmation')
+  await shot('delete-summary-modal')
+  await page.getByRole('dialog').getByRole('button', { name: 'Ta bort', exact: true }).click()
+  await page.waitForTimeout(1200)
+
+  const remaining = await page.locator('button[aria-pressed]').count()
+  assert(remaining === 0, `the picker collapses back to a single summary (chips: ${remaining})`)
+  assert(
+    await seen('Introduktionsdagen flyttas till den 15:e.', 5000),
+    'the summary that was kept is still rendered'
+  )
+  await shot('after-delete')
 
   // Transcript tab renders the mock transcript.
   const transkript = page.getByText('Transkript', { exact: true })

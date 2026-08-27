@@ -160,6 +160,10 @@ summarize the whole meeting.
 Renaming a speaker or editing the glossary makes every summary stale, so **Uppdatera
 sammanfattningarna** regenerates all of them — one model call per summary.
 
+**Ta bort** removes the summary you are looking at, and its file, after a confirmation.
+Removing the last one is allowed: the transcript stays, so you can generate a new summary
+from any template afterwards.
+
 > **Tip:** prefer a non-reasoning model. Reasoning-heavy models can return an empty answer,
 > which referat surfaces as an error instead of saving empty minutes. See
 > [Local AI Setup](Local-AI-Setup).
