@@ -357,6 +357,21 @@ export function updateSummaryMarkdown(id: string, summaryId: string, markdown: s
   ])
 }
 
+/**
+ * Remove one summary and its file. Deleting the last one is allowed — the
+ * meeting keeps its transcript, and a new summary can be generated from any
+ * template. A legacy protocol.md has no index entry to drop, only a file.
+ */
+export function deleteSummary(id: string, summaryId: string): void {
+  const existing = listSummaries(id).find((s) => s.id === summaryId)
+  if (!existing) return
+  rmSync(join(meetingDir(id), existing.fileName), { force: true })
+  writeSummaryIndex(
+    id,
+    readSummaryIndex(id).filter((e) => e.id !== summaryId)
+  )
+}
+
 export function getMeeting(id: string): MeetingDetail | null {
   const meta = readMeta(id)
   if (!meta) return null

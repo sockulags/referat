@@ -61,6 +61,10 @@ export function registerIpcHandlers(): void {
       generateSummary(meetingId, templateId, focus)
   )
 
+  ipcMain.handle(IPC.deleteSummary, (_e, meetingId: string, summaryId: string): void =>
+    storage.deleteSummary(meetingId, summaryId)
+  )
+
   // ---- Speakers ----
   ipcMain.handle(
     IPC.renameSpeaker,

@@ -29,6 +29,8 @@ const api: RendererApi = {
   resummarize: (id: string): Promise<void> => ipcRenderer.invoke(IPC.resummarize, id),
   generateSummary: (meetingId: string, templateId: string, focus: string): Promise<void> =>
     ipcRenderer.invoke(IPC.generateSummary, meetingId, templateId, focus),
+  deleteSummary: (meetingId: string, summaryId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.deleteSummary, meetingId, summaryId),
 
   // Speakers
   renameSpeaker: (meetingId: string, speakerId: string, name: string): Promise<void> =>

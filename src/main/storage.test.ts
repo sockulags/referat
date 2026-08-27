@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
 import { app } from 'electron'
 import { join } from 'node:path'
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import type { Transcript } from '../shared/types'
 import {
   addSummary,
+  deleteSummary,
   dismissSpeakerSuggestion,
   listSummaries,
   readTranscript,
@@ -227,6 +228,35 @@ describe('summaries', () => {
     const fileName = add('Protokoll')
     rmSync(join(userData, 'meetings', MEETING_ID, fileName))
     expect(listSummaries(MEETING_ID)).toEqual([])
+  })
+
+  it('deletes both the file and its index entry, leaving the rest', () => {
+    const goneFile = add('Protokoll')
+    const keep = addSummary(MEETING_ID, {
+      templateId: 'sammandrag',
+      templateName: 'Snabbt sammandrag',
+      focus: '',
+      markdown: '# Kvar'
+    })
+    deleteSummary(MEETING_ID, listSummaries(MEETING_ID)[0].id)
+
+    expect(listSummaries(MEETING_ID).map((s) => s.id)).toEqual([keep.id])
+    expect(existsSync(join(userData, 'meetings', MEETING_ID, goneFile))).toBe(false)
+  })
+
+  it('deletes a meeting recorded before templates existed', () => {
+    const legacy = join(userData, 'meetings', MEETING_ID, 'protocol.md')
+    writeFileSync(legacy, '# Gammalt protokoll', 'utf-8')
+    deleteSummary(MEETING_ID, listSummaries(MEETING_ID)[0].id)
+
+    expect(listSummaries(MEETING_ID)).toEqual([])
+    expect(existsSync(legacy)).toBe(false)
+  })
+
+  it('is a no-op for a summary that is already gone', () => {
+    add('Protokoll')
+    expect(() => deleteSummary(MEETING_ID, 'finns-inte')).not.toThrow()
+    expect(listSummaries(MEETING_ID)).toHaveLength(1)
   })
 
 })
