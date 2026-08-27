@@ -9,6 +9,7 @@ vi.mock('./codex', async (importOriginal) => {
   return { ...original, runCodexSummary: codexMocks.runCodexSummary }
 })
 
+import type { SummaryRequest } from './summary'
 import { summarize, testSummaryConnection } from './summary'
 import type { SummaryConfig } from '../settings'
 
@@ -18,10 +19,14 @@ function baseConfig(over: Partial<SummaryConfig> = {}): SummaryConfig {
     apiFlavor: 'openai-compatible',
     baseUrl: 'http://localhost:11434/v1',
     model: 'llama3',
-    promptTemplate: 'Sammanfatta:\n{{transcript}}',
     apiKey: '',
     ...over
   }
+}
+
+/** The prompt half of a summarize() call. The template itself is trivial here. */
+function req(over: Partial<SummaryRequest> = {}): SummaryRequest {
+  return { promptTemplate: 'Sammanfatta:\n{{transcript}}', ...over }
 }
 
 interface Call {
@@ -64,23 +69,23 @@ afterEach(() => {
 describe('summarize (openai-compatible)', () => {
   it('returns the trimmed assistant content', async () => {
     recordFetch([json({ choices: [{ message: { content: '  # Protokoll  ' } }] })])
-    const out = await summarize('transkript text', baseConfig())
+    const out = await summarize('transkript text', baseConfig(), req())
     expect(out).toBe('# Protokoll')
   })
 
   it('returns an empty string when there are no choices', async () => {
     recordFetch([json({ choices: [] })])
-    expect(await summarize('x', baseConfig())).toBe('')
+    expect(await summarize('x', baseConfig(), req())).toBe('')
   })
 
   it('returns an empty string when the message has no content', async () => {
     recordFetch([json({ choices: [{ message: {} }] })])
-    expect(await summarize('x', baseConfig())).toBe('')
+    expect(await summarize('x', baseConfig(), req())).toBe('')
   })
 
   it('posts to <baseUrl>/chat/completions and substitutes {{transcript}}', async () => {
     const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
-    await summarize('MÖTESTEXT', baseConfig())
+    await summarize('MÖTESTEXT', baseConfig(), req())
     expect(calls[0].url).toBe('http://localhost:11434/v1/chat/completions')
     const body = bodyOf(calls[0])
     expect(body.model).toBe('llama3')
@@ -89,7 +94,7 @@ describe('summarize (openai-compatible)', () => {
 
   it('appends the transcript when the template has no {{transcript}} token', async () => {
     const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
-    await summarize('BODY', baseConfig({ promptTemplate: 'Instruktion utan token' }))
+    await summarize('BODY', baseConfig(), req({ promptTemplate: 'Instruktion utan token' }))
     const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
     expect(content).toBe('Instruktion utan token\n\nBODY')
   })
@@ -98,8 +103,11 @@ describe('summarize (openai-compatible)', () => {
     const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
     await summarize(
       'MÖTESTEXT',
-      baseConfig({ promptTemplate: 'Regler\n\n{{ordlista}}\n\nText:\n{{transcript}}' }),
-      '- Kubernetes'
+      baseConfig(),
+      req({
+        promptTemplate: 'Regler\n\n{{ordlista}}\n\nText:\n{{transcript}}',
+        glossary: '- Kubernetes'
+      })
     )
     const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
     expect(content).toBe('Regler\n\n- Kubernetes\n\nText:\nMÖTESTEXT')
@@ -109,7 +117,8 @@ describe('summarize (openai-compatible)', () => {
     const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
     await summarize(
       'MÖTESTEXT',
-      baseConfig({ promptTemplate: 'Regler\n\n{{ordlista}}\n\nText:\n{{transcript}}' })
+      baseConfig(),
+      req({ promptTemplate: 'Regler\n\n{{ordlista}}\n\nText:\n{{transcript}}' })
     )
     const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
     expect(content).toBe('Regler\n\nText:\nMÖTESTEXT')
@@ -117,9 +126,42 @@ describe('summarize (openai-compatible)', () => {
 
   it('prepends the glossary when a hand-edited template has no {{ordlista}}', async () => {
     const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
-    await summarize('MÖTESTEXT', baseConfig(), '- Kubernetes')
+    await summarize('MÖTESTEXT', baseConfig(), req({ glossary: '- Kubernetes' }))
     const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
     expect(content).toBe('- Kubernetes\n\nSammanfatta:\nMÖTESTEXT')
+  })
+
+  it('substitutes {{fokus}} with the focus instruction', async () => {
+    const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
+    await summarize(
+      'MÖTESTEXT',
+      baseConfig(),
+      req({ promptTemplate: 'Regler\n\n{{fokus}}\n\nText:\n{{transcript}}', focus: 'budgeten' })
+    )
+    const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
+    expect(content.startsWith('Regler\n\nAvgränsning:')).toBe(true)
+    expect(content).toContain('\nbudgeten\n')
+    expect(content.endsWith('Text:\nMÖTESTEXT')).toBe(true)
+  })
+
+  it('prepends the focus instruction when the template has no {{fokus}}', async () => {
+    const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
+    await summarize('MÖTESTEXT', baseConfig(), req({ focus: 'upphandlingen' }))
+    const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
+    expect(content.startsWith('Avgränsning:')).toBe(true)
+    expect(content).toContain('upphandlingen')
+    expect(content.endsWith('Sammanfatta:\nMÖTESTEXT')).toBe(true)
+  })
+
+  it('leaves no blank gap when {{ordlista}} and {{fokus}} both resolve to nothing', async () => {
+    const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
+    await summarize(
+      'MÖTESTEXT',
+      baseConfig(),
+      req({ promptTemplate: 'Regler\n\n{{ordlista}}\n\n{{fokus}}\n\nText:\n{{transcript}}' })
+    )
+    const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
+    expect(content).toBe('Regler\n\nText:\nMÖTESTEXT')
   })
 })
 
@@ -134,7 +176,7 @@ describe('summarize (anthropic)', () => {
         ]
       })
     ])
-    const out = await summarize('x', baseConfig({ apiFlavor: 'anthropic' }))
+    const out = await summarize('x', baseConfig({ apiFlavor: 'anthropic' }), req())
     expect(out).toBe('Del 1 Del 2')
   })
 
@@ -142,14 +184,15 @@ describe('summarize (anthropic)', () => {
     const calls = recordFetch([json({ content: [{ type: 'text', text: 'ok' }] })])
     await summarize(
       'x',
-      baseConfig({ apiFlavor: 'anthropic', baseUrl: 'https://api.anthropic.com/v1' })
+      baseConfig({ apiFlavor: 'anthropic', baseUrl: 'https://api.anthropic.com/v1' }),
+      req()
     )
     expect(calls[0].url).toBe('https://api.anthropic.com/v1/messages')
   })
 
   it('uses the Anthropic default base when baseUrl is empty', async () => {
     const calls = recordFetch([json({ content: [{ type: 'text', text: 'ok' }] })])
-    await summarize('x', baseConfig({ apiFlavor: 'anthropic', baseUrl: '' }))
+    await summarize('x', baseConfig({ apiFlavor: 'anthropic', baseUrl: '' }), req())
     expect(calls[0].url).toBe('https://api.anthropic.com/v1/messages')
     const headers = calls[0].init.headers as Record<string, string>
     expect(headers['anthropic-version']).toBe('2023-06-01')
@@ -161,7 +204,8 @@ describe('summarize (codex-cli)', () => {
     codexMocks.runCodexSummary.mockResolvedValueOnce('# Codex-protokoll')
     const result = await summarize(
       'MÖTESTEXT',
-      baseConfig({ backend: 'codex-cli', baseUrl: '', model: '' })
+      baseConfig({ backend: 'codex-cli', baseUrl: '', model: '' }),
+      req()
     )
     expect(result).toBe('# Codex-protokoll')
     expect(codexMocks.runCodexSummary).toHaveBeenCalledWith(

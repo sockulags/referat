@@ -15,6 +15,8 @@ interface AppState {
   meetingId?: string
   /** Title carried from Home into the recording flow. */
   pendingTitle: string
+  /** Template carried from Home into the recording flow. '' = the default. */
+  pendingTemplateId: string
   settings?: AppSettings
   settingsLoaded: boolean
   toasts: Toast[]
@@ -22,6 +24,7 @@ interface AppState {
   navigate: (view: View, meetingId?: string) => void
   openMeeting: (meetingId: string) => void
   setPendingTitle: (title: string) => void
+  setPendingTemplateId: (templateId: string) => void
   setSettings: (settings: AppSettings) => void
   patchSettings: (partial: Partial<AppSettings>) => void
   toast: (message: string, tone?: Toast['tone']) => void
@@ -34,6 +37,7 @@ export const useApp = create<AppState>((set) => ({
   view: 'home',
   meetingId: undefined,
   pendingTitle: '',
+  pendingTemplateId: '',
   settings: undefined,
   settingsLoaded: false,
   toasts: [],
@@ -41,6 +45,7 @@ export const useApp = create<AppState>((set) => ({
   navigate: (view, meetingId): void => set({ view, meetingId }),
   openMeeting: (meetingId): void => set({ view: 'meeting', meetingId }),
   setPendingTitle: (pendingTitle): void => set({ pendingTitle }),
+  setPendingTemplateId: (pendingTemplateId): void => set({ pendingTemplateId }),
   setSettings: (settings): void => set({ settings, settingsLoaded: true }),
   patchSettings: (partial): void =>
     set((s) => (s.settings ? { settings: { ...s.settings, ...partial } } : {})),

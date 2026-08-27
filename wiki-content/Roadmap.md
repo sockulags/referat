@@ -8,6 +8,10 @@ It exists to show the direction referat is heading.
 - **Speaker diarization** — transcript segments are attributed to individual speakers ("who
   said what"), with editable names that flow into the minutes. Optional, via a local
   companion server — see [Speaker Diarization](Speaker-Diarization).
+- **Summary templates** — several templates for different readers (minutes, quick recap,
+  action items, decision log, follow-up email), chosen when the recording starts. The same
+  meeting can get more summaries afterwards, each optionally narrowed to one part of the
+  meeting — see [Configuration](Configuration).
 
 ## Planned
 
@@ -16,8 +20,6 @@ It exists to show the direction referat is heading.
 - **Code signing** — sign the Windows installer so the SmartScreen warning on first run goes
   away. See [Installation](Installation) for the current situation.
 - **Live transcription** — show text as the meeting happens, rather than only after you stop.
-- **Meeting templates** — selectable minutes templates for different meeting types (stand-up,
-  board meeting, one-on-one), on top of today's single editable template.
 
 ## Explicitly out of scope for now
 

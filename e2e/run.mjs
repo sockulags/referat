@@ -197,6 +197,15 @@ async function main() {
   assert(await seen('Starta inspelning'), 'back home after enabling speaker identification')
 
   const title = page.getByPlaceholder(/titel/i)
+  // The template picker decides what the automatic summary becomes.
+  const templatePicker = page.getByLabel('Sammanfattning', { exact: true })
+  assert((await templatePicker.count()) > 0, 'home shows the summary template picker')
+  const templateNames = await templatePicker.locator('option').allTextContents()
+  assert(
+    templateNames.includes('Protokoll') && templateNames.includes('Uppföljningsmejl'),
+    `template picker lists the built-in templates (got ${JSON.stringify(templateNames)})`
+  )
+
   if (await title.count()) await title.fill('Veckomöte HR')
   await page.getByText('Starta inspelning', { exact: true }).first().click()
   await page.waitForTimeout(3000)
@@ -228,6 +237,41 @@ async function main() {
   assert(protocolHeading, 'protocol tab renders the mock protocol ("Sammanfattning" heading)')
   const decision = await seen('Introduktionsdagen flyttas till den 15:e.', 5000)
   assert(decision, 'protocol tab renders a mock decision bullet')
+
+  // --- A second summary of the same meeting: another template, and a focus
+  // that narrows it to one part of the meeting.
+  await page.getByText('Ny sammanfattning', { exact: true }).first().click()
+  await page.waitForTimeout(500)
+  await shot('new-summary-modal')
+  assert(
+    await seen('Skapa sammanfattning', 3000),
+    'the protocol tab offers to generate another summary'
+  )
+  await page.getByLabel('Mall', { exact: true }).selectOption({ label: 'Uppföljningsmejl' })
+  await page.getByLabel('Fokus (valfritt)').fill('bara rekryteringen')
+  await page.getByText('Skapa sammanfattning', { exact: true }).click()
+  await page.waitForTimeout(1000)
+
+  // The picker only appears once there are two summaries, so a second chip is
+  // the signal that the new one landed.
+  const secondSummary = await page
+    .locator('button[aria-pressed]')
+    .nth(1)
+    .waitFor({ state: 'visible', timeout: 40000 })
+    .then(() => true)
+    .catch(() => false)
+  assert(secondSummary, 'the second summary appears in the protocol tab')
+  assert(
+    await seen('Fokus: bara rekryteringen', 5000),
+    'the second summary shows what it was asked to focus on'
+  )
+  const chips = await page.locator('button[aria-pressed]').allTextContents()
+  assert(
+    chips.some((c) => c.includes('Protokoll')) &&
+      chips.some((c) => c.includes('Uppföljningsmejl')),
+    `both summaries are listed side by side (chips: ${JSON.stringify(chips)})`
+  )
+  await shot('two-summaries')
 
   // Transcript tab renders the mock transcript.
   const transkript = page.getByText('Transkript', { exact: true })

@@ -27,6 +27,8 @@ const api: RendererApi = {
     ipcRenderer.invoke(IPC.renameMeeting, id, title),
   retryPipeline: (id: string): Promise<void> => ipcRenderer.invoke(IPC.retryPipeline, id),
   resummarize: (id: string): Promise<void> => ipcRenderer.invoke(IPC.resummarize, id),
+  generateSummary: (meetingId: string, templateId: string, focus: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.generateSummary, meetingId, templateId, focus),
 
   // Speakers
   renameSpeaker: (meetingId: string, speakerId: string, name: string): Promise<void> =>
@@ -51,8 +53,8 @@ const api: RendererApi = {
     ipcRenderer.invoke(IPC.applyGlossary, meetingId),
 
   // Recording
-  startRecording: (title: string): Promise<RecordingHandle> =>
-    ipcRenderer.invoke(IPC.startRecording, title),
+  startRecording: (title: string, templateId?: string): Promise<RecordingHandle> =>
+    ipcRenderer.invoke(IPC.startRecording, title, templateId),
   appendAudioChunk: (meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void> =>
     ipcRenderer.invoke(IPC.appendAudioChunk, meetingId, chunk, segmentIndex),
   finishRecording: (meetingId: string, durationSec: number): Promise<void> =>
@@ -88,9 +90,14 @@ const api: RendererApi = {
     ipcRenderer.invoke(IPC.removeLocalAiComponent, component),
 
   // Export
-  exportProtocol: (id: string, format: 'md' | 'docx'): Promise<{ savedTo: string | null }> =>
-    ipcRenderer.invoke(IPC.exportProtocol, id, format),
-  copyProtocol: (id: string): Promise<void> => ipcRenderer.invoke(IPC.copyProtocol, id),
+  exportProtocol: (
+    id: string,
+    format: 'md' | 'docx',
+    summaryId?: string
+  ): Promise<{ savedTo: string | null }> =>
+    ipcRenderer.invoke(IPC.exportProtocol, id, format, summaryId),
+  copyProtocol: (id: string, summaryId?: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.copyProtocol, id, summaryId),
 
   // Events
   onPipelineProgress: (cb: (e: PipelineProgressEvent) => void): (() => void) => {

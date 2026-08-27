@@ -37,6 +37,9 @@ export const strings = {
     heroKicker: 'Redo när du är det',
     startRecording: 'Starta inspelning',
     titlePlaceholder: 'Ge mötet en titel (valfritt)',
+    summaryTemplate: 'Sammanfattning',
+    summaryTemplateHint:
+      'Styr vad protokollet blir när mötet är slut. Du kan skapa fler sammanfattningar efteråt.',
     previousMeetings: 'Tidigare möten',
     emptyTitle: 'Ditt första möte väntar',
     emptyBody:
@@ -84,6 +87,18 @@ export const strings = {
     tabTranscript: 'Transkript',
     renameHint: 'Klicka för att byta namn',
     protocolEmpty: 'Protokollet är inte klart än.',
+    newSummary: 'Ny sammanfattning',
+    newSummaryTitle: 'Ny sammanfattning',
+    newSummaryIntro:
+      'Samma möte, en annan mall och en annan mottagare. Den nya sammanfattningen läggs till — de du redan har står kvar.',
+    newSummaryTemplate: 'Mall',
+    newSummaryFocus: 'Fokus (valfritt)',
+    newSummaryFocusPlaceholder: 'T.ex. bara upphandlingen av nytt ärendesystem',
+    newSummaryFocusHint:
+      'Ett långt möte hinner med flera saker. Skriv vad den här sammanfattningen ska handla om, så utelämnas resten. Lämna tomt för hela mötet.',
+    newSummaryCreate: 'Skapa sammanfattning',
+    summaryGenerating: 'Skapar sammanfattningen…',
+    summaryFocusLabel: (focus: string): string => `Fokus: ${focus}`,
     transcriptEmpty: 'Transkriptet är inte klart än.',
     searchTranscript: 'Sök i transkriptet',
     noMatches: 'Inga träffar',
@@ -104,6 +119,7 @@ export const strings = {
     speakersChangedHint:
       'Du har ändrat talarnamn. Skapa protokollet igen så används de nya namnen.',
     updateProtocol: 'Uppdatera protokollet',
+    updateSummaries: 'Uppdatera sammanfattningarna',
     addToGlossary: 'Lägg till i ordlistan',
     glossaryTitle: 'Lägg till i ordlistan',
     glossaryIntro:
@@ -206,9 +222,18 @@ export const strings = {
       codexDescription:
         'Referat kör den Codex CLI som redan finns på datorn. Codex kräver ingen API-nyckel och varje protokoll körs utan beständig Codex-historik.',
       testCodex: 'Testa Codex',
-      advanced: 'Avancerat: protokollmall',
-      promptTemplate: 'Protokollmall',
-      promptHint: 'Instruktionen som styr protokollet. {{transcript}} byts mot transkriptet.'
+      advanced: 'Avancerat: mallar',
+      templatesHint:
+        'En mall är instruktionen som styr vad sammanfattningen blir. Du väljer mall när du startar ett möte, och kan skapa fler sammanfattningar av samma möte efteråt.',
+      templatePick: 'Mall att ändra',
+      templateName: 'Mallens namn',
+      promptTemplate: 'Instruktion',
+      promptHint:
+        '{{transcript}} byts mot transkriptet, {{ordlista}} mot ordlistan och {{fokus}} mot det användaren vill att sammanfattningen ska handla om.',
+      templateAdd: 'Ny mall',
+      templateNewName: 'Egen mall',
+      templateDelete: 'Ta bort mallen',
+      templateBuiltIn: 'Inbyggd mall — går att ändra, men inte att ta bort.'
     },
     diarization: {
       title: 'Talare',

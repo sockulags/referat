@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
 import { app } from 'electron'
 import { join } from 'node:path'
-import { mkdirSync, rmSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import type { Transcript } from '../shared/types'
-import { dismissSpeakerSuggestion, readTranscript, renameSpeaker, writeTranscript } from './storage'
+import {
+  addSummary,
+  dismissSpeakerSuggestion,
+  listSummaries,
+  readTranscript,
+  renameSpeaker,
+  updateSummaryMarkdown,
+  writeTranscript
+} from './storage'
 import { saveDiarizationSettings } from './settings'
 import { listSpeakerProfiles, profilesWithEmbeddings } from './speakerProfiles'
 
@@ -148,4 +156,77 @@ describe('dismissSpeakerSuggestion', () => {
     // Missing meeting: must not throw.
     expect(() => dismissSpeakerSuggestion('20260101120000-none', 'S1')).not.toThrow()
   })
+})
+
+describe('summaries', () => {
+  function add(templateName: string, focus = '', markdown = '# Text'): string {
+    return addSummary(MEETING_ID, {
+      templateId: 'protokoll',
+      templateName,
+      focus,
+      markdown
+    }).fileName
+  }
+
+  it('names the file after the template and the focus', () => {
+    expect(add('Uppföljningsmejl')).toBe('protocol-uppfoljningsmejl.md')
+    expect(add('Protokoll', 'bara upphandlingen av nytt system')).toBe(
+      'protocol-protokoll-bara-upphandlingen-av.md'
+    )
+  })
+
+  it('keeps two summaries from the same template apart', () => {
+    expect(add('Protokoll')).toBe('protocol-protokoll.md')
+    expect(add('Protokoll')).toBe('protocol-protokoll-2.md')
+    expect(listSummaries(MEETING_ID)).toHaveLength(2)
+  })
+
+  it('reads back markdown, template and focus, oldest first', () => {
+    add('Protokoll', '', '# Ett')
+    add('Actionpunkter', 'budgeten', '# Två')
+    const summaries = listSummaries(MEETING_ID)
+    expect(summaries.map((s) => s.markdown)).toEqual(['# Ett', '# Två'])
+    expect(summaries[1]).toMatchObject({ templateName: 'Actionpunkter', focus: 'budgeten' })
+  })
+
+  it('overwrites in place, keeping the file name and position', () => {
+    add('Protokoll', '', '# Gammal')
+    const second = add('Actionpunkter', '', '# Andra')
+    const target = listSummaries(MEETING_ID)[0]
+    updateSummaryMarkdown(MEETING_ID, target.id, '# Ny')
+    const summaries = listSummaries(MEETING_ID)
+    expect(summaries.map((s) => s.markdown)).toEqual(['# Ny', '# Andra'])
+    expect(summaries[0].fileName).toBe(target.fileName)
+    expect(summaries[1].fileName).toBe(second)
+  })
+
+  it('shows a meeting recorded before templates existed as one summary', () => {
+    writeFileSync(
+      join(userData, 'meetings', MEETING_ID, 'protocol.md'),
+      '# Gammalt protokoll',
+      'utf-8'
+    )
+    const summaries = listSummaries(MEETING_ID)
+    expect(summaries).toHaveLength(1)
+    expect(summaries[0]).toMatchObject({
+      fileName: 'protocol.md',
+      templateName: 'Protokoll',
+      markdown: '# Gammalt protokoll'
+    })
+
+    // Regenerating it upgrades the bare file to a real index entry, and does
+    // not leave a second copy behind.
+    updateSummaryMarkdown(MEETING_ID, summaries[0].id, '# Uppdaterat')
+    const after = listSummaries(MEETING_ID)
+    expect(after).toHaveLength(1)
+    expect(after[0].markdown).toBe('# Uppdaterat')
+    expect(after[0].fileName).toBe('protocol.md')
+  })
+
+  it('drops a summary whose file has been removed by hand', () => {
+    const fileName = add('Protokoll')
+    rmSync(join(userData, 'meetings', MEETING_ID, fileName))
+    expect(listSummaries(MEETING_ID)).toEqual([])
+  })
+
 })

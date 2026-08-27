@@ -67,7 +67,8 @@ The folder listing _is_ the index — there is no database. Each meeting is one 
   audio.webm        first ~10-min segment
   audio-1.webm      subsequent segments (audio-2.webm, ...)
   transcript.json   language + timestamped segments + full text
-  protocol.md       the finished minutes (Markdown)
+  summaries.json    template, focus and date for each summary
+  protocol-<template>.md   one finished summary (Markdown)
 ```
 
 Meeting ids are timestamp-based with a random suffix (`YYYYMMDDhhmmss-<rand>`), so they sort

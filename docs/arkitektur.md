@@ -14,7 +14,9 @@
 
 - Fönster- och traylivscykel, IPC-registrering.
 - **Storage**: app-datamapp (`app.getPath('userData')/meetings/`). En mapp per möte:
-  `<id>/meta.json`, `<id>/audio.webm`, `<id>/transcript.json`, `<id>/protocol.md`.
+  `<id>/meta.json`, `<id>/audio.webm`, `<id>/transcript.json`, `<id>/summaries.json`
+  och en `<id>/protocol-<mall>.md` per sammanfattning. Möten från 0.5 och tidigare har
+  en naken `protocol.md` och visas som en sammanfattning vid namn "Protokoll".
   Index byggs genom att lista mappar — ingen databas.
 - **Pipeline-runner**: kö som kör transkribering → sammanfattning per möte, med
   status persisterad i meta.json (`recorded | transcribing | summarizing | done | error`).
@@ -108,7 +110,7 @@ konfigureras med en bas-URL och en "Testa anslutning"-knapp.
 
 ## Export
 
-- Markdown: skriv protocol.md rakt av.
+- Markdown: skriv den valda sammanfattningens fil rakt av.
 - Word: generera .docx med `docx`-paketet (ren JS).
 - Kopiera: klippbordet via Electron clipboard.
 

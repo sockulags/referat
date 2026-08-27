@@ -9,6 +9,7 @@ export const IPC = {
   renameMeeting: 'meetings:rename',
   retryPipeline: 'pipeline:retry',
   resummarize: 'pipeline:resummarize',
+  generateSummary: 'summaries:generate',
 
   // Speakers
   renameSpeaker: 'speakers:rename',

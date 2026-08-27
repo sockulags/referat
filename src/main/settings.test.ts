@@ -58,19 +58,67 @@ describe('summary backend settings', () => {
       apiFlavor: 'openai-compatible',
       baseUrl: '',
       model: '',
-      promptTemplate: 'Skriv protokoll av {{transcript}}'
+      templates: getSettings().summary.templates,
+      defaultTemplateId: 'sammandrag'
     })
 
     expect(getSettings().summary).toMatchObject({
       preset: 'codex',
       backend: 'codex-cli',
-      hasApiKey: false
+      hasApiKey: false,
+      defaultTemplateId: 'sammandrag'
     })
     expect(getSummaryConfig()).toMatchObject({
       backend: 'codex-cli',
-      promptTemplate: 'Skriv protokoll av {{transcript}}',
       apiKey: ''
     })
+  })
+
+  it('turns a hand-edited 0.5 prompt into the protocol template', () => {
+    // The single promptTemplate is what 0.5 wrote; it must not be discarded.
+    expect(getSettings().summary.templates[0]).toMatchObject({
+      id: 'protokoll',
+      builtIn: true,
+      promptTemplate: 'Sammanfatta {{transcript}}'
+    })
+    // The templates added in this version come along on the upgrade.
+    expect(getSettings().summary.templates.map((t) => t.id)).toContain('uppfoljningsmejl')
+  })
+
+  it('keeps custom templates and restores a built-in the renderer dropped', () => {
+    const custom = {
+      id: 'egen-1',
+      name: 'Egen mall',
+      promptTemplate: 'Egen: {{transcript}}',
+      builtIn: false
+    }
+    saveSummarySettings({
+      preset: 'codex',
+      backend: 'codex-cli',
+      apiFlavor: 'openai-compatible',
+      baseUrl: '',
+      model: '',
+      templates: [custom],
+      defaultTemplateId: 'egen-1'
+    })
+
+    const templates = getSettings().summary.templates
+    expect(templates.filter((t) => t.builtIn).map((t) => t.id)).toContain('protokoll')
+    expect(templates.at(-1)).toMatchObject(custom)
+    expect(getSettings().summary.defaultTemplateId).toBe('egen-1')
+  })
+
+  it('falls back to the protocol template when the default id no longer exists', () => {
+    saveSummarySettings({
+      preset: 'codex',
+      backend: 'codex-cli',
+      apiFlavor: 'openai-compatible',
+      baseUrl: '',
+      model: '',
+      templates: [],
+      defaultTemplateId: 'borttagen'
+    })
+    expect(getSettings().summary.defaultTemplateId).toBe('protokoll')
   })
 
   it('migrates diarization defaults and keeps the Hugging Face token encrypted at rest', () => {

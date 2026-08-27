@@ -1,6 +1,11 @@
 import type { JSX } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { GlossaryTerm, MeetingDetail, TranscriptSegment } from '../../../shared/types'
+import type {
+  GlossaryTerm,
+  MeetingDetail,
+  MeetingSummary,
+  TranscriptSegment
+} from '../../../shared/types'
 import { useApp } from '../store'
 import { strings } from '../strings'
 import { formatRelativeDate, formatDuration, formatTimestamp } from '../format'
@@ -8,7 +13,7 @@ import { Markdown } from '../components/Markdown'
 import { ProgressSteps } from '../components/ui/ProgressSteps'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
-import { Input, Select } from '../components/ui/Field'
+import { Input, Select, Textarea } from '../components/ui/Field'
 import { Modal } from '../components/ui/Modal'
 import { Spinner } from '../components/ui/Spinner'
 import {
@@ -83,7 +88,11 @@ export function Meeting(): JSX.Element {
 
   const done = meeting.status === 'done'
   const isError = meeting.status === 'error'
-  const inProgress = !done && !isError
+  // Generating an extra summary must not hide the ones already there, so
+  // the result view stays up for anything but a first run.
+  const hasSummaries = meeting.summaries.length > 0
+  const inProgress = !done && !isError && !hasSummaries
+  const showResult = done || hasSummaries
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
@@ -92,7 +101,7 @@ export function Meeting(): JSX.Element {
       {inProgress && <PipelinePanel meeting={meeting} />}
       {isError && <ErrorPanel meeting={meeting} onRetried={load} />}
 
-      {done && (
+      {showResult && (
         <>
           {meeting.warning && <WarningPanel warning={meeting.warning} />}
 
@@ -106,7 +115,7 @@ export function Meeting(): JSX.Element {
           </div>
 
           {tab === 'protocol' ? (
-            <ProtocolTab meeting={meeting} />
+            <ProtocolTab meeting={meeting} onChanged={load} />
           ) : (
             <TranscriptTab meeting={meeting} onChanged={load} />
           )}
@@ -315,22 +324,54 @@ function ErrorPanel({
   )
 }
 
-function ProtocolTab({ meeting }: { meeting: MeetingDetail }): JSX.Element {
+function ProtocolTab({
+  meeting,
+  onChanged
+}: {
+  meeting: MeetingDetail
+  onChanged: () => Promise<void>
+}): JSX.Element {
   const toast = useApp((s) => s.toast)
   const [copied, setCopied] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+
+  const summaries = meeting.summaries
+  const generating = meeting.status === 'summarizing'
+
+  // Land on the summary that just arrived — it is the one the user asked for.
+  const count = summaries.length
+  const lastId = summaries.at(-1)?.id
+  const prevCount = useRef(count)
+  useEffect(() => {
+    if (count > prevCount.current && lastId) setSelectedId(lastId)
+    prevCount.current = count
+  }, [count, lastId])
+
+  const selected = summaries.find((s) => s.id === selectedId) ?? summaries[0]
 
   const copy = async (): Promise<void> => {
-    await window.api.copyProtocol(meeting.id)
+    if (!selected) return
+    await window.api.copyProtocol(meeting.id, selected.id)
     setCopied(true)
     setTimeout(() => setCopied(false), 1800)
   }
 
   const save = async (format: 'md' | 'docx'): Promise<void> => {
-    const res = await window.api.exportProtocol(meeting.id, format)
+    if (!selected) return
+    const res = await window.api.exportProtocol(meeting.id, format, selected.id)
     if (res.savedTo) toast(strings.meeting.exported)
   }
 
-  if (!meeting.protocol) {
+  const create = async (templateId: string, focus: string): Promise<void> => {
+    await window.api.generateSummary(meeting.id, templateId, focus)
+    setCreating(false)
+    // Pick the new status up right away instead of waiting for the progress
+    // event, so the spinner appears the moment the dialog closes.
+    await onChanged()
+  }
+
+  if (!selected) {
     return (
       <p className="py-12 text-center text-sm text-fg-muted">{strings.meeting.protocolEmpty}</p>
     )
@@ -339,6 +380,32 @@ function ProtocolTab({ meeting }: { meeting: MeetingDetail }): JSX.Element {
   return (
     <div className="animate-fade-in">
       <div className="flex flex-wrap items-center gap-2 py-4">
+        {summaries.length > 1 &&
+          summaries.map((summary) => (
+            <SummaryChip
+              key={summary.id}
+              summary={summary}
+              active={summary.id === selected.id}
+              onClick={() => setSelectedId(summary.id)}
+            />
+          ))}
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setCreating(true)}
+          disabled={generating}
+        >
+          {strings.meeting.newSummary}
+        </Button>
+        {generating && (
+          <span className="inline-flex items-center gap-2 text-sm text-fg-muted">
+            <Spinner size={14} />
+            {strings.meeting.summaryGenerating}
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 pb-4">
         <Button
           variant={copied ? 'primary' : 'secondary'}
           size="sm"
@@ -365,12 +432,123 @@ function ProtocolTab({ meeting }: { meeting: MeetingDetail }): JSX.Element {
         </Button>
       </div>
 
+      {selected.focus && (
+        <p className="pb-3 text-sm text-fg-muted">
+          {strings.meeting.summaryFocusLabel(selected.focus)}
+        </p>
+      )}
+
       <Card className="px-8 py-9 sm:px-10">
         <article className="mx-auto max-w-[70ch] text-[15px]">
-          <Markdown source={meeting.protocol} />
+          <Markdown source={selected.markdown} />
         </article>
       </Card>
+
+      <NewSummaryModal open={creating} onClose={() => setCreating(false)} onCreate={create} />
     </div>
+  )
+}
+
+/** One summary in the picker: the template it came from, plus its focus. */
+function SummaryChip({
+  summary,
+  active,
+  onClick
+}: {
+  summary: MeetingSummary
+  active: boolean
+  onClick: () => void
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      title={summary.focus || undefined}
+      className={cn(
+        'h-8 max-w-[16rem] truncate rounded-full px-3.5 text-sm font-medium transition-colors',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        active ? 'bg-fg text-bg' : 'bg-surface-2 text-fg-muted hover:text-fg'
+      )}
+    >
+      {summary.templateName}
+      {summary.focus && <span className="opacity-70"> · {summary.focus}</span>}
+    </button>
+  )
+}
+
+/**
+ * Ask for one more summary of the same meeting. The focus box is the answer to
+ * a long meeting that covered several things: the same template, narrowed to
+ * the part this reader actually cares about.
+ */
+function NewSummaryModal({
+  open,
+  onClose,
+  onCreate
+}: {
+  open: boolean
+  onClose: () => void
+  onCreate: (templateId: string, focus: string) => Promise<void>
+}): JSX.Element | null {
+  const settings = useApp((s) => s.settings)
+  const templates = settings?.summary.templates ?? []
+  const [templateId, setTemplateId] = useState('')
+  const [focus, setFocus] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const chosen = templateId || templates[0]?.id || ''
+
+  const submit = async (): Promise<void> => {
+    if (!chosen) return
+    setBusy(true)
+    try {
+      await onCreate(chosen, focus.trim())
+      setFocus('')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={strings.meeting.newSummaryTitle}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            {strings.common.cancel}
+          </Button>
+          <Button variant="primary" onClick={() => void submit()} disabled={busy || !chosen}>
+            {strings.meeting.newSummaryCreate}
+          </Button>
+        </>
+      }
+    >
+      <p className="text-sm text-fg-muted">{strings.meeting.newSummaryIntro}</p>
+      <div className="mt-4 flex flex-col gap-4">
+        <Select
+          label={strings.meeting.newSummaryTemplate}
+          value={chosen}
+          onChange={(e) => setTemplateId(e.target.value)}
+        >
+          {templates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </Select>
+        <Textarea
+          label={strings.meeting.newSummaryFocus}
+          hint={strings.meeting.newSummaryFocusHint}
+          placeholder={strings.meeting.newSummaryFocusPlaceholder}
+          value={focus}
+          onChange={(e) => setFocus(e.target.value)}
+          rows={3}
+        />
+      </div>
+    </Modal>
   )
 }
 
@@ -486,6 +664,11 @@ function TranscriptTab({
     await window.api.resummarize(meeting.id)
   }
 
+  // A re-run redoes every summary the meeting has, so say so when there are
+  // several — otherwise it reads as if only the protocol is refreshed.
+  const updateLabel =
+    meeting.summaries.length > 1 ? strings.meeting.updateSummaries : strings.meeting.updateProtocol
+
   const saveTerm = async (canonical: string, variant: string): Promise<void> => {
     await window.api.addGlossaryEntry(canonical, variant)
     // Correcting the transcript is local string work, so it happens right away
@@ -518,7 +701,7 @@ function TranscriptTab({
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-2 px-4 py-2.5 animate-fade-in">
           <p className="text-sm text-fg-muted">{strings.meeting.speakersChangedHint}</p>
           <Button variant="secondary" size="sm" onClick={() => void resummarize()}>
-            {strings.meeting.updateProtocol}
+            {updateLabel}
           </Button>
         </div>
       )}
@@ -527,7 +710,7 @@ function TranscriptTab({
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-2 px-4 py-2.5 animate-fade-in">
           <p className="text-sm text-fg-muted">{strings.meeting.glossaryChangedHint}</p>
           <Button variant="secondary" size="sm" onClick={() => void resummarize()}>
-            {strings.meeting.updateProtocol}
+            {updateLabel}
           </Button>
         </div>
       )}

@@ -3,6 +3,7 @@
 import { dialog, clipboard, BrowserWindow } from 'electron'
 import { writeFile } from 'fs/promises'
 import { Document, Packer, Paragraph, HeadingLevel, TextRun } from 'docx'
+import type { MeetingSummary } from '../shared/types'
 import { getMeeting } from './storage'
 
 function sanitizeFilename(name: string): string {
@@ -75,16 +76,28 @@ async function buildDocx(title: string, dateLine: string, markdown: string): Pro
   return Packer.toBuffer(doc)
 }
 
+/** The summary to act on: the one asked for, else the meeting's first. */
+function pickSummary(id: string, summaryId?: string): MeetingSummary | undefined {
+  const meeting = getMeeting(id)
+  if (!meeting) return undefined
+  return summaryId ? meeting.summaries.find((s) => s.id === summaryId) : meeting.summaries[0]
+}
+
 export async function exportProtocol(
   id: string,
-  format: 'md' | 'docx'
+  format: 'md' | 'docx',
+  summaryId?: string
 ): Promise<{ savedTo: string | null }> {
   const meeting = getMeeting(id)
-  if (!meeting || !meeting.protocol) {
+  const summary = pickSummary(id, summaryId)
+  if (!meeting || !summary) {
     return { savedTo: null }
   }
 
-  const safeTitle = sanitizeFilename(meeting.title)
+  // Name the file after the template too once there is more than one summary,
+  // so exporting all of them does not produce a folder of near-identical names.
+  const suffix = meeting.summaries.length > 1 ? ` - ${summary.templateName}` : ''
+  const safeTitle = sanitizeFilename(`${meeting.title}${suffix}`)
   const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null
   const options = {
     defaultPath: `${safeTitle}.${format}`,
@@ -103,17 +116,16 @@ export async function exportProtocol(
   }
 
   if (format === 'md') {
-    await writeFile(result.filePath, meeting.protocol, 'utf-8')
+    await writeFile(result.filePath, summary.markdown, 'utf-8')
   } else {
     const dateLine = new Date(meeting.createdAt).toLocaleDateString('sv-SE')
-    const buffer = await buildDocx(meeting.title, dateLine, meeting.protocol)
+    const buffer = await buildDocx(meeting.title, dateLine, summary.markdown)
     await writeFile(result.filePath, buffer)
   }
 
   return { savedTo: result.filePath }
 }
 
-export function copyProtocol(id: string): void {
-  const meeting = getMeeting(id)
-  clipboard.writeText(meeting?.protocol ?? '')
+export function copyProtocol(id: string, summaryId?: string): void {
+  clipboard.writeText(pickSummary(id, summaryId)?.markdown ?? '')
 }
