@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { useCallback, useEffect, useState } from 'react'
-import type { MeetingMeta } from '../../../shared/types'
+import type { MeetingMeta, SummaryTemplate } from '../../../shared/types'
 import { useApp } from '../store'
 import { strings } from '../strings'
 import { formatRelativeDate, formatDuration } from '../format'
@@ -8,7 +8,7 @@ import { Button, IconButton } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { StatusChip } from '../components/ui/StatusChip'
 import { Modal } from '../components/ui/Modal'
-import { Input } from '../components/ui/Field'
+import { Input, Select } from '../components/ui/Field'
 import { Tooltip } from '../components/ui/Tooltip'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import {
@@ -26,6 +26,10 @@ export function Home(): JSX.Element {
   const navigate = useApp((s) => s.navigate)
   const setPendingTitle = useApp((s) => s.setPendingTitle)
   const toast = useApp((s) => s.toast)
+
+  const settings = useApp((s) => s.settings)
+  const setPendingTemplateId = useApp((s) => s.setPendingTemplateId)
+  const pendingTemplateId = useApp((s) => s.pendingTemplateId)
 
   const [title, setTitle] = useState('')
   const [meetings, setMeetings] = useState<MeetingMeta[]>([])
@@ -58,6 +62,10 @@ export function Home(): JSX.Element {
     return off
   }, [load])
 
+  const templates = settings?.summary.templates ?? []
+  // Falls back to the template last used, which main keeps up to date.
+  const templateId = pendingTemplateId || settings?.summary.defaultTemplateId || ''
+
   const start = (): void => {
     setPendingTitle(title.trim())
     navigate('recording')
@@ -83,7 +91,14 @@ export function Home(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <Hero title={title} setTitle={setTitle} onStart={start} />
+      <Hero
+        title={title}
+        setTitle={setTitle}
+        templates={templates}
+        templateId={templateId}
+        setTemplateId={setPendingTemplateId}
+        onStart={start}
+      />
 
       <section className="mt-12">
         <h2
@@ -135,10 +150,16 @@ export function Home(): JSX.Element {
 function Hero({
   title,
   setTitle,
+  templates,
+  templateId,
+  setTemplateId,
   onStart
 }: {
   title: string
   setTitle: (t: string) => void
+  templates: SummaryTemplate[]
+  templateId: string
+  setTemplateId: (id: string) => void
   onStart: () => void
 }): JSX.Element {
   return (
@@ -175,7 +196,7 @@ function Hero({
         {strings.home.startRecording}
       </Button>
 
-      <div className="mt-6 max-w-sm mx-auto">
+      <div className="mt-6 max-w-sm mx-auto flex flex-col gap-3">
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -185,6 +206,20 @@ function Hero({
             if (e.key === 'Enter') onStart()
           }}
         />
+        {templates.length > 1 && (
+          <Select
+            label={strings.home.summaryTemplate}
+            hint={strings.home.summaryTemplateHint}
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+          >
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </Select>
+        )}
       </div>
     </Card>
   )

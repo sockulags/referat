@@ -1,5 +1,6 @@
 // Storage: one folder per meeting under userData/meetings/<id>/.
-// Files: meta.json, audio.webm, transcript.json, protocol.md.
+// Files: meta.json, audio.webm, transcript.json, summaries.json and one
+// protocol-<mall>.md per generated summary.
 // The folder listing is the index — no database.
 
 import { app } from 'electron'
@@ -15,7 +16,7 @@ import {
   createWriteStream
 } from 'fs'
 import type { WriteStream } from 'fs'
-import type { MeetingMeta, MeetingDetail, Transcript } from '../shared/types'
+import type { MeetingMeta, MeetingDetail, MeetingSummary, Transcript } from '../shared/types'
 import { dismissSuggestionInTranscript, renameSpeakerInTranscript } from './diarize'
 import { getDiarizationConfig } from './settings'
 import { upsertProfile } from './speakerProfiles'
@@ -75,8 +76,11 @@ function transcriptPath(id: string): string {
   return join(meetingDir(id), 'transcript.json')
 }
 
-function protocolPath(id: string): string {
-  return join(meetingDir(id), 'protocol.md')
+/** Where 0.5 and earlier wrote the one and only protocol. */
+const LEGACY_PROTOCOL_FILE = 'protocol.md'
+
+function summaryIndexPath(id: string): string {
+  return join(meetingDir(id), 'summaries.json')
 }
 
 /** Timestamp-based id with a short random suffix — sortable and collision-safe. */
@@ -125,14 +129,15 @@ export function isRecordingActive(): boolean {
   return recordingIds.size > 0
 }
 
-export function createMeeting(title: string): MeetingMeta {
+export function createMeeting(title: string, templateId?: string): MeetingMeta {
   const id = generateId()
   const meta: MeetingMeta = {
     id,
     title: title.trim() || 'Nytt möte',
     createdAt: new Date().toISOString(),
     durationSec: 0,
-    status: 'recording'
+    status: 'recording',
+    ...(templateId ? { templateId } : {})
   }
   writeMeta(meta)
   recordingIds.add(id)
@@ -207,16 +212,149 @@ export function dismissSpeakerSuggestion(id: string, speakerId: string): void {
   if (next !== transcript) writeTranscript(id, next)
 }
 
-export function readProtocol(id: string): string | undefined {
+// ---- Summaries ----
+//
+// Each summary is its own markdown file named after the template it came from
+// ('protocol-uppfoljningsmejl.md'), so the meeting folder stays readable from
+// outside the app. summaries.json carries what the file name cannot: which
+// template, what the user asked it to focus on, and when it was made.
+
+/** What summaries.json holds — the summary minus its markdown. */
+type SummaryEntry = Omit<MeetingSummary, 'markdown'>
+
+/** Ascii, lowercase, hyphenated — safe as a file name on every platform. */
+function slugify(input: string): string {
+  const slug = input
+    .toLowerCase()
+    .replace(/[åä]/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return slug.slice(0, 40).replace(/-+$/, '')
+}
+
+/**
+ * A readable, unique file name for a new summary: the template name, plus the
+ * first words of the focus when there is one, so two summaries from the same
+ * template stay apart. Falls back to a counter when that is still not enough.
+ */
+function summaryFileName(id: string, templateName: string, focus: string): string {
+  const focusPart = focus ? slugify(focus).split('-').slice(0, 3).join('-') : ''
+  const base = [slugify(templateName), focusPart].filter(Boolean).join('-') || 'sammanfattning'
+  const taken = new Set(readSummaryIndex(id).map((e) => e.fileName))
+  for (let n = 1; ; n++) {
+    const name = n === 1 ? `protocol-${base}.md` : `protocol-${base}-${n}.md`
+    if (!taken.has(name) && !existsSync(join(meetingDir(id), name))) return name
+  }
+}
+
+function readSummaryIndex(id: string): SummaryEntry[] {
   try {
-    return readFileSync(protocolPath(id), 'utf-8')
+    const parsed = JSON.parse(readFileSync(summaryIndexPath(id), 'utf-8')) as unknown
+    if (!Array.isArray(parsed)) return []
+    // A hand-edited or truncated index must not take the meeting down with it.
+    return parsed.filter(
+      (e): e is SummaryEntry =>
+        !!e &&
+        typeof (e as SummaryEntry).id === 'string' &&
+        typeof (e as SummaryEntry).fileName === 'string'
+    )
+  } catch {
+    return []
+  }
+}
+
+function writeSummaryIndex(id: string, entries: SummaryEntry[]): void {
+  writeFileSync(summaryIndexPath(id), JSON.stringify(entries, null, 2), 'utf-8')
+}
+
+function readSummaryFile(id: string, fileName: string): string | undefined {
+  try {
+    return readFileSync(join(meetingDir(id), fileName), 'utf-8')
   } catch {
     return undefined
   }
 }
 
-export function writeProtocol(id: string, markdown: string): void {
-  writeFileSync(protocolPath(id), markdown, 'utf-8')
+/**
+ * Every summary for a meeting, oldest first. A meeting recorded before
+ * templates existed has a bare protocol.md and no index; it shows up as a
+ * summary called 'Protokoll' so nothing recorded earlier disappears.
+ */
+export function listSummaries(id: string): MeetingSummary[] {
+  const entries = readSummaryIndex(id)
+  const summaries: MeetingSummary[] = []
+
+  if (!entries.some((e) => e.fileName === LEGACY_PROTOCOL_FILE)) {
+    const legacy = readSummaryFile(id, LEGACY_PROTOCOL_FILE)
+    if (legacy !== undefined) {
+      summaries.push({
+        id: 'legacy',
+        fileName: LEGACY_PROTOCOL_FILE,
+        templateId: 'protokoll',
+        templateName: 'Protokoll',
+        focus: '',
+        createdAt: readMeta(id)?.createdAt ?? new Date().toISOString(),
+        markdown: legacy
+      })
+    }
+  }
+
+  for (const entry of entries) {
+    const markdown = readSummaryFile(id, entry.fileName)
+    // Skip entries whose file is gone rather than showing an empty summary.
+    if (markdown === undefined) continue
+    summaries.push({ ...entry, markdown })
+  }
+  return summaries
+}
+
+export function hasSummaries(id: string): boolean {
+  return listSummaries(id).length > 0
+}
+
+/** Append a new summary and return it, markdown included. */
+export function addSummary(
+  id: string,
+  summary: { templateId: string; templateName: string; focus: string; markdown: string }
+): MeetingSummary {
+  const dir = meetingDir(id)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  const entry: SummaryEntry = {
+    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    fileName: summaryFileName(id, summary.templateName, summary.focus),
+    templateId: summary.templateId,
+    templateName: summary.templateName,
+    focus: summary.focus,
+    createdAt: new Date().toISOString()
+  }
+  writeFileSync(join(dir, entry.fileName), summary.markdown, 'utf-8')
+  writeSummaryIndex(id, [...readSummaryIndex(id), entry])
+  return { ...entry, markdown: summary.markdown }
+}
+
+/**
+ * Overwrite an existing summary's markdown, keeping its file name and place in
+ * the list — this is what a re-run after a speaker rename does. A legacy
+ * protocol.md is upgraded to a real index entry on the way.
+ */
+export function updateSummaryMarkdown(id: string, summaryId: string, markdown: string): void {
+  const existing = listSummaries(id).find((s) => s.id === summaryId)
+  if (!existing) return
+  writeFileSync(join(meetingDir(id), existing.fileName), markdown, 'utf-8')
+  const entries = readSummaryIndex(id)
+  if (entries.some((e) => e.id === summaryId)) return
+  writeSummaryIndex(id, [
+    {
+      id: existing.id,
+      fileName: existing.fileName,
+      templateId: existing.templateId,
+      templateName: existing.templateName,
+      focus: existing.focus,
+      createdAt: existing.createdAt
+    },
+    ...entries
+  ])
 }
 
 export function getMeeting(id: string): MeetingDetail | null {
@@ -225,7 +363,7 @@ export function getMeeting(id: string): MeetingDetail | null {
   return {
     ...meta,
     transcript: readTranscript(id),
-    protocol: readProtocol(id)
+    summaries: listSummaries(id)
   }
 }
 

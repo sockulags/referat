@@ -38,13 +38,16 @@ Wizarden går att hoppa över och nås igen från inställningar.
 
 ### Vardagsflödet
 
-1. Öppna appen → stor "Starta inspelning"-knapp. Valfritt: mötestitel.
+1. Öppna appen → stor "Starta inspelning"-knapp. Valfritt: mötestitel och mall för
+   sammanfattningen (den senast använda är förvald).
 2. Under inspelning: timer, ljudnivåmätare (mick + systemljud separat), paus/stopp.
    Appen kan minimeras till systray; diskret indikator på att inspelning pågår.
 3. Stopp → pipeline kör automatiskt: Transkriberar… → Sammanfattar… → Klart.
    Tydliga statussteg med progress. Går att stänga appen; jobbet återupptas.
 4. Mötesvy: **Protokoll**-flik (sammanfattning, beslut, actionpunkter med ägare) och
-   **Transkript**-flik (fulltext, sökbar). Export: Markdown, Word (.docx), kopiera.
+   **Transkript**-flik (fulltext, sökbar). Protokollfliken listar mötets alla
+   sammanfattningar sida vid sida och kan skapa fler. Export: Markdown, Word (.docx),
+   kopiera.
 5. Startsidan listar tidigare möten med statuschip: Inspelad / Transkriberad / Klar /
    Fel (med "försök igen").
 
@@ -71,11 +74,22 @@ Varje provider har en "Testa anslutning"-knapp med begripliga felmeddelanden
 ("Fel nyckel", "Servern svarar inte — kontrollera adressen med IT").
 Nycklar lagras krypterat via Electron safeStorage, aldrig i klartext.
 
-## Protokollmall
+## Sammanfattningsmallar
 
-Standardmall (svenska): **Sammanfattning** (5–10 meningar), **Beslut** (punktlista),
-**Actionpunkter** (punkt + ägare + ev. deadline), **Öppna frågor**. Mallen är en
-redigerbar prompt i inställningar för avancerade användare; default funkar utan pill.
+En mall är instruktionen som styr vad sammanfattningen blir — inte bara hur den ser ut,
+utan vem den är skriven för. Appen levererar fem: **Protokoll** (sammanfattning, beslut,
+actionpunkter med ägare, öppna frågor), **Snabbt sammandrag** för den som missade mötet,
+**Actionpunkter**, **Beslutslogg** för arkivet och **Uppföljningsmejl** till en extern
+mottagare. Alla går att skriva om i inställningar och användaren kan lägga till egna;
+de inbyggda går inte att ta bort, så en mallista är aldrig tom.
+
+Mallen väljs när inspelningen startar och avgör protokollet som skapas automatiskt.
+I mötesvyn går det att skapa fler sammanfattningar av samma möte. Varje sammanfattning
+sparas som en egen fil i mötesmappen (`protocol-uppfoljningsmejl.md`).
+
+Ett långt möte avhandlar flera saker, och en sammanfattning av alltihop blir ofta för
+tunn för var och en av dem. Därför har dialogen en fokusruta: fritext som avgränsar
+sammanfattningen till en del av mötet ("bara upphandlingen"), med samma mall.
 
 ## Talardiarisering (tillval)
 

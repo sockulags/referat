@@ -9,8 +9,10 @@ import type {
   AppSettings,
   SaveTranscriptionSettings,
   SaveSummarySettings,
-  SaveDiarizationSettings
+  SaveDiarizationSettings,
+  SummaryTemplate
 } from '../shared/types'
+import { builtInTemplates, DEFAULT_PROMPT_TEMPLATE, DEFAULT_TEMPLATE_ID } from './summaryTemplates'
 
 /** On-disk shape: like AppSettings but with encrypted key blobs instead of hasApiKey. */
 interface StoredTranscription {
@@ -28,7 +30,8 @@ interface StoredSummary {
   apiFlavor: AppSettings['summary']['apiFlavor']
   baseUrl: string
   model: string
-  promptTemplate: string
+  templates: SummaryTemplate[]
+  defaultTemplateId: string
   apiKeyEnc?: string
 }
 
@@ -52,31 +55,55 @@ interface StoredSettings {
   onboardingCompleted: boolean
 }
 
-const DEFAULT_PROMPT_TEMPLATE = `Du är en erfaren mötessekreterare. Nedan följer en transkription av ett möte.
-Skriv ett tydligt och professionellt mötesprotokoll i Markdown med exakt dessa rubriker:
+/** Reject anything on disk that is not a usable template. */
+function isTemplate(value: unknown): value is SummaryTemplate {
+  const t = value as Partial<SummaryTemplate> | null
+  return (
+    !!t &&
+    typeof t.id === 'string' &&
+    t.id.length > 0 &&
+    typeof t.name === 'string' &&
+    typeof t.promptTemplate === 'string'
+  )
+}
 
-## Sammanfattning
-5–10 meningar som fångar mötets syfte och viktigaste innehåll.
+/**
+ * Resolve the template list from what is on disk. Built-in templates always
+ * come back, in their canonical order, so a template added in a later version
+ * appears after an upgrade; the user's edits to a built-in survive because the
+ * stored name and prompt win. Custom templates follow, in their stored order.
+ *
+ * `legacyPrompt` is the single 0.5 prompt. A hand-edited one becomes the
+ * protocol template's text — the alternative would silently discard it.
+ */
+function normalizeTemplates(stored: unknown, legacyPrompt?: string): SummaryTemplate[] {
+  const builtIns = builtInTemplates()
+  const list = Array.isArray(stored) ? stored.filter(isTemplate) : []
+  if (list.length === 0) {
+    if (legacyPrompt && legacyPrompt !== DEFAULT_PROMPT_TEMPLATE) {
+      return builtIns.map((t) =>
+        t.id === DEFAULT_TEMPLATE_ID ? { ...t, promptTemplate: legacyPrompt } : t
+      )
+    }
+    return builtIns
+  }
+  const byId = new Map(list.map((t) => [t.id, t]))
+  const merged = builtIns.map((t) => {
+    const s = byId.get(t.id)
+    return s ? { ...t, name: s.name, promptTemplate: s.promptTemplate } : t
+  })
+  const builtInIds = new Set(builtIns.map((t) => t.id))
+  const custom = list
+    .filter((t) => !builtInIds.has(t.id))
+    .map((t) => ({ id: t.id, name: t.name, promptTemplate: t.promptTemplate, builtIn: false }))
+  return [...merged, ...custom]
+}
 
-## Beslut
-Punktlista med de beslut som fattades. Skriv "Inga beslut fattades." om inga beslut togs.
-
-## Actionpunkter
-Punktlista med uppgifter. Ange ägare och deadline där det framgår, t.ex.
-"- Ta fram budgetförslag — Anna (senast 15 mars)". Skriv "Inga actionpunkter." om inga finns.
-
-## Öppna frågor
-Punktlista med frågor som lämnades olösta. Skriv "Inga öppna frågor." om inga finns.
-
-Regler:
-- Svara på samma språk som transkriptionen är skriven på.
-- Använd endast information som finns i transkriptionen. Hitta aldrig på namn, beslut eller siffror.
-- Var koncis och saklig.
-
-{{ordlista}}
-
-Transkription:
-{{transcript}}`
+/** Fall back to the protocol template when the stored id no longer exists. */
+function resolveDefaultId(templates: SummaryTemplate[], stored: unknown): string {
+  if (typeof stored === 'string' && templates.some((t) => t.id === stored)) return stored
+  return templates.some((t) => t.id === DEFAULT_TEMPLATE_ID) ? DEFAULT_TEMPLATE_ID : templates[0].id
+}
 
 function defaults(): StoredSettings {
   return {
@@ -92,7 +119,8 @@ function defaults(): StoredSettings {
       apiFlavor: 'openai-compatible',
       baseUrl: 'http://localhost:11434/v1',
       model: '',
-      promptTemplate: DEFAULT_PROMPT_TEMPLATE
+      templates: builtInTemplates(),
+      defaultTemplateId: DEFAULT_TEMPLATE_ID
     },
     diarization: {
       enabled: false,
@@ -120,9 +148,18 @@ function load(): StoredSettings {
     const path = settingsPath()
     if (existsSync(path)) {
       const parsed = JSON.parse(readFileSync(path, 'utf-8')) as Partial<StoredSettings>
+      // 0.5 and earlier stored a single promptTemplate here instead of a list.
+      const storedSummary = parsed.summary as
+        (StoredSummary & { promptTemplate?: string }) | undefined
+      const templates = normalizeTemplates(storedSummary?.templates, storedSummary?.promptTemplate)
       cache = {
         transcription: { ...base.transcription, ...parsed.transcription },
-        summary: { ...base.summary, ...parsed.summary },
+        summary: {
+          ...base.summary,
+          ...parsed.summary,
+          templates,
+          defaultTemplateId: resolveDefaultId(templates, storedSummary?.defaultTemplateId)
+        },
         diarization: { ...base.diarization, ...parsed.diarization },
         microphoneId: parsed.microphoneId ?? base.microphoneId,
         captureSystemAudio: parsed.captureSystemAudio ?? base.captureSystemAudio,
@@ -202,7 +239,8 @@ export function getSettings(): AppSettings {
       baseUrl: s.summary.baseUrl,
       model: s.summary.model,
       hasApiKey: !!s.summary.apiKeyEnc,
-      promptTemplate: s.summary.promptTemplate
+      templates: s.summary.templates,
+      defaultTemplateId: s.summary.defaultTemplateId
     },
     diarization: {
       enabled: s.diarization.enabled,
@@ -232,15 +270,50 @@ export function saveTranscriptionSettings(payload: SaveTranscriptionSettings): v
 
 export function saveSummarySettings(payload: SaveSummarySettings): void {
   const s = load()
+  // The renderer may send a list that dropped a built-in or renamed one;
+  // normalize so the built-ins always survive a save.
+  const templates = normalizeTemplates(payload.templates)
   s.summary = {
     preset: payload.preset,
     backend: payload.backend,
     apiFlavor: payload.apiFlavor,
     baseUrl: payload.baseUrl,
     model: payload.model,
-    promptTemplate: payload.promptTemplate,
+    templates,
+    defaultTemplateId: resolveDefaultId(templates, payload.defaultTemplateId),
     apiKeyEnc: resolveKey(payload.apiKey, s.summary.apiKeyEnc)
   }
+  persist(s)
+}
+
+/** Every available template, built-ins first. Never empty. */
+export function getSummaryTemplates(): SummaryTemplate[] {
+  return load().summary.templates
+}
+
+/**
+ * The template with this id, falling back to the meeting-independent default
+ * when the id is unknown (a template the user has since deleted).
+ */
+export function getSummaryTemplate(id: string | undefined): SummaryTemplate {
+  const s = load().summary
+  return s.templates.find((t) => t.id === id) ?? getDefaultSummaryTemplate()
+}
+
+export function getDefaultSummaryTemplate(): SummaryTemplate {
+  const s = load().summary
+  return s.templates.find((t) => t.id === s.defaultTemplateId) ?? s.templates[0]
+}
+
+/**
+ * Remember the template last used to start a recording, so the picker opens on
+ * it next time. Unknown ids are ignored rather than stored.
+ */
+export function setDefaultSummaryTemplate(id: string): void {
+  const s = load()
+  if (!s.summary.templates.some((t) => t.id === id)) return
+  if (s.summary.defaultTemplateId === id) return
+  s.summary = { ...s.summary, defaultTemplateId: id }
   persist(s)
 }
 
@@ -280,12 +353,12 @@ export interface TranscriptionConfig {
   apiKey: string
 }
 
+/** How to reach the model. Which prompt to send is decided per summary. */
 export interface SummaryConfig {
   backend: AppSettings['summary']['backend']
   apiFlavor: 'openai-compatible' | 'anthropic'
   baseUrl: string
   model: string
-  promptTemplate: string
   apiKey: string
 }
 
@@ -326,7 +399,6 @@ export function getSummaryConfig(): SummaryConfig {
     apiFlavor: s.summary.apiFlavor,
     baseUrl: s.summary.baseUrl,
     model: s.summary.model,
-    promptTemplate: s.summary.promptTemplate,
     apiKey: decryptKey(s.summary.apiKeyEnc)
   }
 }

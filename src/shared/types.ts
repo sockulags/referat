@@ -12,6 +12,12 @@ export interface MeetingMeta {
   createdAt: string // ISO 8601
   durationSec: number
   status: MeetingStatus
+  /**
+   * Template chosen when the recording started, used for the summary the
+   * pipeline produces on its own. Absent on meetings recorded before templates
+   * existed, which fall back to the default template.
+   */
+  templateId?: string
   /** Present when status === 'error'. Plain-language message + raw detail. */
   error?: { message: string; detail?: string; failedStep: 'transcribe' | 'summarize' }
   /**
@@ -80,10 +86,39 @@ export interface SpeakerProfile {
   sampleCount: number
 }
 
+/**
+ * A named prompt template. Global and shared by every meeting, like the
+ * glossary — the same "Uppföljningsmejl" should mean the same thing everywhere.
+ */
+export interface SummaryTemplate {
+  id: string
+  /** Shown in every picker and used to name the summary's file. */
+  name: string
+  /** Markdown prompt. {{transcript}}, {{ordlista}} and {{fokus}} are replaced. */
+  promptTemplate: string
+  /** Seeded by the app: editable, but never deletable. */
+  builtIn: boolean
+}
+
+/** One generated summary of a meeting. The markdown lives in its own file. */
+export interface MeetingSummary {
+  id: string
+  /** File inside the meeting folder, e.g. 'protocol-uppfoljningsmejl.md'. */
+  fileName: string
+  /** Template it came from. May point at a template since deleted. */
+  templateId: string
+  /** Template name as it was at generation time — survives a rename. */
+  templateName: string
+  /** What the user asked it to focus on. Empty means the whole meeting. */
+  focus: string
+  createdAt: string // ISO 8601
+  markdown: string
+}
+
 export interface MeetingDetail extends MeetingMeta {
   transcript?: Transcript
-  /** Markdown protocol produced by the summary provider. */
-  protocol?: string
+  /** Every summary generated for this meeting, oldest first. */
+  summaries: MeetingSummary[]
 }
 
 // ---------- Settings & providers ----------
@@ -116,8 +151,10 @@ export interface SummarySettings {
   baseUrl: string
   model: string
   hasApiKey: boolean
-  /** Markdown prompt template. {{transcript}} is replaced with the transcript text. */
-  promptTemplate: string
+  /** Every available template, built-in ones first. Never empty. */
+  templates: SummaryTemplate[]
+  /** Template preselected when a recording starts — the last one used. */
+  defaultTemplateId: string
 }
 
 export interface DiarizationSettings {
@@ -214,8 +251,17 @@ export interface RendererApi {
   renameMeeting(id: string, title: string): Promise<void>
   /** Re-run the pipeline after an error, from the failed step. */
   retryPipeline(id: string): Promise<void>
-  /** Re-run only the summary step (e.g. after renaming speakers). */
+  /**
+   * Re-run the summary step, regenerating every summary the meeting already
+   * has (e.g. after renaming speakers, which makes all of them stale).
+   */
   resummarize(id: string): Promise<void>
+  /**
+   * Queue one more summary of an existing meeting. `focus` narrows it to part
+   * of the meeting; pass '' for the whole thing. Resolves once queued — the
+   * result arrives as a pipeline progress event.
+   */
+  generateSummary(meetingId: string, templateId: string, focus: string): Promise<void>
 
   // Speakers
   /**
@@ -249,7 +295,8 @@ export interface RendererApi {
   applyGlossary(meetingId: string): Promise<number | null>
 
   // Recording: renderer captures & encodes; main persists chunks.
-  startRecording(title: string): Promise<RecordingHandle>
+  /** `templateId` decides which summary the pipeline produces; '' = default. */
+  startRecording(title: string, templateId?: string): Promise<RecordingHandle>
   /** segmentIndex identifies the rotated segment file; defaults to 0. */
   appendAudioChunk(meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void>
   /** Finalize: closes file, sets duration, kicks off the pipeline. */
@@ -274,9 +321,13 @@ export interface RendererApi {
   installLocalAiComponent(component: LocalAiComponent): Promise<LocalAiComponentStatus>
   removeLocalAiComponent(component: LocalAiComponent): Promise<void>
 
-  // Export
-  exportProtocol(id: string, format: 'md' | 'docx'): Promise<{ savedTo: string | null }>
-  copyProtocol(id: string): Promise<void>
+  // Export. summaryId defaults to the meeting's first summary.
+  exportProtocol(
+    id: string,
+    format: 'md' | 'docx',
+    summaryId?: string
+  ): Promise<{ savedTo: string | null }>
+  copyProtocol(id: string, summaryId?: string): Promise<void>
 
   // Events
   onPipelineProgress(cb: (e: PipelineProgressEvent) => void): () => void

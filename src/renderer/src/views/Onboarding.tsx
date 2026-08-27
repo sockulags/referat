@@ -59,7 +59,9 @@ export function Onboarding(): JSX.Element {
 
   // Persist provider choice as concrete settings before the test step.
   const saveProvider = async (): Promise<void> => {
-    const template = settings?.summary.promptTemplate ?? ''
+    // Onboarding only picks a provider; the templates stay as they are.
+    const templates = settings?.summary.templates ?? []
+    const defaultTemplateId = settings?.summary.defaultTemplateId ?? ''
     if (choice === 'local') {
       const dt = transcriptionDefaults('built-in')
       const ds = summaryDefaults('local')
@@ -75,7 +77,8 @@ export function Onboarding(): JSX.Element {
         apiFlavor: 'openai-compatible',
         baseUrl: ds.baseUrl,
         model: ds.model,
-        promptTemplate: template
+        templates,
+        defaultTemplateId
       })
     } else if (choice === 'server') {
       await window.api.saveTranscriptionSettings({
@@ -91,7 +94,8 @@ export function Onboarding(): JSX.Element {
         apiFlavor: 'openai-compatible',
         baseUrl: serverAddress,
         model: '',
-        promptTemplate: template,
+        templates,
+        defaultTemplateId,
         apiKey: apiKey || undefined
       })
     } else {
@@ -110,7 +114,8 @@ export function Onboarding(): JSX.Element {
         apiFlavor: 'openai-compatible',
         baseUrl: ds.baseUrl,
         model: ds.model,
-        promptTemplate: template,
+        templates,
+        defaultTemplateId,
         apiKey: apiKey || undefined
       })
     }

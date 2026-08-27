@@ -20,7 +20,13 @@ import * as storage from './storage'
 import * as settings from './settings'
 import * as speakerProfiles from './speakerProfiles'
 import * as glossary from './glossary'
-import { applyGlossaryToMeeting, enqueue, retryPipeline, resummarize } from './pipeline'
+import {
+  applyGlossaryToMeeting,
+  enqueue,
+  generateSummary,
+  retryPipeline,
+  resummarize
+} from './pipeline'
 import { exportProtocol, copyProtocol } from './export'
 import { testTranscriptionConnection } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
@@ -48,6 +54,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.retryPipeline, (_e, id: string): void => retryPipeline(id))
 
   ipcMain.handle(IPC.resummarize, (_e, id: string): void => resummarize(id))
+
+  ipcMain.handle(
+    IPC.generateSummary,
+    (_e, meetingId: string, templateId: string, focus: string): void =>
+      generateSummary(meetingId, templateId, focus)
+  )
 
   // ---- Speakers ----
   ipcMain.handle(
@@ -92,8 +104,10 @@ export function registerIpcHandlers(): void {
   )
 
   // ---- Recording ----
-  ipcMain.handle(IPC.startRecording, (_e, title: string): RecordingHandle => {
-    const meta = storage.createMeeting(title)
+  ipcMain.handle(IPC.startRecording, (_e, title: string, templateId?: string): RecordingHandle => {
+    // The chosen template becomes the preselection for the next recording.
+    if (templateId) settings.setDefaultSummaryTemplate(templateId)
+    const meta = storage.createMeeting(title, templateId)
     return { meetingId: meta.id }
   })
 
@@ -168,11 +182,17 @@ export function registerIpcHandlers(): void {
   // ---- Export ----
   ipcMain.handle(
     IPC.exportProtocol,
-    (_e, id: string, format: 'md' | 'docx'): Promise<{ savedTo: string | null }> =>
-      exportProtocol(id, format)
+    (
+      _e,
+      id: string,
+      format: 'md' | 'docx',
+      summaryId?: string
+    ): Promise<{ savedTo: string | null }> => exportProtocol(id, format, summaryId)
   )
 
-  ipcMain.handle(IPC.copyProtocol, (_e, id: string): void => copyProtocol(id))
+  ipcMain.handle(IPC.copyProtocol, (_e, id: string, summaryId?: string): void =>
+    copyProtocol(id, summaryId)
+  )
 
   // ---- Misc ----
   ipcMain.handle(IPC.openExternal, (_e, url: string): Promise<void> => openExternalSafe(url))

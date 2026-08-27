@@ -50,7 +50,7 @@ preset can instead run the summarization through a locally installed Codex CLI.
   OpenAI-compatible flavor).
 - **Model** — the model name.
 - **API key** — optional for local servers, required for cloud providers.
-- **Minutes template** (advanced) — see below.
+- **Templates** (advanced) — see below.
 
 **Presets**
 
@@ -110,23 +110,55 @@ header and `anthropic-version: 2023-06-01`. If your base URL already ends in `/v
 strips it so the path doesn't become `/v1/v1/messages`. Leave the base URL as
 `https://api.anthropic.com` unless you use a proxy.
 
-### The minutes template
+### Templates
 
-The **minutes template** (under _Advanced_) is the prompt that shapes the output. It
-contains a **`{{transcript}}`** placeholder, which referat replaces with the meeting
-transcript before sending. (If you remove the placeholder, the transcript is appended to the
-end of your prompt instead.)
+A **template** is the prompt that shapes the output, and with it who the summary is written
+for. referat ships five, all in Swedish and all editable under _Advanced_:
 
-A second placeholder, **`{{ordlista}}`**, is replaced with your [glossary](#glossary) — the
-correct spellings, so the model does not turn an unfamiliar product name back into a word it
-recognizes. It resolves to nothing when the glossary is empty. If your template does not use
-it, the block is placed ahead of the template instead.
+- **Protokoll** — **Sammanfattning** (summary), **Beslut** (decisions), **Actionpunkter**
+  (action items with owner and deadline) and **Öppna frågor** (open questions). This is the
+  0.5 template, unchanged.
+- **Snabbt sammandrag** — a short narrative for someone who missed the meeting.
+- **Actionpunkter** — only the tasks, plus the ones nobody was assigned to.
+- **Beslutslogg** — one section per decision with the reasoning behind it, for the archive.
+- **Uppföljningsmejl** — a follow-up email to an external recipient, with internal
+  discussion left out.
 
-The default template is in Swedish and asks the model for four sections — **Sammanfattning**
-(summary), **Beslut** (decisions), **Actionpunkter** (action items with owner and deadline)
-and **Öppna frågor** (open questions) — and instructs it to answer in the transcript's
-language and to use only information present in the transcript. Edit it freely to change the
-structure, language or tone; the default works without any changes.
+You pick a template on the start screen before recording, and that one produces the summary
+the pipeline writes on its own; the choice is remembered for the next meeting. You can add
+your own templates and rewrite the built-in ones. Built-in templates cannot be deleted, so a
+picker is never empty.
+
+Every template instructs the model to answer in the transcript's language and to use only
+information present in the transcript. Edit them freely to change the structure, language or
+tone; the defaults work without any changes.
+
+A template can use three placeholders:
+
+- **`{{transcript}}`** — the meeting transcript. Remove it and the transcript is appended to
+  the end of your prompt instead.
+- **`{{ordlista}}`** — your [glossary](#glossary): the correct spellings, so the model does
+  not turn an unfamiliar product name back into a word it recognizes. It resolves to nothing
+  when the glossary is empty. If your template does not use it, the block is placed ahead of
+  the template instead.
+- **`{{fokus}}`** — what this particular summary was asked to be about (see below). It
+  resolves to nothing for a summary of the whole meeting, and falls back to the same
+  placement rule as `{{ordlista}}`.
+
+### Several summaries of one meeting
+
+The **Protokoll** tab lists every summary of the meeting side by side, and **Ny
+sammanfattning** adds another one from any template. Each summary is stored as its own
+Markdown file in the meeting folder, named after its template
+(`protocol-uppfoljningsmejl.md`), so the folder stays readable from outside the app.
+
+The dialog also has a **focus** box. A long meeting covers several things, and a summary of
+all of it is often too thin for any one of them; the focus text narrows the same template to
+one part of the meeting ("bara upphandlingen") and leaves the rest out. Leave it empty to
+summarize the whole meeting.
+
+Renaming a speaker or editing the glossary makes every summary stale, so **Uppdatera
+sammanfattningarna** regenerates all of them — one model call per summary.
 
 > **Tip:** prefer a non-reasoning model. Reasoning-heavy models can return an empty answer,
 > which referat surfaces as an error instead of saving empty minutes. See

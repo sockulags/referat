@@ -5,16 +5,23 @@ import { BrowserWindow } from 'electron'
 import type { PipelineProgressEvent } from '../shared/types'
 import { IPC } from './ipc'
 import {
+  addSummary,
   audioSegmentPaths,
   hasTranscript,
   listMeetings,
+  listSummaries,
   readMeta,
   readTranscript,
   updateMeta,
-  writeProtocol,
+  updateSummaryMarkdown,
   writeTranscript
 } from './storage'
-import { getDiarizationConfig, getSummaryConfig, getTranscriptionConfig } from './settings'
+import {
+  getDiarizationConfig,
+  getSummaryConfig,
+  getSummaryTemplate,
+  getTranscriptionConfig
+} from './settings'
 import { applyGlossary, glossaryPromptBlock, listGlossaryTerms } from './glossary'
 import { transcribe } from './providers/transcription'
 import { summarize } from './providers/summary'
@@ -30,16 +37,28 @@ import { profilesWithEmbeddings } from './speakerProfiles'
 import { classifyError, UserFacingError } from './providers/shared'
 import type { Transcript } from '../shared/types'
 
-/** 'diarize' = re-run diarization on the existing transcript, then summarize. */
-type JobMode = 'full' | 'diarize' | 'summarize'
+/**
+ * 'diarize' = re-run diarization on the existing transcript, then summarize.
+ * 'summarize' = redo the summaries the meeting already has.
+ * 'add-summary' = generate one more summary from `request`, keeping the rest.
+ */
+type JobMode = 'full' | 'diarize' | 'summarize' | 'add-summary'
+
+/** What an 'add-summary' job should produce. */
+interface SummaryRequest {
+  templateId: string
+  focus: string
+}
+
 interface Job {
   meetingId: string
   mode: JobMode
+  request?: SummaryRequest
 }
 
 const queue: Job[] = []
 let running = false
-let runningId: string | null = null
+let runningKey: string | null = null
 
 function emit(event: PipelineProgressEvent): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -47,12 +66,23 @@ function emit(event: PipelineProgressEvent): void {
   }
 }
 
-export function enqueue(meetingId: string, mode: JobMode = 'full'): void {
-  // Skip if the meeting is already queued OR currently running — a retry while
-  // a job runs must not start a second concurrent run of the same meeting.
-  if (runningId === meetingId) return
-  if (queue.some((j) => j.meetingId === meetingId)) return
-  queue.push({ meetingId, mode })
+/**
+ * Identity of a job. Two different summaries of the same meeting are different
+ * jobs and must both run; a second retry of the same meeting is the same job
+ * and must not start a concurrent run.
+ */
+function jobKey(job: Job): string {
+  return [job.meetingId, job.mode, job.request?.templateId ?? '', job.request?.focus ?? ''].join(
+    '|'
+  )
+}
+
+export function enqueue(meetingId: string, mode: JobMode = 'full', request?: SummaryRequest): void {
+  const job: Job = { meetingId, mode, ...(request ? { request } : {}) }
+  const key = jobKey(job)
+  if (runningKey === key) return
+  if (queue.some((j) => jobKey(j) === key)) return
+  queue.push(job)
   void runNext()
 }
 
@@ -61,7 +91,7 @@ async function runNext(): Promise<void> {
   const job = queue.shift()
   if (!job) return
   running = true
-  runningId = job.meetingId
+  runningKey = jobKey(job)
   try {
     await runJob(job)
   } catch (err) {
@@ -69,7 +99,7 @@ async function runNext(): Promise<void> {
     console.error('Pipeline job crashed', err)
   } finally {
     running = false
-    runningId = null
+    runningKey = null
     if (queue.length > 0) void runNext()
   }
 }
@@ -152,9 +182,96 @@ export function applyGlossaryToMeeting(meetingId: string): number | null {
   return hits
 }
 
+/**
+ * Run one summary through the provider. Rejects an empty answer rather than
+ * storing it: reasoning-heavy models can burn the whole context budget on
+ * thinking and come back with nothing.
+ */
+async function generateSummaryText(
+  transcript: Transcript,
+  promptTemplate: string,
+  focus: string
+): Promise<string> {
+  // With speakers merged in, the prompt gets speaker-attributed text
+  // ("Anna: …"); without speakers this is exactly transcript.text.
+  const markdown = await summarize(speakerAttributedText(transcript), getSummaryConfig(), {
+    promptTemplate,
+    glossary: glossaryPromptBlock(listGlossaryTerms()),
+    focus
+  })
+  if (!markdown.trim()) {
+    throw new UserFacingError(
+      'Modellen gav ett tomt svar. Prova en annan modell i inställningarna — resonerande modeller fungerar ofta sämre för protokoll.'
+    )
+  }
+  return markdown
+}
+
+/**
+ * Redo every summary the meeting already has, in place. After a speaker rename
+ * or a glossary edit they are all equally stale, so updating only one of them
+ * would leave the rest quietly wrong. A meeting with no summaries yet — the
+ * normal first run — gets one from the template chosen when recording started.
+ */
+async function runSummaries(meetingId: string, transcript: Transcript): Promise<void> {
+  const existing = listSummaries(meetingId)
+  if (existing.length === 0) {
+    const template = getSummaryTemplate(readMeta(meetingId)?.templateId)
+    const markdown = await generateSummaryText(transcript, template.promptTemplate, '')
+    addSummary(meetingId, {
+      templateId: template.id,
+      templateName: template.name,
+      focus: '',
+      markdown
+    })
+    return
+  }
+  for (const summary of existing) {
+    // The template may have been renamed, edited or deleted since; falling back
+    // to the default beats refusing to refresh the summary at all.
+    const template = getSummaryTemplate(summary.templateId)
+    const markdown = await generateSummaryText(transcript, template.promptTemplate, summary.focus)
+    updateSummaryMarkdown(meetingId, summary.id, markdown)
+  }
+}
+
+/**
+ * Generate one extra summary without touching the ones already there. A
+ * failure here is a warning, not an error: the meeting still has its earlier
+ * summaries and must not be dragged into the error state on top of them.
+ */
+async function runAddSummary(meetingId: string, request: SummaryRequest): Promise<void> {
+  updateMeta(meetingId, { status: 'summarizing', warning: undefined })
+  emit({ meetingId, status: 'summarizing' })
+  try {
+    const transcript = readTranscript(meetingId)
+    if (!transcript) throw new UserFacingError('Transkript saknas — kan inte sammanfatta')
+    const template = getSummaryTemplate(request.templateId)
+    const markdown = await generateSummaryText(transcript, template.promptTemplate, request.focus)
+    addSummary(meetingId, {
+      templateId: template.id,
+      templateName: template.name,
+      focus: request.focus,
+      markdown
+    })
+  } catch (err) {
+    const { message, detail } = classifyError(err)
+    updateMeta(meetingId, {
+      warning: { message: `Den nya sammanfattningen kunde inte skapas: ${message}`, detail }
+    })
+  }
+  updateMeta(meetingId, { status: 'done' })
+  emit({ meetingId, status: 'done' })
+}
+
 async function runJob(job: Job): Promise<void> {
   const { meetingId, mode } = job
   if (!readMeta(meetingId)) return // deleted meanwhile
+
+  if (mode === 'add-summary') {
+    if (job.request) await runAddSummary(meetingId, job.request)
+    return
+  }
 
   if (mode === 'full' || mode === 'diarize') {
     // A fresh run must not show last run's warning next to the new result.
@@ -192,22 +309,7 @@ async function runJob(job: Job): Promise<void> {
   try {
     const transcript = readTranscript(meetingId)
     if (!transcript) throw new Error('Transkript saknas — kan inte sammanfatta')
-    // With speakers merged in, the prompt gets speaker-attributed text
-    // ("Anna: …"); without speakers this is exactly transcript.text.
-    const protocol = await summarize(
-      speakerAttributedText(transcript),
-      getSummaryConfig(),
-      glossaryPromptBlock(listGlossaryTerms())
-    )
-    if (!protocol.trim()) {
-      // Reasoning-heavy models can burn the whole context budget on thinking
-      // and return an empty answer. Surface it instead of writing an empty
-      // protocol marked as done.
-      throw new UserFacingError(
-        'Modellen gav ett tomt svar. Prova en annan modell i inställningarna — resonerande modeller fungerar ofta sämre för protokoll.'
-      )
-    }
-    writeProtocol(meetingId, protocol)
+    await runSummaries(meetingId, transcript)
   } catch (err) {
     fail(meetingId, 'summarize', err)
     return
@@ -225,11 +327,21 @@ export function retryPipeline(id: string): void {
   enqueue(id, hasTranscript(id) ? 'summarize' : 'full')
 }
 
-/** Re-run only the summary step (e.g. after renaming speakers). */
+/** Redo every summary the meeting has (e.g. after renaming speakers). */
 export function resummarize(id: string): void {
   const meta = readMeta(id)
   if (!meta) return
   if (hasTranscript(id)) enqueue(id, 'summarize')
+}
+
+/**
+ * Queue one more summary of an already-transcribed meeting. `focus` narrows it
+ * to part of the meeting; '' summarizes the whole thing.
+ */
+export function generateSummary(id: string, templateId: string, focus: string): void {
+  const meta = readMeta(id)
+  if (!meta) return
+  if (hasTranscript(id)) enqueue(id, 'add-summary', { templateId, focus: focus.trim() })
 }
 
 /** On app start: resume interrupted jobs and fail crashed recordings. */

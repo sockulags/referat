@@ -7,6 +7,7 @@ import type {
   LocalAiComponentStatus,
   SpeakerProfile,
   SummaryPreset,
+  SummaryTemplate,
   TranscriptionPreset
 } from '../../../shared/types'
 import { useApp, applyTheme } from '../store'
@@ -266,7 +267,8 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
   const [baseUrl, setBaseUrl] = useState(s.baseUrl)
   const [model, setModel] = useState(s.model)
   const [apiKey, setApiKey] = useState('')
-  const [template, setTemplate] = useState(s.promptTemplate)
+  const [templates, setTemplates] = useState(s.templates)
+  const [editingId, setEditingId] = useState(s.defaultTemplateId)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -288,7 +290,8 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
         apiFlavor: flavor,
         baseUrl,
         model,
-        promptTemplate: template,
+        templates,
+        defaultTemplateId: s.defaultTemplateId,
         apiKey: apiKey || undefined
       })
       patchSettings({
@@ -299,7 +302,7 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
           apiFlavor: flavor,
           baseUrl,
           model,
-          promptTemplate: template,
+          templates,
           hasApiKey: s.hasApiKey || !!apiKey
         }
       })
@@ -370,16 +373,12 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
           {strings.settings.summary.advanced}
         </button>
         {advancedOpen && (
-          <div className="mt-3 animate-fade-in">
-            <Textarea
-              label={strings.settings.summary.promptTemplate}
-              hint={strings.settings.summary.promptHint}
-              value={template}
-              onChange={(e) => setTemplate(e.target.value)}
-              rows={8}
-              className="font-mono text-[13px]"
-            />
-          </div>
+          <TemplateEditor
+            templates={templates}
+            setTemplates={setTemplates}
+            editingId={editingId}
+            setEditingId={setEditingId}
+          />
         )}
       </div>
 
@@ -394,6 +393,92 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
         />
       </div>
     </Section>
+  )
+}
+
+/**
+ * Edit the prompt templates. One list, shared by every meeting — the same
+ * "Uppföljningsmejl" should mean the same thing everywhere. Built-in templates
+ * can be rewritten but not removed, so a picker is never empty.
+ */
+function TemplateEditor({
+  templates,
+  setTemplates,
+  editingId,
+  setEditingId
+}: {
+  templates: SummaryTemplate[]
+  setTemplates: (t: SummaryTemplate[]) => void
+  editingId: string
+  setEditingId: (id: string) => void
+}): JSX.Element {
+  const editing = templates.find((t) => t.id === editingId) ?? templates[0]
+
+  const patch = (change: Partial<SummaryTemplate>): void => {
+    setTemplates(templates.map((t) => (t.id === editing.id ? { ...t, ...change } : t)))
+  }
+
+  const add = (): void => {
+    const created: SummaryTemplate = {
+      id: `egen-${Date.now().toString(36)}`,
+      name: strings.settings.summary.templateNewName,
+      promptTemplate: '{{ordlista}}\n\n{{fokus}}\n\nTranskription:\n{{transcript}}',
+      builtIn: false
+    }
+    setTemplates([...templates, created])
+    setEditingId(created.id)
+  }
+
+  const remove = (): void => {
+    if (editing.builtIn) return
+    const next = templates.filter((t) => t.id !== editing.id)
+    setTemplates(next)
+    setEditingId(next[0].id)
+  }
+
+  return (
+    <div className="mt-3 flex flex-col gap-4 animate-fade-in">
+      <p className="text-sm text-fg-muted">{strings.settings.summary.templatesHint}</p>
+
+      <div className="flex flex-wrap items-end gap-2">
+        <Select
+          label={strings.settings.summary.templatePick}
+          value={editing.id}
+          onChange={(e) => setEditingId(e.target.value)}
+          className="min-w-48"
+        >
+          {templates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </Select>
+        <Button variant="secondary" size="sm" onClick={add}>
+          {strings.settings.summary.templateAdd}
+        </Button>
+        {!editing.builtIn && (
+          <Button variant="ghost" size="sm" onClick={remove}>
+            {strings.settings.summary.templateDelete}
+          </Button>
+        )}
+      </div>
+
+      <Input
+        label={strings.settings.summary.templateName}
+        hint={editing.builtIn ? strings.settings.summary.templateBuiltIn : undefined}
+        value={editing.name}
+        onChange={(e) => patch({ name: e.target.value })}
+      />
+
+      <Textarea
+        label={strings.settings.summary.promptTemplate}
+        hint={strings.settings.summary.promptHint}
+        value={editing.promptTemplate}
+        onChange={(e) => patch({ promptTemplate: e.target.value })}
+        rows={10}
+        className="font-mono text-[13px]"
+      />
+    </div>
   )
 }
 

@@ -17,6 +17,7 @@ export function Recording(): JSX.Element {
   const openMeeting = useApp((s) => s.openMeeting)
   const settings = useApp((s) => s.settings)
   const pendingTitle = useApp((s) => s.pendingTitle)
+  const pendingTemplateId = useApp((s) => s.pendingTemplateId)
 
   const [phase, setPhase] = useState<Phase>('starting')
   const [elapsed, setElapsed] = useState(0)
@@ -47,7 +48,10 @@ export function Recording(): JSX.Element {
 
     ;(async (): Promise<void> => {
       try {
-        const handle = await window.api.startRecording(pendingTitle)
+        const handle = await window.api.startRecording(
+          pendingTitle,
+          pendingTemplateId || settings?.summary.defaultTemplateId
+        )
         meetingIdRef.current = handle.meetingId
         await recorder.start({
           microphoneId: settings?.microphoneId ?? '',
