@@ -258,5 +258,4 @@ describe('summaries', () => {
     expect(() => deleteSummary(MEETING_ID, 'finns-inte')).not.toThrow()
     expect(listSummaries(MEETING_ID)).toHaveLength(1)
   })
-
 })

@@ -232,6 +232,25 @@ async function main() {
   await page.waitForTimeout(1000)
   await shot('meeting-done')
 
+  // The recorder writes a level envelope alongside the audio, which is what
+  // lets main tell the microphone apart from the system audio. The fake mic
+  // here produces no system audio, so only the plumbing is checked.
+  const meetingDirs = fs
+    .readdirSync(path.join(userData, 'meetings'), { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+  const levelsPath = path.join(userData, 'meetings', meetingDirs[0], 'levels.json')
+  const hasLevels = fs.existsSync(levelsPath)
+  assert(hasLevels, 'the recorder saves a level envelope for the meeting')
+  if (hasLevels) {
+    const envelope = JSON.parse(fs.readFileSync(levelsPath, 'utf8'))
+    const covered = envelope.mic.length / envelope.rate
+    assert(
+      covered > 10 && covered < 30,
+      `the envelope covers the recorded audio (${covered.toFixed(1)}s of a ~15s recording)`
+    )
+  }
+
   // Protocol content from the mock server is rendered.
   const protocolHeading = await seen('Sammanfattning', 10000)
   assert(protocolHeading, 'protocol tab renders the mock protocol ("Sammanfattning" heading)')

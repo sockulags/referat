@@ -1,6 +1,8 @@
 // Shared types for the IPC contract between main, preload and renderer.
 // This file is the single source of truth — both sides import from here.
 
+import type { LevelEnvelope } from './levels'
+
 // ---------- Meetings ----------
 
 export type MeetingStatus =
@@ -304,6 +306,12 @@ export interface RendererApi {
   startRecording(title: string, templateId?: string): Promise<RecordingHandle>
   /** segmentIndex identifies the rotated segment file; defaults to 0. */
   appendAudioChunk(meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void>
+  /**
+   * Store the per-source level envelope measured while recording. Call before
+   * finishRecording — the pipeline reads it to tell the microphone apart from
+   * the system audio.
+   */
+  saveLevelEnvelope(meetingId: string, envelope: LevelEnvelope): Promise<void>
   /** Finalize: closes file, sets duration, kicks off the pipeline. */
   finishRecording(meetingId: string, durationSec: number): Promise<void>
   cancelRecording(meetingId: string): Promise<void>

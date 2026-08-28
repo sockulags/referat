@@ -1,6 +1,6 @@
 // Storage: one folder per meeting under userData/meetings/<id>/.
-// Files: meta.json, audio.webm, transcript.json, summaries.json and one
-// protocol-<mall>.md per generated summary.
+// Files: meta.json, audio.webm, transcript.json, levels.json, summaries.json
+// and one protocol-<mall>.md per generated summary.
 // The folder listing is the index — no database.
 
 import { app } from 'electron'
@@ -17,6 +17,7 @@ import {
 } from 'fs'
 import type { WriteStream } from 'fs'
 import type { MeetingMeta, MeetingDetail, MeetingSummary, Transcript } from '../shared/types'
+import type { LevelEnvelope } from '../shared/levels'
 import { dismissSuggestionInTranscript, renameSpeakerInTranscript } from './diarize'
 import { getDiarizationConfig } from './settings'
 import { upsertProfile } from './speakerProfiles'
@@ -74,6 +75,10 @@ export function audioSegmentPaths(id: string): string[] {
 
 function transcriptPath(id: string): string {
   return join(meetingDir(id), 'transcript.json')
+}
+
+function levelsPath(id: string): string {
+  return join(meetingDir(id), 'levels.json')
 }
 
 /** Where 0.5 and earlier wrote the one and only protocol. */
@@ -178,6 +183,27 @@ export function writeTranscript(id: string, transcript: Transcript): void {
 
 export function hasTranscript(id: string): boolean {
   return existsSync(transcriptPath(id))
+}
+
+/**
+ * Per-source level envelope from the recorder, used to tell the microphone
+ * apart from the system audio. Written once when the recording finishes.
+ */
+export function readLevelEnvelope(id: string): LevelEnvelope | undefined {
+  try {
+    const parsed = JSON.parse(readFileSync(levelsPath(id), 'utf-8')) as Partial<LevelEnvelope>
+    if (typeof parsed.rate !== 'number') return undefined
+    if (!Array.isArray(parsed.mic) || !Array.isArray(parsed.system)) return undefined
+    return { rate: parsed.rate, mic: parsed.mic, system: parsed.system }
+  } catch {
+    return undefined
+  }
+}
+
+export function writeLevelEnvelope(id: string, envelope: LevelEnvelope): void {
+  const dir = meetingDir(id)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  writeFileSync(levelsPath(id), JSON.stringify(envelope), 'utf-8')
 }
 
 /**
