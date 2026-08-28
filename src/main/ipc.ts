@@ -31,6 +31,7 @@ export const IPC = {
   appendAudioChunk: 'recording:append-chunk',
   finishRecording: 'recording:finish',
   cancelRecording: 'recording:cancel',
+  saveLevelEnvelope: 'recording:levels',
 
   // Settings
   getSettings: 'settings:get',

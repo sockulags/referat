@@ -14,7 +14,8 @@
 
 - Fönster- och traylivscykel, IPC-registrering.
 - **Storage**: app-datamapp (`app.getPath('userData')/meetings/`). En mapp per möte:
-  `<id>/meta.json`, `<id>/audio.webm`, `<id>/transcript.json`, `<id>/summaries.json`
+  `<id>/meta.json`, `<id>/audio.webm`, `<id>/transcript.json`, `<id>/levels.json`,
+  `<id>/summaries.json`
   och en `<id>/protocol-<mall>.md` per sammanfattning. Möten från 0.5 och tidigare har
   en naken `protocol.md` och visas som en sammanfattning vid namn "Protokoll".
   Index byggs genom att lista mappar — ingen databas.

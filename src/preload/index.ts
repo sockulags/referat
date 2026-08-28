@@ -16,6 +16,7 @@ import type {
   LocalAiComponent,
   LocalAiComponentStatus
 } from '../shared/types'
+import type { LevelEnvelope } from '../shared/levels'
 import { IPC } from '../main/ipc'
 
 const api: RendererApi = {
@@ -59,6 +60,8 @@ const api: RendererApi = {
     ipcRenderer.invoke(IPC.startRecording, title, templateId),
   appendAudioChunk: (meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void> =>
     ipcRenderer.invoke(IPC.appendAudioChunk, meetingId, chunk, segmentIndex),
+  saveLevelEnvelope: (meetingId: string, envelope: LevelEnvelope): Promise<void> =>
+    ipcRenderer.invoke(IPC.saveLevelEnvelope, meetingId, envelope),
   finishRecording: (meetingId: string, durationSec: number): Promise<void> =>
     ipcRenderer.invoke(IPC.finishRecording, meetingId, durationSec),
   cancelRecording: (meetingId: string): Promise<void> =>

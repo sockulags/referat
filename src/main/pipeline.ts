@@ -10,6 +10,7 @@ import {
   hasTranscript,
   listMeetings,
   listSummaries,
+  readLevelEnvelope,
   readMeta,
   readTranscript,
   updateMeta,
@@ -34,6 +35,7 @@ import {
   speakerAttributedText
 } from './diarize'
 import { profilesWithEmbeddings } from './speakerProfiles'
+import { attributeBySource } from './sourceAttribution'
 import { classifyError, UserFacingError } from './providers/shared'
 import type { Transcript } from '../shared/types'
 
@@ -163,6 +165,20 @@ function applyRecognition(
   }
   if (Object.keys(suggestions).length > 0) next.speakerSuggestions = suggestions
   return next
+}
+
+/**
+ * Tell the microphone apart from the system audio, so a meeting recorded
+ * without diarization still says who spoke — the user, or everyone else.
+ * Diarization knows more when it ran, and attributeBySource stands down in
+ * that case, so this is safe to call unconditionally.
+ */
+function applySourceAttribution(meetingId: string): void {
+  const transcript = readTranscript(meetingId)
+  const envelope = readLevelEnvelope(meetingId)
+  if (!transcript || !envelope) return
+  const next = attributeBySource(transcript, envelope)
+  if (next !== transcript) writeTranscript(meetingId, next)
 }
 
 /**
@@ -298,6 +314,8 @@ async function runJob(job: Job): Promise<void> {
   if (mode === 'full' || mode === 'diarize') {
     await runDiarization(meetingId)
   }
+
+  applySourceAttribution(meetingId)
 
   // Correct misheard terms before summarizing. This also runs for a plain
   // re-summarize, so editing the glossary and pressing "update protocol" is

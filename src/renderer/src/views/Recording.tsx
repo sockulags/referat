@@ -125,6 +125,12 @@ export function Recording(): JSX.Element {
       await rec?.stop()
       const durationSec = Math.floor(elapsedMsRef.current / 1000)
       if (id) {
+        const envelope = rec?.getEnvelope()
+        // Best-effort: losing the envelope costs the speaker labels, not the
+        // meeting, so it must never block finishing the recording.
+        if (envelope && envelope.mic.length > 0) {
+          await window.api.saveLevelEnvelope(id, envelope).catch(() => undefined)
+        }
         await window.api.finishRecording(id, durationSec)
         openMeeting(id)
         return

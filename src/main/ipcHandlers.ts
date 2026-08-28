@@ -15,6 +15,7 @@ import type {
   LocalAiComponent,
   LocalAiComponentStatus
 } from '../shared/types'
+import type { LevelEnvelope } from '../shared/levels'
 import { IPC } from './ipc'
 import * as storage from './storage'
 import * as settings from './settings'
@@ -127,6 +128,10 @@ export function registerIpcHandlers(): void {
       await storage.finishRecording(meetingId, durationSec)
       enqueue(meetingId, 'full')
     }
+  )
+
+  ipcMain.handle(IPC.saveLevelEnvelope, (_e, meetingId: string, envelope: LevelEnvelope): void =>
+    storage.writeLevelEnvelope(meetingId, envelope)
   )
 
   ipcMain.handle(IPC.cancelRecording, (_e, meetingId: string): Promise<void> =>

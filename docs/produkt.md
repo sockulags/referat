@@ -95,6 +95,25 @@ En sammanfattning går att ta bort efter en bekräftelse, den sista med. Transkr
 kvar, så en ny går alltid att skapa — den som experimenterar med mallar och fokus ska
 inte tvingas leva med resultatet.
 
+## Jag och de andra (automatiskt)
+
+Spelas systemljudet in vet appen redan vilken källa som lät när: nivåmätarna mäter
+mikrofon och systemljud var för sig. Den kurvan sparas nu vid sidan av ljudet, och
+varje transkriptsegment märks upp efter vilken sida som faktiskt hördes — **Jag**
+för mikrofonen, **Övriga** för systemljudet. Namnen byts som vilka talarnamn som
+helst och följer med in i protokollet.
+
+Det kostar ingenting vid transkriberingen: ingen extra modell, inget extra anrop,
+fungerar likadant lokalt som i molnet. Det är också den enda identitet i kedjan som
+är känd i stället för gissad — mikrofonen är användaren.
+
+Uppskattningen vägrar gissa. Ligger sidorna för nära varandra, vilket händer med
+öppna högtalare trots ekosläckningen, lämnas segmentet omärkt. Ett saknat namn är
+ärligt, ett felaktigt namn i ett protokoll är det inte. Spelades inget systemljud in
+— ett fysiskt möte i ett rum — görs ingen uppmärkning alls, eftersom allt då vore
+"Jag". Körs talardiarisering står den här funktionen tillbaka, för diariseringen vet
+mer.
+
 ## Talardiarisering (tillval)
 
 "Vem sa vad" — transkriptet kan märkas upp per talare ("Talare 1", "Talare 2") och

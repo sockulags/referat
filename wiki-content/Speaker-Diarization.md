@@ -1,5 +1,11 @@
 # Speaker Diarization
 
+> **You may not need this.** When system audio is recorded, referat already separates
+> **you** from **everyone else** on its own, with no server and no setup — see
+> [Me and everyone else](#me-and-everyone-else-no-setup) at the end of this page.
+> Diarization is what you add when you need the other side split into named
+> individuals.
+
 Speaker diarization answers **"who said what"**. When enabled, referat labels each
 transcript segment with a speaker — **Talare 1**, **Talare 2**, and so on — after
 transcription. Click a label in the transcript tab to rename it (for example to _Anna_);
@@ -222,3 +228,24 @@ one-time model download from Hugging Face; after that, diarization runs fully of
 - **[Local AI Setup](Local-AI-Setup)** — the fully local transcription and minutes setup.
 - **[Configuration](Configuration)** — every settings field, including the Speakers group.
 - **[FAQ](FAQ)** — privacy and data-handling questions.
+
+## Me and everyone else (no setup)
+
+Diarization is not the only way to get names into a transcript. While recording, referat
+measures the microphone and the system audio separately — that is what drives the two level
+meters — and it now keeps that measurement. Afterwards each transcript segment is attributed
+to whichever source was actually loud during it: **Jag** for the microphone, **Övriga** for
+the system audio. Rename them like any other speaker label; the names flow into the minutes.
+
+This costs nothing at transcription time — no extra model, no extra request — and it works
+the same with a local model as with a cloud provider. It is also the only identity in the
+pipeline that is known rather than inferred: the microphone is you.
+
+It is deliberately cautious. When the two sides are too close to call — which happens with
+open speakers, even with echo cancellation on — the segment is left unlabelled, because a
+wrong name in a set of minutes is worse than a missing one. A meeting recorded without system
+audio, such as everyone sitting in one room, gets no labels at all: everything would be
+"Jag", which says nothing.
+
+Diarization wins when both are available. It splits the room into individual voices, which
+this cannot do; when diarization has labelled the segments, source attribution stands down.

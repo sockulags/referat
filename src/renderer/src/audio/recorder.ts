@@ -1,6 +1,8 @@
 // Audio capture engine. Runs entirely in the renderer via Web APIs.
 // Mic + optional system loopback are mixed into one webm/opus stream and
-// streamed to main in 5s chunks. Per-source AnalyserNodes drive level meters.
+// streamed to main in 5s chunks. Per-source AnalyserNodes drive level meters
+// and, sampled at a steady rate, the level envelope that lets main tell the
+// two sources apart afterwards.
 // The MediaRecorder is rotated into a fresh segment every 10 min so each
 // segment file stays under provider size caps and is independently decodable.
 
@@ -24,6 +26,9 @@ export function isMicPermissionError(e: unknown): e is MicPermissionError {
   return typeof e === 'object' && e !== null && (e as { kind?: string }).kind === 'mic-denied'
 }
 
+import type { LevelEnvelope } from '../../../shared/levels'
+import { encodeLevel, LEVEL_RATE_HZ } from '../../../shared/levels'
+
 const MIME = 'audio/webm;codecs=opus'
 const TIMESLICE_MS = 5000
 /** Rotate to a new segment every 10 minutes. */
@@ -46,6 +51,15 @@ export class MeetingRecorder {
 
   private segmentIndex = 0
   private rotateTimer: ReturnType<typeof setInterval> | null = null
+  private envelopeTimer: ReturnType<typeof setInterval> | null = null
+  private micLevels: number[] = []
+  private systemLevels: number[] = []
+  /**
+   * Whether the envelope is advancing. Kept separately from the
+   * MediaRecorder's state so the brief gap while a segment rotates does not
+   * drop samples and drift the envelope against the audio timeline.
+   */
+  private sampling = false
   /** Serialize chunk writes so ordering survives the async arrayBuffer()/IPC. */
   private writeChain: Promise<void> = Promise.resolve()
   private stopped = false
@@ -109,6 +123,8 @@ export class MeetingRecorder {
     this.rotateTimer = setInterval(() => {
       void this.rotate()
     }, SEGMENT_MS)
+    this.sampling = true
+    this.envelopeTimer = setInterval(() => this.sampleEnvelope(), 1000 / LEVEL_RATE_HZ)
   }
 
   /** Create and start a MediaRecorder for the given segment on the mixed stream. */
@@ -153,14 +169,18 @@ export class MeetingRecorder {
     return { analyser, buffer: new Float32Array(analyser.fftSize) }
   }
 
-  private rms(meter: SourceMeter | null): number {
+  /** Plain RMS amplitude of a source, 0..1. */
+  private rawRms(meter: SourceMeter | null): number {
     if (!meter) return 0
     meter.analyser.getFloatTimeDomainData(meter.buffer)
     let sum = 0
     for (let i = 0; i < meter.buffer.length; i++) sum += meter.buffer[i] * meter.buffer[i]
-    const rms = Math.sqrt(sum / meter.buffer.length)
+    return Math.sqrt(sum / meter.buffer.length)
+  }
+
+  private rms(meter: SourceMeter | null): number {
     // Perceptual boost so quiet speech still moves the meter; clamp to 0..1.
-    return Math.min(1, rms * 3.2)
+    return Math.min(1, this.rawRms(meter) * 3.2)
   }
 
   /** Instantaneous levels (0..1) for mic and system sources. */
@@ -168,12 +188,44 @@ export class MeetingRecorder {
     return { mic: this.rms(this.micMeter), system: this.rms(this.systemMeter) }
   }
 
+  /**
+   * Append one sample per source. The meter values are boosted and clamped
+   * for the UI, which throws away exactly the headroom the comparison needs,
+   * so the envelope is built from the raw amplitude instead.
+   */
+  private sampleEnvelope(): void {
+    if (!this.sampling) return
+    this.micLevels.push(encodeLevel(this.rawRms(this.micMeter)))
+    this.systemLevels.push(this.systemMeter ? encodeLevel(this.rawRms(this.systemMeter)) : 0)
+  }
+
+  /**
+   * The recorded envelope. `system` comes back empty when there was no
+   * system audio, which is what tells main there is nothing to compare.
+   */
+  getEnvelope(): LevelEnvelope {
+    return {
+      rate: LEVEL_RATE_HZ,
+      mic: this.micLevels,
+      system: this.systemMeter ? this.systemLevels : []
+    }
+  }
+
   pause(): void {
-    if (this.recorder?.state === 'recording') this.recorder.pause()
+    if (this.recorder?.state === 'recording') {
+      this.recorder.pause()
+      // No audio is written while paused, so the envelope must not advance
+      // either — otherwise it slides against the transcript by the length of
+      // the pause.
+      this.sampling = false
+    }
   }
 
   resume(): void {
-    if (this.recorder?.state === 'paused') this.recorder.resume()
+    if (this.recorder?.state === 'paused') {
+      this.recorder.resume()
+      this.sampling = true
+    }
   }
 
   get state(): 'inactive' | 'recording' | 'paused' {
@@ -183,9 +235,14 @@ export class MeetingRecorder {
   /** Flush the final chunk, stop everything and release devices/context. */
   async stop(): Promise<void> {
     this.stopped = true
+    this.sampling = false
     if (this.rotateTimer !== null) {
       clearInterval(this.rotateTimer)
       this.rotateTimer = null
+    }
+    if (this.envelopeTimer !== null) {
+      clearInterval(this.envelopeTimer)
+      this.envelopeTimer = null
     }
     const rec = this.recorder
     if (rec && rec.state !== 'inactive') {
@@ -202,9 +259,14 @@ export class MeetingRecorder {
 
   cleanup(): void {
     this.stopped = true
+    this.sampling = false
     if (this.rotateTimer !== null) {
       clearInterval(this.rotateTimer)
       this.rotateTimer = null
+    }
+    if (this.envelopeTimer !== null) {
+      clearInterval(this.envelopeTimer)
+      this.envelopeTimer = null
     }
     this.micStream?.getTracks().forEach((t) => t.stop())
     this.systemStream?.getTracks().forEach((t) => t.stop())
