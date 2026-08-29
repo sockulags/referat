@@ -64,7 +64,7 @@ explicitly configure an external endpoint.
 flowchart LR
     A[Microphone + system audio] --> B[Local recording]
     B --> C[Transcription]
-    C --> D{Optional speaker\nidentification}
+    C --> D{Speaker labels:\nmic vs system, or\noptional diarization}
     D --> E[Minutes generation]
     E --> F[Markdown / Word / clipboard]
 
@@ -95,7 +95,8 @@ Read the full [architecture and security model](https://github.com/sockulags/ref
 
 - Microphone and Windows WASAPI loopback recording
 - Swedish and multilingual transcription through configurable providers
-- Optional local speaker diarization
+- Automatic "me and everyone else" labels whenever system audio is recorded
+- Optional local speaker diarization for individual voices
 - Glossary for terms the transcriber mishears, filled by selecting a word in the transcript
 - Customizable prompt/template for meeting minutes
 - Optional minutes generation through a locally installed Codex CLI
@@ -128,7 +129,12 @@ referat downloads a packaged CPU runtime plus KB-Whisper Small, verifies the pac
 and starts it only when a meeting needs processing. Python, Docker and administrator access are
 not required.
 
-Speaker identification is a separate optional component under **Settings → Speakers**. Choose
+When system audio is recorded, referat separates you from everyone else on its own — the
+microphone and the system audio are measured separately while recording, and each
+transcript segment is labelled from whichever side was loud. No setup, no server.
+
+Splitting the other side into individual voices is a separate optional component under
+**Settings → Speakers**. Choose
 CPU or NVIDIA GPU, open and accept the Pyannote model conditions, then paste a read-enabled
 Hugging Face token. The token is encrypted with Windows DPAPI and Pyannote telemetry is disabled.
 

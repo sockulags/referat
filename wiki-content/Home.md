@@ -35,8 +35,9 @@ server, or with a cloud provider. Nothing leaves your machine unless you choose 
   and Ollama.
 - **[Configuration](Configuration)** — every setting explained: provider presets, base URLs,
   models, the minutes template and more.
-- **[Speaker Diarization](Speaker-Diarization)** — optional "who said what" labels in the
-  transcript, powered by a local companion server.
+- **[Speaker Diarization](Speaker-Diarization)** — "who said what" in the transcript:
+  you versus everyone else automatically, and optionally individual voices via a local
+  companion server.
 - **[FAQ](FAQ)** — cost, storage location, supported services, privacy.
 - **[Architecture](Architecture)** — how referat is built, and its security hardening.
 - **[Roadmap](Roadmap)** — what's planned next.
