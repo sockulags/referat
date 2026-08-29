@@ -49,6 +49,11 @@ jobs:
         with:
           python-version: '3.12'
       - shell: pwsh
+        # The diarization components bundle the pyannote weights, which are
+        # gated on Hugging Face. The token is read once here so that users
+        # never need an account of their own.
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: ./scripts/build-local-ai-components.ps1 -Component ${{ matrix.component }}
       - uses: actions/upload-artifact@v7
         with:

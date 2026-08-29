@@ -171,8 +171,6 @@ export interface DiarizationSettings {
    * profiles. Off by default — voiceprints are biometric data (GDPR).
    */
   recognitionEnabled: boolean
-  /** True if a Hugging Face token has been saved (never returned to renderer). */
-  hasHfToken: boolean
 }
 
 export interface AppSettings {
@@ -200,11 +198,11 @@ export interface SaveTranscriptionSettings extends Omit<TranscriptionSettings, '
 export interface SaveSummarySettings extends Omit<SummarySettings, 'hasApiKey'> {
   apiKey?: string
 }
-/** The diarization server is local-only and unauthenticated — no key handling. */
-export interface SaveDiarizationSettings extends Omit<DiarizationSettings, 'hasHfToken'> {
-  /** Include only to replace/clear the encrypted token. */
-  hfToken?: string
-}
+/**
+ * The diarization server is local-only and unauthenticated, and the model
+ * ships inside the component — there is nothing secret to handle.
+ */
+export type SaveDiarizationSettings = DiarizationSettings
 
 export type LocalAiComponent = 'transcription-cpu' | 'diarization-cpu' | 'diarization-gpu'
 export type LocalAiComponentState =

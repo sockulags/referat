@@ -122,8 +122,6 @@ Honest and specific:
 - **Encrypted keys.** API keys are encrypted with Windows DPAPI via `safeStorage` and stored
   as base64 ciphertext. If OS encryption is unavailable, the app refuses to store the key
   rather than falling back to plaintext.
-- **Hugging Face token.** The optional Pyannote token uses the same encrypted storage path and
-  is passed only to the managed diarization process for gated model access.
 - **No Pyannote metrics.** Managed diarization starts with `PYANNOTE_METRICS_ENABLED=0`.
 
 ## Related pages

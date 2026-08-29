@@ -257,11 +257,7 @@ export const strings = {
       server: 'Egen server',
       setupTitle: 'Installera lokal talaridentifiering',
       setupDescription:
-        'Modellen kommer från Pyannote på Hugging Face. Öppna villkoren, acceptera dem och klistra sedan in en lästoken här.',
-      openTerms: 'Öppna modellvillkoren',
-      token: 'Hugging Face-token',
-      tokenHint: 'Sparas krypterat med Windows DPAPI och används bara för modellhämtning.',
-      acceptedTerms: 'Jag har accepterat modellvillkoren på Hugging Face',
+        'Talarmodellen följer med komponenten, så inget konto och ingen nyckel behövs. Välj CPU eller Nvidia-GPU och installera. Modellen kommer från pyannote och används under CC-BY-4.0.',
       cpuTitle: 'CPU',
       cpuDescription: 'Fungerar utan Nvidia-GPU men kan ta lång tid för ett helt möte.',
       gpuTitle: 'Nvidia GPU',

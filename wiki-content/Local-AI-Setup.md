@@ -21,17 +21,13 @@ Speaker identification is optional and substantially heavier than transcription.
 
 1. Open **Settings → Speakers** and enable **Identify speakers**.
 2. Choose **On this computer**.
-3. Click **Open model conditions**, sign in to Hugging Face and accept the conditions for
-   `pyannote/speaker-diarization-community-1`.
-4. Create a fine-grained Hugging Face token with read access to gated repositories and paste it in
-   referat.
-5. Confirm that you accepted the conditions, then install either **CPU** or **NVIDIA GPU**.
-6. Save and click **Test connection**. The first test downloads and warms the model and can take
-   several minutes.
+3. Install either **CPU** or **NVIDIA GPU**.
+4. Save and click **Test connection**. The first test warms the model and can take a minute.
 
-The token is encrypted with Windows DPAPI. Managed Pyannote starts with telemetry disabled. The
-CPU package is smaller but can be slow for long meetings; the NVIDIA package is several gigabytes
-and is recommended when a compatible GPU is available.
+There is no account and no token: the pyannote weights ship inside the component, which runs
+offline once installed. Managed Pyannote starts with telemetry disabled. The CPU package is
+smaller but slower — budget roughly a quarter of the meeting's length — while the NVIDIA package
+is several gigabytes and turns the same work into seconds.
 
 ## Local minutes generation
 

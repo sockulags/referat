@@ -21,6 +21,60 @@ function Sign-Executable([string]$path) {
   if ($LASTEXITCODE -ne 0) { throw "Signing failed: $path" }
 }
 
+function Add-DiarizationModel([string]$runtime) {
+  # The pyannote pipeline is gated on Hugging Face, which would otherwise force
+  # every user through an account, a conditions form and a pasted token just to
+  # label speakers. It is CC-BY-4.0, so the build downloads it once with the
+  # maintainer's token and ships it inside the component; the app then runs
+  # offline and asks the user for nothing. Attribution is in the notices file.
+  if (-not $env:HF_TOKEN) {
+    throw 'HF_TOKEN is not set, so the diarization model cannot be packaged. Set it as a repository secret (see docs) or export it locally.'
+  }
+  $models = Join-Path $runtime 'models'
+  New-Item -ItemType Directory -Force -Path $models | Out-Null
+
+  $previousHome = $env:HF_HOME
+  $previousSymlinks = $env:HF_HUB_DISABLE_SYMLINKS
+  # Real files, not symlinks: Compress-Archive would otherwise store links that
+  # point outside the package.
+  $env:HF_HOME = $models
+  $env:HF_HUB_DISABLE_SYMLINKS = '1'
+  try {
+    uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('pyannote/speaker-diarization-community-1')"
+    if ($LASTEXITCODE -ne 0) { throw 'Downloading the diarization model failed.' }
+  } finally {
+    $env:HF_HOME = $previousHome
+    $env:HF_HUB_DISABLE_SYMLINKS = $previousSymlinks
+  }
+
+  $size = (Get-ChildItem $models -Recurse -File | Measure-Object -Property Length -Sum).Sum
+  Write-Host ("Packaged diarization model: {0:N1} MB" -f ($size / 1MB))
+}
+
+function Add-Notices([string]$runtime) {
+  Set-Content -LiteralPath (Join-Path $runtime 'THIRD-PARTY-NOTICES.md') -Encoding utf8 -Value @'
+# Third-party notices
+
+This component bundles software and model weights from third parties.
+
+## pyannote speaker diarization
+
+Model: pyannote/speaker-diarization-community-1
+Source: https://huggingface.co/pyannote/speaker-diarization-community-1
+License: Creative Commons Attribution 4.0 International (CC-BY-4.0)
+         https://creativecommons.org/licenses/by/4.0/
+
+The model weights are redistributed here unmodified, so that referat can run
+speaker diarization offline without requiring every user to hold a Hugging Face
+account. Credit for the models belongs to the pyannote authors.
+
+## Bundled Python packages
+
+pyannote.audio, PyTorch and the remaining Python dependencies are included by
+PyInstaller. Each package keeps its own license and metadata under `_internal`.
+'@
+}
+
 function Package-Directory([string]$source, [string]$assetName) {
   $zip = Join-Path $output $assetName
   if (Test-Path $zip) { Remove-Item -LiteralPath $zip -Force }
@@ -101,6 +155,8 @@ function Build-Diarization([bool]$gpu) {
       --collect-all av 'runtime_entry.py'
     $runtime = Join-Path $project 'dist\referat-diarization'
     Sign-Executable (Join-Path $runtime 'referat-diarization.exe')
+    Add-DiarizationModel $runtime
+    Add-Notices $runtime
     Package-Directory $runtime $name
     if ($gpu) { Split-LargeArchive $name }
   } finally {

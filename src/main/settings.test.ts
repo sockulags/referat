@@ -121,22 +121,22 @@ describe('summary backend settings', () => {
     expect(getSettings().summary.defaultTemplateId).toBe('protokoll')
   })
 
-  it('migrates diarization defaults and keeps the Hugging Face token encrypted at rest', () => {
-    expect(getSettings().diarization).toMatchObject({
-      backend: 'built-in',
-      hasHfToken: false
-    })
+  it('migrates diarization defaults and carries no Hugging Face token forward', () => {
+    // 0.8 and earlier stored an encrypted token here so the user could download
+    // the gated model. It ships inside the component now, so the field is gone
+    // and a save must not write it back.
+    expect(getSettings().diarization).toMatchObject({ backend: 'built-in' })
+    expect(getSettings().diarization).not.toHaveProperty('hasHfToken')
 
     saveDiarizationSettings({
       enabled: true,
       backend: 'built-in',
       baseUrl: 'http://127.0.0.1:8300',
-      recognitionEnabled: false,
-      hfToken: 'hf_secret_token'
+      recognitionEnabled: false
     })
 
-    expect(getSettings().diarization.hasHfToken).toBe(true)
-    expect(getDiarizationConfig().hfToken).toBe('hf_secret_token')
-    expect(readFileSync(join(userData, 'settings.json'), 'utf8')).not.toContain('hf_secret_token')
+    expect(getDiarizationConfig()).toMatchObject({ enabled: true, backend: 'built-in' })
+    expect(getDiarizationConfig()).not.toHaveProperty('hfToken')
+    expect(readFileSync(join(userData, 'settings.json'), 'utf8')).not.toContain('hfTokenEnc')
   })
 })

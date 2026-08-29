@@ -263,10 +263,7 @@ async function waitForHealth(port: number): Promise<void> {
   throw new Error(`Komponenten blev inte redo: ${lastError}`)
 }
 
-export async function ensureLocalAiComponentRunning(
-  component: LocalAiComponent,
-  secrets?: { hfToken?: string }
-): Promise<void> {
+export async function ensureLocalAiComponentRunning(component: LocalAiComponent): Promise<void> {
   const definition = DEFINITIONS[component]
   if (!existsSync(executablePath(component))) {
     throw new Error(
@@ -288,8 +285,13 @@ export async function ensureLocalAiComponentRunning(
     env: {
       ...process.env,
       PYANNOTE_METRICS_ENABLED: '0',
-      HF_HOME: join(componentsRoot(), 'models'),
-      ...(secrets?.hfToken ? { HF_TOKEN: secrets.hfToken } : {})
+      // Diarization ships its model inside the component, so point the cache
+      // at it and forbid network lookups: no account, no token, works offline.
+      // Transcription still fetches its model on first start, so it keeps the
+      // shared cache it has already filled.
+      ...(component.startsWith('diarization-')
+        ? { HF_HOME: join(componentDir(component), 'models'), HF_HUB_OFFLINE: '1' }
+        : { HF_HOME: join(componentsRoot(), 'models') })
     }
   })
   children.set(component, child)
