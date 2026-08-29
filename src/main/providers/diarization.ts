@@ -91,9 +91,7 @@ export async function diarize(
     const gpuInstalled = statuses.some(
       (status) => status.component === 'diarization-gpu' && status.state !== 'not-installed'
     )
-    await ensureLocalAiComponentRunning(gpuInstalled ? 'diarization-gpu' : 'diarization-cpu', {
-      hfToken: config.hfToken
-    })
+    await ensureLocalAiComponentRunning(gpuInstalled ? 'diarization-gpu' : 'diarization-cpu')
   }
   const form = new FormData()
   for (const path of audioFilePaths) {
@@ -135,9 +133,7 @@ export async function testDiarizationConnection(
       const gpuInstalled = statuses.some(
         (status) => status.component === 'diarization-gpu' && status.state !== 'not-installed'
       )
-      await ensureLocalAiComponentRunning(gpuInstalled ? 'diarization-gpu' : 'diarization-cpu', {
-        hfToken: config.hfToken
-      })
+      await ensureLocalAiComponentRunning(gpuInstalled ? 'diarization-gpu' : 'diarization-cpu')
     } catch (err) {
       return {
         ok: false,

@@ -202,9 +202,8 @@ add or remove variants (one per line), or delete the term. The glossary lives in
 Optional speaker identification ("who said what") — transcript segments are labelled
 **Talare 1**, **Talare 2**, … and the labels can be renamed; the names flow into the minutes
 when the protocol is regenerated. Off by default. Install the managed CPU or NVIDIA component
-in Settings, or use an external companion server. The managed component asks you to accept the
-Pyannote model conditions and paste a read-enabled Hugging Face token; the token is encrypted
-with Windows DPAPI. See
+in Settings, or use an external companion server. The managed component carries its model
+weights inside the package: no account, no token, and no network access after install. See
 [Speaker Diarization](Speaker-Diarization) for the full setup. In the app's Swedish UI the
 group is called **Talare**.
 

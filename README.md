@@ -134,9 +134,9 @@ microphone and the system audio are measured separately while recording, and eac
 transcript segment is labelled from whichever side was loud. No setup, no server.
 
 Splitting the other side into individual voices is a separate optional component under
-**Settings → Speakers**. Choose
-CPU or NVIDIA GPU, open and accept the Pyannote model conditions, then paste a read-enabled
-Hugging Face token. The token is encrypted with Windows DPAPI and Pyannote telemetry is disabled.
+**Settings → Speakers**. Choose CPU or NVIDIA GPU and install — the pyannote weights ship
+inside the component, so there is no account to create and no token to paste, and the
+component runs offline. Pyannote telemetry is disabled.
 
 Advanced deployments can still use standard `/v1` APIs. For example, use Speaches for
 transcription and Ollama for minutes generation:

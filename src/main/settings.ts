@@ -42,7 +42,6 @@ interface StoredDiarization {
   baseUrl: string
   /** Voice recognition across meetings (biometric data) — off by default. */
   recognitionEnabled: boolean
-  hfTokenEnc?: string
 }
 
 interface StoredSettings {
@@ -249,8 +248,7 @@ export function getSettings(): AppSettings {
       enabled: s.diarization.enabled,
       backend: s.diarization.backend,
       baseUrl: s.diarization.baseUrl,
-      recognitionEnabled: s.diarization.recognitionEnabled,
-      hasHfToken: !!s.diarization.hfTokenEnc
+      recognitionEnabled: s.diarization.recognitionEnabled
     },
     microphoneId: s.microphoneId,
     captureSystemAudio: s.captureSystemAudio,
@@ -327,8 +325,7 @@ export function saveDiarizationSettings(payload: SaveDiarizationSettings): void 
     enabled: payload.enabled,
     backend: payload.backend,
     baseUrl: payload.baseUrl,
-    recognitionEnabled: payload.recognitionEnabled,
-    hfTokenEnc: resolveKey(payload.hfToken, s.diarization.hfTokenEnc)
+    recognitionEnabled: payload.recognitionEnabled
   }
   persist(s)
 }
@@ -384,7 +381,6 @@ export interface DiarizationConfig {
   backend: 'built-in' | 'server'
   baseUrl: string
   recognitionEnabled: boolean
-  hfToken: string
 }
 
 /** What to call the person at the microphone. Empty when never set. */
@@ -398,8 +394,7 @@ export function getDiarizationConfig(): DiarizationConfig {
     enabled: s.diarization.enabled,
     backend: s.diarization.backend,
     baseUrl: s.diarization.baseUrl,
-    recognitionEnabled: s.diarization.recognitionEnabled,
-    hfToken: decryptKey(s.diarization.hfTokenEnc)
+    recognitionEnabled: s.diarization.recognitionEnabled
   }
 }
 

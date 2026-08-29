@@ -492,8 +492,6 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
   const [backend, setBackend] = useState(d.backend)
   const [baseUrl, setBaseUrl] = useState(d.baseUrl)
   const [recognitionEnabled, setRecognitionEnabled] = useState(d.recognitionEnabled)
-  const [hfToken, setHfToken] = useState('')
-  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [saving, setSaving] = useState(false)
   const components = useLocalAiComponents()
 
@@ -516,19 +514,16 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
         enabled,
         backend,
         baseUrl,
-        recognitionEnabled,
-        hfToken: hfToken || undefined
+        recognitionEnabled
       })
       patchSettings({
         diarization: {
           enabled,
           backend,
           baseUrl,
-          recognitionEnabled,
-          hasHfToken: d.hasHfToken || !!hfToken
+          recognitionEnabled
         }
       })
-      setHfToken('')
       toast(strings.common.saved)
     } finally {
       setSaving(false)
@@ -587,52 +582,17 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
               {strings.settings.diarization.setupDescription}
             </p>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() =>
-              void window.api.openExternal(
-                'https://huggingface.co/pyannote/speaker-diarization-community-1'
-              )
-            }
-          >
-            {strings.settings.diarization.openTerms}
-          </Button>
-          <label className="flex items-start gap-2 text-sm text-fg-muted">
-            <input
-              type="checkbox"
-              checked={acceptedTerms}
-              onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5"
-            />
-            {strings.settings.diarization.acceptedTerms}
-          </label>
-          <Input
-            label={strings.settings.diarization.token}
-            type="password"
-            value={hfToken}
-            onChange={(e) => setHfToken(e.target.value)}
-            placeholder={
-              d.hasHfToken
-                ? strings.settings.apiKeySavedPlaceholder
-                : strings.settings.apiKeyNewPlaceholder
-            }
-            hint={strings.settings.diarization.tokenHint}
-            autoComplete="off"
-          />
           <ComponentInstallCard
             component="diarization-cpu"
             title={strings.settings.diarization.cpuTitle}
             description={strings.settings.diarization.cpuDescription}
             manager={components}
-            disabled={!acceptedTerms || (!hfToken && !d.hasHfToken)}
           />
           <ComponentInstallCard
             component="diarization-gpu"
             title={strings.settings.diarization.gpuTitle}
             description={strings.settings.diarization.gpuDescription}
             manager={components}
-            disabled={!acceptedTerms || (!hfToken && !d.hasHfToken)}
           />
         </div>
       ) : enabled && backend === 'server' ? (

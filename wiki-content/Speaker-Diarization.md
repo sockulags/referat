@@ -25,47 +25,38 @@ note and the protocol is still produced — just without speaker labels.
 
 Be honest with your expectations here:
 
-- **An NVIDIA GPU is strongly recommended.** The server runs on CPU too, but CPU
-  diarization is many times slower than realtime — a one-hour meeting can take several
-  hours. With a GPU it is fast.
+- **A GPU is faster, but CPU is usable.** Measured on an 8-core desktop CPU, diarization
+  runs at about 0.22× realtime: roughly 7 minutes for a 30-minute meeting and 13 minutes
+  for an hour, on top of transcription. A thin laptop will be two to three times slower.
+  With an NVIDIA GPU the same work takes under a minute.
 - **Recent GPUs need recent CUDA-enabled PyTorch.** The packaged NVIDIA component contains the
   matching runtime; you don't pick PyTorch versions by hand.
-- **Disk space.** The CPU package is hundreds of megabytes; the NVIDIA package is several gigabytes,
-  and the first server start downloads the model weights. Both are cached locally —
-  after that, everything runs offline.
-- **A Hugging Face account** (free) — the models are gated, see below.
+- **Disk space.** The CPU package is a few hundred megabytes; the NVIDIA package is several
+  gigabytes. The model weights are inside the package, so nothing else is downloaded.
 
 All of the above applies to **the machine hosting the server only**. The app just needs an
 address: if IT runs one server for the office (see
-[Hosting for a whole office](#hosting-for-a-whole-office)), end users need no GPU, no
-Python and no Hugging Face account.
+[Hosting for a whole office](#hosting-for-a-whole-office)), end users need no GPU and no
+Python.
 
-## 1. One-time Hugging Face setup
+## Install in referat
 
-The pyannote models are **gated**: they are free, but you must accept their conditions
-once, while logged in to a [Hugging Face](https://huggingface.co) account.
+Enable speaker identification, choose **On this computer**, and install **CPU** or
+**NVIDIA GPU**. Save, then press **Test connection**; the first test warms the model and
+can take a minute. Managed Pyannote telemetry is disabled.
 
-1. Create a Hugging Face account (or log in).
-2. Open the model page and accept its conditions:
-   - [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1)
-3. Create a fine-grained access token with read access to gated repositories and paste it into
-   referat. The token is encrypted with Windows DPAPI.
-
-The model weights download on the server's first start and are cached. Hugging Face is only
-contacted for that download — afterwards the server runs fully offline.
-
-## 2. Install in referat
-
-Enable speaker identification, choose **On this computer**, confirm that the model conditions are
-accepted and install **CPU** or **NVIDIA GPU**. Save, then press **Test connection**. The first test
-downloads and warms the model and can take several minutes. Managed Pyannote telemetry is disabled.
+There is no account to create and no token to paste. The pyannote weights ship inside the
+component, so the whole setup is one button and the component never contacts Hugging Face
+— it runs offline from the moment it is installed.
 
 ## Advanced: install and start an external server
 
 The server lives in the `diarization-server/` folder of the
 [referat repository](https://github.com/sockulags/referat). The quickest path on Windows
 is the bundled installer script, which installs [uv](https://docs.astral.sh/uv/) if
-needed, creates the environment and walks through the Hugging Face login from step 1:
+needed, creates the environment and walks through the Hugging Face login. Running the server
+from source is the one path that still needs an account: it downloads the gated models itself
+rather than getting them from referat's package.
 
 ```powershell
 cd referat\diarization-server
@@ -206,22 +197,31 @@ Be aware of what this feature stores: a voiceprint used to recognize a person is
   failed during processing. This is by design: the minutes are still produced, just without
   speaker labels. Fix the server (start it, check its terminal output) — it will be used
   for subsequent meetings.
-- **The server fails on first start with an authorization error.** You haven't accepted the
-  gated-model conditions on all three model pages above, or you aren't logged in — run
-  `hf auth login` and try again.
+- **The server fails on first start with an authorization error.** Only the external
+  server, run from source, downloads the models itself. Accept the model conditions on
+  [the model page](https://huggingface.co/pyannote/speaker-diarization-community-1) and
+  run `hf auth login`. The managed component needs none of this.
 - **`/health` says CPU even though you have an NVIDIA GPU.** Check that a current NVIDIA
   driver is installed, then re-run `uv sync` so the CUDA-enabled PyTorch is picked up. CPU
   mode still works — it's just many times slower than realtime.
-- **It's very slow.** That's CPU mode. See the requirements section — for regular use with
-  long meetings, a GPU is the realistic option.
+- **It's slow.** That's CPU mode, and it is expected: budget roughly a quarter of the
+  meeting's length. See the requirements section. A GPU turns it into seconds.
 
 ## Privacy
 
 The privacy story doesn't change. The diarization server is a **local** service; referat
 only ever talks to endpoints you configured yourself. Your meeting audio goes to the
 address in the _Server address_ field — `localhost` in the default setup — and nowhere
-else. The only time the machine talks to the internet on the feature's behalf is the
-one-time model download from Hugging Face; after that, diarization runs fully offline.
+else. The managed component never talks to the internet on the feature's behalf at all:
+its model weights arrive inside the package it downloaded from referat's own releases.
+
+## Credits
+
+Speaker diarization uses
+[pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1)
+by the pyannote authors, redistributed unmodified inside referat's managed component under the
+[Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
+license. The same notice ships as `THIRD-PARTY-NOTICES.md` inside the component itself.
 
 ## Related pages
 

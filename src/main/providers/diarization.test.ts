@@ -9,8 +9,7 @@ const config: DiarizationConfig = {
   enabled: true,
   backend: 'server',
   baseUrl: 'http://localhost:8300',
-  recognitionEnabled: false,
-  hfToken: ''
+  recognitionEnabled: false
 }
 
 const recognitionConfig: DiarizationConfig = { ...config, recognitionEnabled: true }
