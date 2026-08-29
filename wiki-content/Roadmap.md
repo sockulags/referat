@@ -5,6 +5,9 @@ It exists to show the direction referat is heading.
 
 ## Shipped
 
+- **Me and everyone else** — when system audio is recorded, the transcript separates the
+  microphone from the system audio automatically, with no server and no setup — see
+  [Speaker Diarization](Speaker-Diarization).
 - **Speaker diarization** — transcript segments are attributed to individual speakers ("who
   said what"), with editable names that flow into the minutes. Optional, via a local
   companion server — see [Speaker Diarization](Speaker-Diarization).

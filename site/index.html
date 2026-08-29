@@ -283,7 +283,8 @@
           <p>
             When you stop, the app transcribes and summarizes automatically. You get a
             summary, decisions and action items with owners — plus a fully searchable transcript.
-            Turn on speaker identification and the transcript also shows who said what.
+            When system audio is recorded, the transcript already separates you from everyone
+            else — and speaker identification can split the others into individual voices.
           </p>
         </li>
 
@@ -416,12 +417,18 @@
           <summary>Can it show who said what?</summary>
           <div class="faq__body">
             <p>
-              Yes, as an optional feature. A small open-source companion server labels the
-              transcript by speaker ("Speaker 1", "Speaker 2"), and you can rename the labels —
-              the names carry into the minutes. IT can host one server for the whole office, or
-              power users run it on their own machine. There's also an opt-in setting that
-              recognizes saved voices at later meetings and suggests the name — always as a
-              suggestion you confirm, never applied silently. See the
+              Partly, with no setup at all. When system audio is recorded, the app measures the
+              microphone and the system audio separately and labels each part of the transcript
+              as you or as everyone else. Rename the labels and the names carry into the
+              minutes. Where the two are too close to call, the label is left off rather than
+              guessed.
+            </p>
+            <p>
+              Splitting the other side into individual speakers ("Speaker 1", "Speaker 2") is an
+              optional feature that uses a small open-source companion server. IT can host one
+              server for the whole office, or power users run it on their own machine. There's
+              also an opt-in setting that recognizes saved voices at later meetings and suggests
+              the name — always as a suggestion you confirm, never applied silently. See the
               <a href="https://github.com/sockulags/referat/wiki/Speaker-Diarization">setup guide</a>.
             </p>
           </div>
