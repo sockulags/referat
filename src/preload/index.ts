@@ -78,6 +78,7 @@ const api: RendererApi = {
   saveGeneralSettings: (s: {
     microphoneId?: string
     captureSystemAudio?: boolean
+    userName?: string
     theme?: AppSettings['theme']
     onboardingCompleted?: boolean
   }): Promise<void> => ipcRenderer.invoke(IPC.saveGeneralSettings, s),

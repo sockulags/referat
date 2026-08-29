@@ -243,6 +243,10 @@ export const strings = {
     diarization: {
       title: 'Talare',
       description: 'Märker upp vem som säger vad i transkriptet, som "Talare 1" och "Talare 2".',
+      userName: 'Ditt namn',
+      userNameHint:
+        'Används som ditt talarnamn i transkript och protokoll. Referat vet vilka delar som kom från din mikrofon, så namnet sätts åt dig — utan namn står det "Jag". Fungerar även utan talaridentifiering.',
+      userNamePlaceholder: 'T.ex. Anna Svensson',
       enable: 'Identifiera talare',
       enableHint:
         'Kräver en lokal talarserver på din dator eller i nätverket — se guiden på webbplatsen. Namnen går att ändra i efterhand.',
@@ -265,7 +269,7 @@ export const strings = {
       recognition: {
         enable: 'Känn igen talare mellan möten',
         enableHint:
-          'När du namnger en talare sparas ett röstavtryck på din dator, och nästa gång rösten hörs föreslås namnet med ett frågetecken — du bekräftar alltid själv. Röstavtryck räknas som biometriska uppgifter: berätta för mötesdeltagarna och ta bort avtryck på begäran.',
+          'När du namnger en talare sparas ett röstavtryck på din dator, och nästa gång rösten hörs föreslås namnet med ett frågetecken — du bekräftar alltid själv. Har du fyllt i ditt namn ovan sparas även din egen röst automatiskt, eftersom appen vet vilken talare som är du. Röstavtryck räknas som biometriska uppgifter: berätta för mötesdeltagarna och ta bort avtryck på begäran.',
         profilesTitle: 'Sparade röster',
         profilesEmpty:
           'Inga sparade röster än. Namnge en talare i ett transkript så sparas rösten här.',

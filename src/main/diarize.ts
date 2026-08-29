@@ -41,7 +41,7 @@ function pickSpeaker(seg: TranscriptSegment, turns: DiarizationTurn[]): string {
 }
 
 /** Order of first appearance of speaker ids across the segments. */
-function speakerOrder(segments: TranscriptSegment[]): string[] {
+export function speakerOrder(segments: TranscriptSegment[]): string[] {
   const order: string[] = []
   for (const seg of segments) {
     if (seg.speaker && !order.includes(seg.speaker)) order.push(seg.speaker)

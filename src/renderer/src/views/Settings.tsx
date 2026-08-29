@@ -497,6 +497,18 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
   const [saving, setSaving] = useState(false)
   const components = useLocalAiComponents()
 
+  const [userName, setUserName] = useState(settings.userName)
+
+  // The name applies with or without diarization, so it saves on its own
+  // rather than waiting for this section's Save button.
+  const saveUserName = async (): Promise<void> => {
+    const trimmed = userName.trim()
+    if (trimmed === settings.userName) return
+    patchSettings({ userName: trimmed })
+    await window.api.saveGeneralSettings({ userName: trimmed })
+    toast(strings.common.saved)
+  }
+
   const save = async (): Promise<void> => {
     setSaving(true)
     try {
@@ -528,6 +540,17 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
       title={strings.settings.diarization.title}
       description={strings.settings.diarization.description}
     >
+      <Input
+        label={strings.settings.diarization.userName}
+        hint={strings.settings.diarization.userNameHint}
+        placeholder={strings.settings.diarization.userNamePlaceholder}
+        value={userName}
+        onChange={(e) => setUserName(e.target.value)}
+        onBlur={() => void saveUserName()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') void saveUserName()
+        }}
+      />
       <Toggle
         id="diarization-enable"
         checked={enabled}
