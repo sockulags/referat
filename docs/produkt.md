@@ -107,24 +107,35 @@ Det kostar ingenting vid transkriberingen: ingen extra modell, inget extra anrop
 fungerar likadant lokalt som i molnet. Det är också den enda identitet i kedjan som
 är känd i stället för gissad — mikrofonen är användaren.
 
+Fyller användaren i sitt namn under **Inställningar → Talare** används det i stället
+för "Jag", vilket läser sig bättre i ett protokoll. Fältet gäller oavsett om
+talaridentifieringen är på.
+
 Uppskattningen vägrar gissa. Ligger sidorna för nära varandra, vilket händer med
 öppna högtalare trots ekosläckningen, lämnas segmentet omärkt. Ett saknat namn är
 ärligt, ett felaktigt namn i ett protokoll är det inte. Spelades inget systemljud in
 — ett fysiskt möte i ett rum — görs ingen uppmärkning alls, eftersom allt då vore
-"Jag". Körs talardiarisering står den här funktionen tillbaka, för diariseringen vet
-mer.
+"Jag". Körs talardiarisering står uppmärkningen tillbaka — men mikrofonsignalen används
+ändå, se nedan.
 
 ## Talardiarisering (tillval)
 
 "Vem sa vad" — transkriptet kan märkas upp per talare ("Talare 1", "Talare 2") och
-namnen kan bytas i efterhand ("Anna"), vilket följer med in i protokollet. Kräver en
+namnen kan bytas i efterhand ("Anna"), vilket följer med in i protokollet. Diariseringen
+delar upp röster men kan inte veta vilken klunga som är användaren; det kan
+mikrofonkurvan. Den talare som mest kom från mikrofonen får därför användarens namn
+direkt, och övriga numreras om — man slipper lista ut vilken av "Talare 1–4" som är en
+själv. Kräver en
 lokal talarserver (guide finns i wikin) och är avstängt som default — en
 kraftanvändarfunktion som inte rör onboardingen.
 
 ### Röstigenkänning mellan möten (tillval i tillvalet)
 
 Egen featureflagga, av som default. När den är på sparas ett lokalt röstavtryck när
-användaren namnger en talare; nästa möte där rösten hörs föreslås namnet som
+användaren namnger en talare — och, om namnfältet är ifyllt, även för användarens egen
+röst automatiskt, eftersom appen då vet med säkerhet vilken talare det är. Utan ifyllt
+namn sparas inget eget avtryck: ett avtryck arkiverat under "Jag" skulle matcha
+främlingar i senare möten; nästa möte där rösten hörs föreslås namnet som
 "Anna?" — alltid ett förslag som användaren bekräftar, aldrig ett tyst beslut (ett
 felaktigt "Anna sa X" i ett HR-protokoll är värre än ett anonymt "Talare 2").
 Röstavtryck är biometriska personuppgifter (GDPR art. 9): allt lagras lokalt,

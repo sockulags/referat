@@ -21,7 +21,8 @@ import {
   getDiarizationConfig,
   getSummaryConfig,
   getSummaryTemplate,
-  getTranscriptionConfig
+  getTranscriptionConfig,
+  getUserName
 } from './settings'
 import { applyGlossary, glossaryPromptBlock, listGlossaryTerms } from './glossary'
 import { transcribe } from './providers/transcription'
@@ -34,8 +35,13 @@ import {
   RECOGNITION_THRESHOLD,
   speakerAttributedText
 } from './diarize'
-import { profilesWithEmbeddings } from './speakerProfiles'
-import { attributeBySource } from './sourceAttribution'
+import { profilesWithEmbeddings, upsertProfile } from './speakerProfiles'
+import {
+  attributeBySource,
+  identifyMicSpeaker,
+  MIC_FALLBACK_NAME,
+  nameMicSpeaker
+} from './sourceAttribution'
 import { classifyError, UserFacingError } from './providers/shared'
 import type { Transcript } from '../shared/types'
 
@@ -129,8 +135,26 @@ async function runDiarization(meetingId: string): Promise<void> {
   try {
     const result = await diarize(audioPaths, config)
     let merged = mergeDiarization(transcript, result.turns)
+
+    // Diarization clusters voices but cannot say which cluster is the person
+    // running the meeting. The level envelope can: whoever spoke through the
+    // microphone is the user. Naming that speaker also keeps recognition from
+    // suggesting somebody else's name for them, since the name is no longer
+    // the default 'Talare N'.
+    const envelope = readLevelEnvelope(meetingId)
+    const userName = getUserName()
+    const micSpeaker = envelope ? identifyMicSpeaker(merged, envelope) : undefined
+    if (micSpeaker) {
+      merged = nameMicSpeaker(merged, micSpeaker, userName || MIC_FALLBACK_NAME)
+    }
+
     if (config.recognitionEnabled && result.embeddings) {
       merged = applyRecognition(merged, result.embeddings)
+      // Knowing which cluster is the user is enough to enroll their voice
+      // without them naming a speaker — but only under a name they actually
+      // gave. A voiceprint filed under 'Jag' would match strangers later.
+      const embedding = micSpeaker ? merged.speakerEmbeddings?.[micSpeaker] : undefined
+      if (embedding && userName) upsertProfile(userName, embedding)
     }
     writeTranscript(meetingId, merged)
   } catch (err) {
@@ -177,7 +201,7 @@ function applySourceAttribution(meetingId: string): void {
   const transcript = readTranscript(meetingId)
   const envelope = readLevelEnvelope(meetingId)
   if (!transcript || !envelope) return
-  const next = attributeBySource(transcript, envelope)
+  const next = attributeBySource(transcript, envelope, getUserName() || MIC_FALLBACK_NAME)
   if (next !== transcript) writeTranscript(meetingId, next)
 }
 

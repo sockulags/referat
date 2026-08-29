@@ -247,5 +247,23 @@ wrong name in a set of minutes is worse than a missing one. A meeting recorded w
 audio, such as everyone sitting in one room, gets no labels at all: everything would be
 "Jag", which says nothing.
 
-Diarization wins when both are available. It splits the room into individual voices, which
-this cannot do; when diarization has labelled the segments, source attribution stands down.
+## The two together
+
+Diarization splits the room into individual voices, which source attribution cannot do. Source
+attribution knows which of those voices is *you*, which diarization cannot do. With both
+enabled, referat uses each for what it is good at.
+
+Diarization runs first and produces its clusters. The level envelope then decides which
+cluster spoke through the microphone, and that one is named after you — everyone else is
+renumbered **Talare 1**, **Talare 2**, and so on. You no longer have to work out which of four
+labels is yourself before renaming the rest. A name you typed yourself is never overwritten.
+
+The decision is refused rather than guessed. A cluster has to account for at least five
+seconds of attributed speech, be at least 70 % microphone-side, and be clearly ahead of the
+runner-up. Two people sharing one laptop microphone therefore produce no identification at
+all, and the transcript falls back to plain **Talare N**.
+
+Set **Your name** under **Settings → Speakers** to get your real name instead of _Jag_. With
+voice recognition also enabled, that is what lets referat enroll your own voice profile
+without you naming a single speaker — it knows which cluster is you. Without a name, no
+profile is saved for you: a voiceprint filed under _Jag_ would go on to match strangers.

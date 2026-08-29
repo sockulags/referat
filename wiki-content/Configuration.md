@@ -210,6 +210,10 @@ group is called **Talare**.
 
 **Fields**
 
+- **Your name** (_Ditt namn_) — what to call you in transcripts and minutes. referat knows
+  which parts came from your microphone, so this name is applied for you; leave it empty
+  and the label is simply _Jag_. It applies whether or not speaker identification is on,
+  and with voice recognition on it is also the name your own voice profile is saved under.
 - **Identify speakers** (_Identifiera talare_) — the on/off toggle. When off, meetings are
   processed exactly as before.
 - **Run speaker identification** — choose the managed component or an external server.

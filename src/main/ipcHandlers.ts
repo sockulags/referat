@@ -160,6 +160,7 @@ export function registerIpcHandlers(): void {
       s: {
         microphoneId?: string
         captureSystemAudio?: boolean
+        userName?: string
         theme?: AppSettings['theme']
         onboardingCompleted?: boolean
       }

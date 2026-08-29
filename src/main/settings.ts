@@ -51,6 +51,7 @@ interface StoredSettings {
   diarization: StoredDiarization
   microphoneId: string
   captureSystemAudio: boolean
+  userName: string
   theme: AppSettings['theme']
   onboardingCompleted: boolean
 }
@@ -130,6 +131,7 @@ function defaults(): StoredSettings {
     },
     microphoneId: '',
     captureSystemAudio: true,
+    userName: '',
     theme: 'system',
     onboardingCompleted: false
   }
@@ -163,6 +165,7 @@ function load(): StoredSettings {
         diarization: { ...base.diarization, ...parsed.diarization },
         microphoneId: parsed.microphoneId ?? base.microphoneId,
         captureSystemAudio: parsed.captureSystemAudio ?? base.captureSystemAudio,
+        userName: parsed.userName ?? base.userName,
         theme: parsed.theme ?? base.theme,
         onboardingCompleted: parsed.onboardingCompleted ?? base.onboardingCompleted
       }
@@ -251,6 +254,7 @@ export function getSettings(): AppSettings {
     },
     microphoneId: s.microphoneId,
     captureSystemAudio: s.captureSystemAudio,
+    userName: s.userName,
     theme: s.theme,
     onboardingCompleted: s.onboardingCompleted
   }
@@ -332,12 +336,14 @@ export function saveDiarizationSettings(payload: SaveDiarizationSettings): void 
 export function saveGeneralSettings(payload: {
   microphoneId?: string
   captureSystemAudio?: boolean
+  userName?: string
   theme?: AppSettings['theme']
   onboardingCompleted?: boolean
 }): void {
   const s = load()
   if (payload.microphoneId !== undefined) s.microphoneId = payload.microphoneId
   if (payload.captureSystemAudio !== undefined) s.captureSystemAudio = payload.captureSystemAudio
+  if (payload.userName !== undefined) s.userName = payload.userName.trim()
   if (payload.theme !== undefined) s.theme = payload.theme
   if (payload.onboardingCompleted !== undefined) s.onboardingCompleted = payload.onboardingCompleted
   persist(s)
@@ -379,6 +385,11 @@ export interface DiarizationConfig {
   baseUrl: string
   recognitionEnabled: boolean
   hfToken: string
+}
+
+/** What to call the person at the microphone. Empty when never set. */
+export function getUserName(): string {
+  return load().userName
 }
 
 export function getDiarizationConfig(): DiarizationConfig {

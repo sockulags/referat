@@ -179,6 +179,12 @@ export interface AppSettings {
   transcription: TranscriptionSettings
   summary: SummarySettings
   diarization: DiarizationSettings
+  /**
+   * What to call the person at the microphone in transcripts and minutes.
+   * Empty falls back to 'Jag'; a real name is also what lets the user's own
+   * voice be enrolled as a profile without naming a speaker by hand.
+   */
+  userName: string
   /** Preferred input device id ('' = system default). */
   microphoneId: string
   /** Whether to capture system audio (loopback) in addition to the microphone. */
@@ -324,6 +330,7 @@ export interface RendererApi {
   saveGeneralSettings(s: {
     microphoneId?: string
     captureSystemAudio?: boolean
+    userName?: string
     theme?: AppSettings['theme']
     onboardingCompleted?: boolean
   }): Promise<void>
