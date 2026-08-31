@@ -1,4 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
+
+const componentMocks = vi.hoisted(() => ({
+  ensureLocalAiComponentRunning: vi.fn(async () => undefined),
+  listLocalAiComponents: vi.fn(() => [
+    { component: 'diarization-cpu', state: 'installed' },
+    { component: 'diarization-gpu', state: 'not-installed' }
+  ]),
+  localAiComponentBaseUrl: vi.fn(() => 'http://127.0.0.1:8300')
+}))
+
+vi.mock('../localAiComponents', () => componentMocks)
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -182,6 +193,35 @@ describe('diarize', () => {
     const result = await diarize([a], recognitionConfig)
     expect(result).toEqual({ turns: [] })
     expect(result).not.toHaveProperty('embeddings')
+  })
+})
+
+describe('diarize (managed component)', () => {
+  // 0.2 shipped `http://localhost:8300` as the default address, and settings
+  // carry it forward on upgrade. The field is only editable for an external
+  // server, so a stale value was invisible and unfixable from the UI — while
+  // on Windows `localhost` resolves to ::1 and the component binds 127.0.0.1.
+  const builtIn: DiarizationConfig = {
+    ...config,
+    backend: 'built-in',
+    baseUrl: 'http://localhost:8300'
+  }
+
+  it('talks to the component it started, not the address in settings', async () => {
+    const fetchMock = queueFetch([jsonResponse({ turns: [] })])
+    await diarize([makeFile('a.webm')], builtIn)
+
+    expect(componentMocks.ensureLocalAiComponentRunning).toHaveBeenCalledWith('diarization-cpu')
+    expect(fetchMock.mock.calls[0][0]).toBe('http://127.0.0.1:8300/diarize')
+  })
+
+  it('still uses the configured address for an external server', async () => {
+    componentMocks.ensureLocalAiComponentRunning.mockClear()
+    const fetchMock = queueFetch([jsonResponse({ turns: [] })])
+    await diarize([makeFile('b.webm')], { ...config, baseUrl: 'http://gpu-box:8300/' })
+
+    expect(componentMocks.ensureLocalAiComponentRunning).not.toHaveBeenCalled()
+    expect(fetchMock.mock.calls[0][0]).toBe('http://gpu-box:8300/diarize')
   })
 })
 

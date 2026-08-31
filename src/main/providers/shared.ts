@@ -64,8 +64,18 @@ export function isTimeoutError(err: unknown): boolean {
 }
 
 export function errorDetail(err: unknown): string {
-  if (err instanceof Error) return `${err.name}: ${err.message}`
-  return String(err)
+  if (!(err instanceof Error)) return String(err)
+  // fetch reports every transport failure as a bare 'TypeError: fetch failed'
+  // and puts the reason — ECONNREFUSED, ECONNRESET, the address it tried — in
+  // `cause`. Without unwrapping it, "visa detaljer" says nothing at all.
+  const parts: string[] = []
+  let current: unknown = err
+  for (let depth = 0; current instanceof Error && depth < 4; depth++) {
+    const code = (current as NodeJS.ErrnoException).code
+    parts.push(`${current.name}: ${current.message}${code ? ` (${code})` : ''}`)
+    current = current.cause
+  }
+  return parts.join('\ncaused by ')
 }
 
 /**

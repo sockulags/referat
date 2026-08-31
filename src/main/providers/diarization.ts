@@ -6,7 +6,11 @@ import { readFile } from 'fs/promises'
 import { basename } from 'path'
 import type { ConnectionTestResult } from '../../shared/types'
 import type { DiarizationConfig } from '../settings'
-import { ensureLocalAiComponentRunning, listLocalAiComponents } from '../localAiComponents'
+import {
+  ensureLocalAiComponentRunning,
+  listLocalAiComponents,
+  localAiComponentBaseUrl
+} from '../localAiComponents'
 import {
   errorDetail,
   HttpError,
@@ -77,6 +81,29 @@ function buildEmbeddings(data: DiarizeResponse): Record<string, number[]> | unde
 }
 
 /**
+ * The address to talk to, and — for the managed component — the guarantee that
+ * something is listening on it.
+ *
+ * A managed component's address is not the base URL from settings. That field
+ * describes an externally hosted server, is only editable when the "own server"
+ * backend is selected, and installs upgraded from 0.2 still carry its original
+ * default of `http://localhost:8300`. On Windows `localhost` resolves to `::1`
+ * first, while the component binds `127.0.0.1` only, so the readiness probe
+ * (which always used 127.0.0.1) passed while the actual request was refused —
+ * surfacing as an undiagnosable "TypeError: fetch failed".
+ */
+async function resolveEndpoint(config: DiarizationConfig): Promise<string> {
+  if (config.backend !== 'built-in') return trimBaseUrl(config.baseUrl)
+  const statuses = listLocalAiComponents()
+  const gpuInstalled = statuses.some(
+    (status) => status.component === 'diarization-gpu' && status.state !== 'not-installed'
+  )
+  const component = gpuInstalled ? 'diarization-gpu' : 'diarization-cpu'
+  await ensureLocalAiComponentRunning(component)
+  return localAiComponentBaseUrl(component)
+}
+
+/**
  * Diarize a meeting's audio segments. All files travel in ONE request, in
  * recording order — that is what keeps the speaker labels ('S1', 'S2', …)
  * globally consistent across files. With recognition enabled the server is
@@ -86,13 +113,7 @@ export async function diarize(
   audioFilePaths: string[],
   config: DiarizationConfig
 ): Promise<DiarizationResult> {
-  if (config.backend === 'built-in') {
-    const statuses = listLocalAiComponents()
-    const gpuInstalled = statuses.some(
-      (status) => status.component === 'diarization-gpu' && status.state !== 'not-installed'
-    )
-    await ensureLocalAiComponentRunning(gpuInstalled ? 'diarization-gpu' : 'diarization-cpu')
-  }
+  const endpoint = await resolveEndpoint(config)
   const form = new FormData()
   for (const path of audioFilePaths) {
     const bytes = await readFile(path)
@@ -100,7 +121,7 @@ export async function diarize(
   }
   if (config.recognitionEnabled) form.append('embeddings', 'true')
 
-  const url = `${trimBaseUrl(config.baseUrl)}/diarize`
+  const url = `${endpoint}/diarize`
   const res = await providerFetch(url, {
     method: 'POST',
     body: form,
@@ -129,11 +150,7 @@ export async function testDiarizationConnection(
 ): Promise<ConnectionTestResult> {
   if (config.backend === 'built-in') {
     try {
-      const statuses = listLocalAiComponents()
-      const gpuInstalled = statuses.some(
-        (status) => status.component === 'diarization-gpu' && status.state !== 'not-installed'
-      )
-      await ensureLocalAiComponentRunning(gpuInstalled ? 'diarization-gpu' : 'diarization-cpu')
+      await resolveEndpoint(config)
     } catch (err) {
       return {
         ok: false,

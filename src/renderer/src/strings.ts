@@ -251,7 +251,8 @@ export const strings = {
       enableHint:
         'Kräver en lokal talarserver på din dator eller i nätverket — se guiden på webbplatsen. Namnen går att ändra i efterhand.',
       baseUrl: 'Serveradress',
-      baseUrlHint: 'Adressen till talarservern, t.ex. http://localhost:8300',
+      baseUrlHint:
+        'Adressen till talarservern, t.ex. http://127.0.0.1:8300. Skriv IP-adressen hellre än localhost — servern lyssnar på 127.0.0.1, och localhost kan slå upp till IPv6 i stället.',
       backend: 'Kör talaridentifiering',
       builtIn: 'På den här datorn',
       server: 'Egen server',

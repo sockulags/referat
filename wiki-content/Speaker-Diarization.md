@@ -204,6 +204,11 @@ Be aware of what this feature stores: a voiceprint used to recognize a person is
 - **`/health` says CPU even though you have an NVIDIA GPU.** Check that a current NVIDIA
   driver is installed, then re-run `uv sync` so the CUDA-enabled PyTorch is picked up. CPU
   mode still works — it's just many times slower than realtime.
+- **"Talarna kunde inte identifieras" with `fetch failed`.** The app reached nothing at the
+  address it used. For a server you host yourself, prefer `http://127.0.0.1:8300` over
+  `http://localhost:8300`: the server binds 127.0.0.1, and on Windows `localhost` often
+  resolves to the IPv6 address `::1` first, where nothing is listening. The managed component
+  is unaffected — it is always addressed as 127.0.0.1.
 - **It's slow.** That's CPU mode, and it is expected: budget roughly a quarter of the
   meeting's length. See the requirements section. A GPU turns it into seconds.
 
