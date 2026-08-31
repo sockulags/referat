@@ -48,6 +48,15 @@ function componentsRoot(): string {
   return join(localBase, 'referat', 'local-ai')
 }
 
+/**
+ * Where a managed component listens. referat starts it itself, so the address
+ * is a fact rather than a setting — the base URL in settings only ever
+ * described an externally hosted server.
+ */
+export function localAiComponentBaseUrl(component: LocalAiComponent): string {
+  return `http://127.0.0.1:${DEFINITIONS[component].port}`
+}
+
 function componentDir(component: LocalAiComponent): string {
   return join(componentsRoot(), component)
 }

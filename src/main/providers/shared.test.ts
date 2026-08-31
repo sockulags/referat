@@ -121,3 +121,29 @@ describe('classifyError', () => {
     expect(classifyError('boom').message).toBe('Något gick fel vid bearbetningen')
   })
 })
+
+describe('errorDetail', () => {
+  it('unwraps the cause that fetch hides', () => {
+    // What undici actually throws when nothing is listening.
+    const cause = Object.assign(new Error('connect ECONNREFUSED ::1:8300'), {
+      code: 'ECONNREFUSED'
+    })
+    const err = new TypeError('fetch failed', { cause })
+
+    const detail = errorDetail(err)
+    expect(detail).toContain('TypeError: fetch failed')
+    expect(detail).toContain('connect ECONNREFUSED ::1:8300')
+    expect(detail).toContain('(ECONNREFUSED)')
+  })
+
+  it('is unchanged for a plain error', () => {
+    expect(errorDetail(new Error('trasigt'))).toBe('Error: trasigt')
+  })
+
+  it('stops rather than following a cause cycle forever', () => {
+    const a = new Error('a')
+    const b = new Error('b', { cause: a })
+    a.cause = b
+    expect(errorDetail(b).split('caused by').length).toBeLessThanOrEqual(4)
+  })
+})
