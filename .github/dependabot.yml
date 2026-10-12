@@ -61,7 +61,7 @@ updates:
       # supports TS 7 (upstream issue typescript-eslint#12518).
       - dependency-name: "typescript"
         versions: [">=6"]
-      # Electron 43 ships a Node 24 runtime (24.18.0) and itself depends on
+      # Electron 44 ships a Node 24 runtime (24.21.0) and itself depends on
       # @types/node ^24.9.0. Keep the types on the major the app actually runs:
       # newer ones would typecheck APIs that are not there at runtime.
       - dependency-name: "@types/node"
