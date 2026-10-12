@@ -680,7 +680,8 @@ function ProjectSettingsModal({
         }
       >
         <p className="text-sm text-fg-muted leading-relaxed">
-          {strings.projects.deleteBody(project.name, meetingCount)}
+          {strings.projects.deleteBody(project.name, meetingCount)}{' '}
+          {strings.projects.deleteTermsNote}
         </p>
       </Modal>
     )

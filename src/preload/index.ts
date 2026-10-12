@@ -46,11 +46,15 @@ const api: RendererApi = {
 
   // Glossary
   listGlossaryTerms: (): Promise<GlossaryTerm[]> => ipcRenderer.invoke(IPC.listGlossaryTerms),
-  addGlossaryEntry: (canonical: string, variant: string): Promise<GlossaryTerm> =>
-    ipcRenderer.invoke(IPC.addGlossaryEntry, canonical, variant),
+  addGlossaryEntry: (
+    canonical: string,
+    variant: string,
+    projectId?: string
+  ): Promise<GlossaryTerm> =>
+    ipcRenderer.invoke(IPC.addGlossaryEntry, canonical, variant, projectId),
   updateGlossaryTerm: (
     id: string,
-    patch: { canonical?: string; variants?: string[] }
+    patch: { canonical?: string; variants?: string[]; projectId?: string | null }
   ): Promise<GlossaryTerm | null> => ipcRenderer.invoke(IPC.updateGlossaryTerm, id, patch),
   deleteGlossaryTerm: (id: string): Promise<void> => ipcRenderer.invoke(IPC.deleteGlossaryTerm, id),
   applyGlossary: (meetingId: string): Promise<number | null> =>
@@ -82,8 +86,8 @@ const api: RendererApi = {
     ipcRenderer.invoke(IPC.finishRecording, meetingId, durationSec),
   cancelRecording: (meetingId: string): Promise<void> =>
     ipcRenderer.invoke(IPC.cancelRecording, meetingId),
-  transcribeLive: (audio: ArrayBuffer): Promise<string> =>
-    ipcRenderer.invoke(IPC.transcribeLive, audio),
+  transcribeLive: (audio: ArrayBuffer, meetingId?: string): Promise<string> =>
+    ipcRenderer.invoke(IPC.transcribeLive, audio, meetingId),
 
   // Settings
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.getSettings),

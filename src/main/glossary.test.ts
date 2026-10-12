@@ -8,8 +8,10 @@ import {
   addGlossaryEntry,
   applyGlossary,
   deleteGlossaryTerm,
+  deleteProjectTerms,
   glossaryPromptBlock,
   listGlossaryTerms,
+  termsForProject,
   updateGlossaryTerm
 } from './glossary'
 
@@ -234,5 +236,49 @@ describe('glossary store', () => {
     addGlossaryEntry('Azure', 'asure')
     addGlossaryEntry('Kubernetes', 'kubbernätes')
     expect(listGlossaryTerms().map((t) => t.canonical)).toEqual(['Azure', 'Kubernetes', 'Övrigt'])
+  })
+})
+
+describe('project terms', () => {
+  beforeEach(() => {
+    rmSync(glossaryFile, { force: true })
+  })
+
+  it("gives a project's meetings the global terms plus their own, and nobody else's", () => {
+    addGlossaryEntry('Kubernetes', 'kubbernätes')
+    addGlossaryEntry('Acme Flow', 'akme flo', 'acme')
+    addGlossaryEntry('Nordkap', 'nord kapp', 'other')
+    const canonical = (terms: GlossaryTerm[]): string[] => terms.map((t) => t.canonical)
+    expect(canonical(termsForProject('acme'))).toEqual(['Acme Flow', 'Kubernetes'])
+    expect(canonical(termsForProject(undefined))).toEqual(['Kubernetes'])
+  })
+
+  it('keeps the same spelling in two scopes apart', () => {
+    const global = addGlossaryEntry('Flow', 'flå')
+    const scoped = addGlossaryEntry('Flow', 'flo', 'acme')
+    expect(scoped.id).not.toBe(global.id)
+    expect(scoped.projectId).toBe('acme')
+    // A variant added in the project lands on the project's term only.
+    addGlossaryEntry('Flow', 'floo', 'acme')
+    const [first, second] = listGlossaryTerms()
+    const byScope = new Map([first, second].map((t) => [t.projectId ?? '', t.variants]))
+    expect(byScope.get('')).toEqual(['flå'])
+    expect(byScope.get('acme')).toEqual(['flo', 'floo'])
+  })
+
+  it('moves a term between a project and every meeting', () => {
+    const t = addGlossaryEntry('Acme Flow', 'akme flo', 'acme')
+    expect(updateGlossaryTerm(t.id, { projectId: null })).not.toHaveProperty('projectId')
+    expect(updateGlossaryTerm(t.id, { projectId: 'other' })?.projectId).toBe('other')
+    // Leaving projectId out keeps the scope.
+    expect(updateGlossaryTerm(t.id, { canonical: 'Acme Flow 2' })?.projectId).toBe('other')
+  })
+
+  it("deletes only a deleted project's own terms", () => {
+    addGlossaryEntry('Kubernetes', 'kubbernätes')
+    addGlossaryEntry('Acme Flow', 'akme flo', 'acme')
+    addGlossaryEntry('Nordkap', 'nord kapp', 'other')
+    deleteProjectTerms('acme')
+    expect(listGlossaryTerms().map((t) => t.canonical)).toEqual(['Kubernetes', 'Nordkap'])
   })
 })

@@ -78,6 +78,11 @@ export interface GlossaryTerm {
   variants: string[]
   /** ISO 8601 timestamp of the last edit. */
   updatedAt: string
+  /**
+   * The project this term belongs to. Absent = every meeting. A project's
+   * meetings get the global terms plus their own.
+   */
+  projectId?: string
 }
 
 /** A locally stored voice profile (the embedding itself never crosses IPC). */
@@ -316,10 +321,12 @@ export interface RendererApi {
    * Add a misheard form to the term with this spelling, creating it when new.
    * Rejects when either string is blank.
    */
-  addGlossaryEntry(canonical: string, variant: string): Promise<GlossaryTerm>
+  /** `projectId` limits a new term to that project; omitted = every meeting. */
+  addGlossaryEntry(canonical: string, variant: string, projectId?: string): Promise<GlossaryTerm>
+  /** `projectId: null` makes the term apply to every meeting again. */
   updateGlossaryTerm(
     id: string,
-    patch: { canonical?: string; variants?: string[] }
+    patch: { canonical?: string; variants?: string[]; projectId?: string | null }
   ): Promise<GlossaryTerm | null>
   deleteGlossaryTerm(id: string): Promise<void>
   /**
@@ -364,7 +371,7 @@ export interface RendererApi {
    * Rejects when live transcription is off or the transcriber fails. Nothing
    * is stored — the meeting's transcript is made from the recording.
    */
-  transcribeLive(audio: ArrayBuffer): Promise<string>
+  transcribeLive(audio: ArrayBuffer, meetingId?: string): Promise<string>
 
   // Settings
   getSettings(): Promise<AppSettings>

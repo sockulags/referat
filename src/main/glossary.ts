@@ -1,8 +1,10 @@
 // Glossary of misheard terms. Swedish speech recognition mangles technical
 // vocabulary, product names and workplace-specific words — the glossary maps
 // every heard variant back to one correct spelling. One JSON file at
-// userData/glossary.json, shared by every meeting: technical vocabulary is
-// stable across a team's meetings, so the list is worth building once.
+// userData/glossary.json. Most terms apply to every meeting: technical
+// vocabulary is stable across a team's meetings, so the list is worth
+// building once. A term can also belong to one project — a customer's
+// product names have no business correcting anyone else's meetings.
 //
 // Matching is deliberately literal. A wrong correction in a protocol is worse
 // than a missed one, so there is no fuzzy matching here — only the variants
@@ -29,7 +31,8 @@ function isTerm(value: unknown): value is GlossaryTerm {
     t.canonical.trim().length > 0 &&
     Array.isArray(t.variants) &&
     t.variants.every((v) => typeof v === 'string') &&
-    typeof t.updatedAt === 'string'
+    typeof t.updatedAt === 'string' &&
+    (t.projectId === undefined || typeof t.projectId === 'string')
   )
 }
 
@@ -55,6 +58,18 @@ export function listGlossaryTerms(): GlossaryTerm[] {
   return loadTerms().sort((a, b) => a.canonical.localeCompare(b.canonical, 'sv'))
 }
 
+/** The terms that apply to a meeting: the global ones plus its project's own. */
+export function termsForProject(projectId: string | undefined): GlossaryTerm[] {
+  return listGlossaryTerms().filter((t) => !t.projectId || t.projectId === projectId)
+}
+
+/** A deleted project's own terms go with it; they were never meant for other meetings. */
+export function deleteProjectTerms(projectId: string): void {
+  const terms = loadTerms()
+  const next = terms.filter((t) => t.projectId !== projectId)
+  if (next.length !== terms.length) saveTerms(next)
+}
+
 /** Compare the way the matcher does, so duplicates are caught before saving. */
 function sameText(a: string, b: string): boolean {
   return normalize(a) === normalize(b)
@@ -75,14 +90,22 @@ function normalize(value: string): string {
  * A variant equal to the correct spelling is still worth storing: it makes the
  * matcher normalize casing ("kubernetes" -> "Kubernetes").
  */
-export function addGlossaryEntry(canonical: string, variant: string): GlossaryTerm {
+export function addGlossaryEntry(
+  canonical: string,
+  variant: string,
+  projectId?: string
+): GlossaryTerm {
   const cleanCanonical = canonical.trim()
   const cleanVariant = variant.trim()
   if (!cleanCanonical) throw new Error('Termen saknar korrekt stavning')
   if (!cleanVariant) throw new Error('Varianten är tom')
 
   const terms = loadTerms()
-  const existing = terms.find((t) => sameText(t.canonical, cleanCanonical))
+  // Same spelling in another scope is another term: adding a variant to a
+  // project's term must not start correcting every other meeting.
+  const existing = terms.find(
+    (t) => sameText(t.canonical, cleanCanonical) && (t.projectId ?? '') === (projectId ?? '')
+  )
   const now = new Date().toISOString()
 
   if (existing) {
@@ -98,7 +121,8 @@ export function addGlossaryEntry(canonical: string, variant: string): GlossaryTe
     id: randomUUID(),
     canonical: cleanCanonical,
     variants: [cleanVariant],
-    updatedAt: now
+    updatedAt: now,
+    ...(projectId ? { projectId } : {})
   }
   terms.push(created)
   saveTerms(terms)
@@ -108,7 +132,7 @@ export function addGlossaryEntry(canonical: string, variant: string): GlossaryTe
 /** Replace a term wholesale — the Settings editor saves through this. */
 export function updateGlossaryTerm(
   id: string,
-  patch: { canonical?: string; variants?: string[] }
+  patch: { canonical?: string; variants?: string[]; projectId?: string | null }
 ): GlossaryTerm | null {
   const terms = loadTerms()
   const term = terms.find((t) => t.id === id)
@@ -129,6 +153,10 @@ export function updateGlossaryTerm(
       seen.push(clean)
     }
     term.variants = seen
+  }
+  if (patch.projectId !== undefined) {
+    if (patch.projectId) term.projectId = patch.projectId
+    else delete term.projectId
   }
   term.updatedAt = new Date().toISOString()
   saveTerms(terms)

@@ -550,6 +550,40 @@ async function main() {
   )
   await shot('transcript-suggestion-confirmed')
 
+  // --- Project glossary: in a project's meeting a new term defaults to that
+  // project only.
+  {
+    const word = 'introduktionsdagen'
+    const picked = await page.evaluate((w) => {
+      const p = Array.from(document.querySelectorAll('p')).find((el) => el.textContent?.includes(w))
+      const node = p?.firstChild
+      if (!node || !node.textContent) return false
+      const start = node.textContent.indexOf(w)
+      const range = document.createRange()
+      range.setStart(node, start)
+      range.setEnd(node, start + w.length)
+      const sel = window.getSelection()
+      sel.removeAllRanges()
+      sel.addRange(range)
+      document.dispatchEvent(new Event('pointerup', { bubbles: true }))
+      return true
+    }, word)
+    assert(picked, 'a word in the project meeting transcript can be selected')
+    await page.waitForTimeout(400)
+    await page.getByText('Lägg till i ordlistan', { exact: true }).first().click()
+    await page.waitForTimeout(400)
+    const scope = page.getByRole('dialog').getByLabel('Gäller för')
+    assert(
+      (await scope.locator('option:checked').textContent()) === 'Bara projektet Styrgrupp',
+      'in a project meeting a new glossary term defaults to the project'
+    )
+    await page.getByLabel('Ska vara').fill('Introdagen')
+    await shot('glossary-modal-project')
+    await page.getByText('Spara i ordlistan', { exact: true }).click()
+    await page.waitForTimeout(1200)
+    assert(await seen('Introdagen', 5000), 'the project term corrects the project meeting')
+  }
+
   // --- Settings: the saved voice is listed under "Sparade röster"
   await page.getByLabel('Öppna inställningar').click()
   await page.waitForTimeout(1000)
@@ -571,6 +605,11 @@ async function main() {
   await page.waitForTimeout(300)
   assert(await seen('Hördes som', 3000), 'the glossary term opens into an editor')
   await shot('settings-glossary')
+  const projectTermRow = page.getByRole('button', { name: /^Introdagen/ })
+  assert(
+    ((await projectTermRow.textContent()) ?? '').includes('Styrgrupp'),
+    'the project term is marked with its project in the glossary list'
+  )
 
   console.log('CONSOLE_ERRORS:', JSON.stringify(consoleErrors, null, 2))
   assert(consoleErrors.length === 0, 'no renderer console errors during the run')

@@ -201,7 +201,15 @@ spot, and the banner offers to rebuild the minutes with the corrected text.
 
 **One term, several variants.** The same word comes out differently depending on who is
 speaking, so a term holds a list of forms — all of them map to the one correct spelling. Add
-variants as you meet them; the list is global and applies to every meeting, past and future.
+variants as you meet them.
+
+**Every meeting, or one project.** A term applies to every meeting, past and future — or
+only to the meetings of one [project](#projects), for vocabulary that belongs to a customer
+or a group and should not correct anyone else's meetings. When you add a term from a
+meeting that is in a project, the dialog's **Gäller för** menu defaults to that project; pick
+**Alla möten** to make it global. A project's meetings get the global terms plus their own.
+Live text while recording follows the same rule. Deleting a project also deletes the terms
+that only applied to it.
 
 **Matching** is literal, not fuzzy: only the forms you entered, case-insensitively, and
 tolerant of the word splits the transcriber introduces (`kubber nätes` also catches
@@ -213,8 +221,9 @@ re-derives the corrected text from it, so every apply starts from the original. 
 term un-corrects the transcript on the next run; corrected words carry a dotted underline in
 the transcript so a correction is visible rather than silent.
 
-**Editing the list.** **Settings → Ordlista** lists every term. Open one to fix the spelling,
-add or remove variants (one per line), or delete the term. The glossary lives in
+**Editing the list.** **Settings → Ordlista** lists every term; a project's own terms show
+the project name. Open one to fix the spelling, add or remove variants (one per line), move it
+between a project and every meeting (**Gäller för**), or delete the term. The glossary lives in
 `%APPDATA%\referat\glossary.json`.
 
 ## Speakers

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type {
   AppSettings,
   GlossaryTerm,
+  Project,
   LocalAiComponent,
   LocalAiComponentStatus,
   SpeakerProfile,
@@ -26,7 +27,7 @@ import { Toggle } from '../components/ui/Toggle'
 import { isLiveTranscriptionOn, liveTranscriptionDefault } from '../../../shared/live'
 import { Modal } from '../components/ui/Modal'
 import { ConnectionTest } from '../components/ConnectionTest'
-import { IconSun, IconMoon, IconMonitor, IconChevronDown } from '../components/icons'
+import { IconSun, IconMoon, IconMonitor, IconChevronDown, IconFolder } from '../components/icons'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import { cn } from '../components/ui/cn'
 
@@ -831,6 +832,7 @@ function SpeakerProfilesBlock(): JSX.Element {
 function GlossarySection(): JSX.Element {
   const g = strings.settings.glossary
   const [terms, setTerms] = useState<GlossaryTerm[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
 
@@ -852,10 +854,19 @@ function GlossarySection(): JSX.Element {
       .catch(() => {
         if (!cancelled) setTerms([])
       })
+    window.api
+      .listProjects()
+      .then((p) => {
+        if (!cancelled) setProjects(p)
+      })
+      .catch(() => undefined)
     return () => {
       cancelled = true
     }
   }, [])
+
+  const projectName = (id: string | undefined): string | undefined =>
+    projects.find((p) => p.id === id)?.name
 
   const remove = async (id: string): Promise<void> => {
     await window.api.deleteGlossaryTerm(id)
@@ -875,6 +886,7 @@ function GlossarySection(): JSX.Element {
               {openId === term.id ? (
                 <GlossaryTermEditor
                   term={term}
+                  projects={projects}
                   onDone={async () => {
                     setOpenId(null)
                     await refresh()
@@ -889,8 +901,14 @@ function GlossarySection(): JSX.Element {
                   <span className="min-w-0 truncate text-sm font-medium text-fg">
                     {term.canonical}
                   </span>
-                  <span className="shrink-0 text-xs text-fg-muted tabular-nums">
-                    {g.variantCount(term.variants.length)}
+                  <span className="flex shrink-0 items-center gap-3 text-xs text-fg-muted">
+                    {projectName(term.projectId) && (
+                      <span className="inline-flex items-center gap-1">
+                        <IconFolder size={13} />
+                        {projectName(term.projectId)}
+                      </span>
+                    )}
+                    <span className="tabular-nums">{g.variantCount(term.variants.length)}</span>
                   </span>
                 </button>
               )}
@@ -922,10 +940,12 @@ function GlossarySection(): JSX.Element {
 
 function GlossaryTermEditor({
   term,
+  projects,
   onDone,
   onDelete
 }: {
   term: GlossaryTerm
+  projects: Project[]
   onDone: () => Promise<void>
   onDelete: () => void
 }): JSX.Element {
@@ -933,6 +953,7 @@ function GlossaryTermEditor({
   const [canonical, setCanonical] = useState(term.canonical)
   // One variant per line is the shape people already expect from a word list.
   const [variants, setVariants] = useState(term.variants.join('\n'))
+  const [projectId, setProjectId] = useState(term.projectId ?? '')
   const [saving, setSaving] = useState(false)
 
   const save = async (): Promise<void> => {
@@ -941,7 +962,8 @@ function GlossaryTermEditor({
     try {
       await window.api.updateGlossaryTerm(term.id, {
         canonical,
-        variants: variants.split('\n')
+        variants: variants.split('\n'),
+        projectId: projectId || null
       })
       await onDone()
     } finally {
@@ -959,6 +981,16 @@ function GlossaryTermEditor({
         onChange={(e) => setVariants(e.target.value)}
         rows={Math.min(8, Math.max(3, term.variants.length + 1))}
       />
+      {(projects.length > 0 || term.projectId) && (
+        <Select label={g.scope} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+          <option value="">{g.scopeAll}</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </Select>
+      )}
       <div className="flex items-center justify-between gap-2">
         <Button variant="ghost" size="sm" onClick={onDelete}>
           {g.delete}
