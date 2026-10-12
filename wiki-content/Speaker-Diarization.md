@@ -255,7 +255,7 @@ audio, such as everyone sitting in one room, gets no labels at all: everything w
 ## The two together
 
 Diarization splits the room into individual voices, which source attribution cannot do. Source
-attribution knows which of those voices is *you*, which diarization cannot do. With both
+attribution knows which of those voices is _you_, which diarization cannot do. With both
 enabled, referat uses each for what it is good at.
 
 Diarization runs first and produces its clusters. The level envelope then decides which

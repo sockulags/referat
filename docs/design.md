@@ -9,7 +9,7 @@ kännas som en välgjord bank- eller vårdapp, inte som ett utvecklarverktyg. Le
 ## Varumärke
 
 - Namn: **referat** — alltid gemener i wordmark.
-- Tagline: *"Mötesanteckningar som stannar hos dig."*
+- Tagline: _"Mötesanteckningar som stannar hos dig."_
 - Ikon/symbol: enkel, abstrakt — t.ex. ett stiliserat citattecken eller ljudvåg som
   övergår i textrader. Ingen mikrofon-klyscha om det går att undvika.
 

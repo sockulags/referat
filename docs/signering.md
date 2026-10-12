@@ -17,6 +17,7 @@ and the wiki, per SignPath's disclosure requirements.
 > manually approved for signing.
 >
 > **Team roles**
+>
 > - Author, Reviewer, Approver: Lucas Skog ([@sockulags](https://github.com/sockulags))
 >
 > **Privacy**: referat does not transfer any data to any third party. The app
