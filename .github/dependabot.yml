@@ -78,6 +78,33 @@ updates:
       - dependency-name: "eslint"
         versions: [">=10"]
 
+  # The two local AI components are separate uv projects, each with its own
+  # lockfile.
+  - package-ecosystem: uv
+    directories:
+      - /transcription-server
+      - /diarization-server
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      python:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # These caps live in the pyproject.toml files (huggingface-hub <2 in the
+      # transcription server, torch/torchaudio <2.12 in the diarization
+      # server); bumps past them could not resolve anyway.
+      - dependency-name: "huggingface-hub"
+        versions: [">=2"]
+      - dependency-name: "torch"
+        versions: [">=2.12"]
+      - dependency-name: "torchaudio"
+        versions: [">=2.12"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
