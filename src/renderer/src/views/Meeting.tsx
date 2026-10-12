@@ -1041,7 +1041,7 @@ function markCorrections(text: string, terms: GlossaryTerm[]): JSX.Element[] | s
     idx = m.index + m[0].length
     m = re.exec(text)
   }
-  if (idx < text.length) parts.push(<span key={key++}>{text.slice(idx)}</span>)
+  if (idx < text.length) parts.push(<span key={key}>{text.slice(idx)}</span>)
   return parts
 }
 
@@ -1066,7 +1066,7 @@ function highlight(text: string, query: string): JSX.Element[] | string {
     idx = found + q.length
     found = lower.indexOf(lowerQ, idx)
   }
-  if (idx < text.length) parts.push(<span key={key++}>{text.slice(idx)}</span>)
+  if (idx < text.length) parts.push(<span key={key}>{text.slice(idx)}</span>)
   return parts
 }
 

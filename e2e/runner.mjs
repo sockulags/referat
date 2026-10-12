@@ -57,7 +57,7 @@ process.on('SIGINT', () => {
   process.exit(130)
 })
 
-let exitCode = 1
+let exitCode
 try {
   log(`starting mock AI server on :${PORT}`)
   const up = await waitForServer(`http://localhost:${PORT}/v1/models`)
