@@ -139,6 +139,12 @@ export interface TranscriptionSettings {
   language: string
   /** True if an API key has been saved (the key itself never crosses to renderer). */
   hasApiKey: boolean
+  /**
+   * Show text while recording. null = the user never chose, which means on
+   * for a transcriber on this computer and off for anything else (see
+   * src/shared/live.ts).
+   */
+  live: boolean | null
 }
 
 export interface SummarySettings {
@@ -192,8 +198,13 @@ export interface AppSettings {
 }
 
 /** Payload when saving settings. Include apiKey only to overwrite the stored key. */
-export interface SaveTranscriptionSettings extends Omit<TranscriptionSettings, 'hasApiKey'> {
+export interface SaveTranscriptionSettings extends Omit<
+  TranscriptionSettings,
+  'hasApiKey' | 'live'
+> {
   apiKey?: string
+  /** Absent keeps the stored choice; null goes back to the default. */
+  live?: boolean | null
 }
 export interface SaveSummarySettings extends Omit<SummarySettings, 'hasApiKey'> {
   apiKey?: string
@@ -319,6 +330,12 @@ export interface RendererApi {
   /** Finalize: closes file, sets duration, kicks off the pipeline. */
   finishRecording(meetingId: string, durationSec: number): Promise<void>
   cancelRecording(meetingId: string): Promise<void>
+  /**
+   * Transcribe one live window (a complete webm file) and return its text.
+   * Rejects when live transcription is off or the transcriber fails. Nothing
+   * is stored — the meeting's transcript is made from the recording.
+   */
+  transcribeLive(audio: ArrayBuffer): Promise<string>
 
   // Settings
   getSettings(): Promise<AppSettings>

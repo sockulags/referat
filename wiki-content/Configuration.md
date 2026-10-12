@@ -36,6 +36,25 @@ The service that writes out what was said. Any OpenAI-compatible
 | Azure OpenAI         | `https://<resource>.openai.azure.com/openai/v1` | `whisper`                | yes     |
 | Custom               | _(empty — enter your own)_                      | _(empty)_                | depends |
 
+### Live text while recording
+
+**Show text while recording** sends the audio to the transcriber in short pieces (10–25
+seconds, cut at a pause) while the meeting is still going on, and shows the text in the
+recording view. It is a preview: the transcript and minutes are still made from the full
+recording once you stop, with the same quality as before.
+
+- **Default** — on when the transcriber runs on this computer (the built-in model, or a server
+  on `localhost` / `127.0.0.1`), off for anything else. With a cloud or company server the audio
+  would otherwise leave the computer during the meeting, not just after it, so that is your call.
+  Once you flip the switch, your choice sticks even if you change preset.
+- **Never in the way** — if the transcriber is slower than the meeting, pieces are skipped so
+  the text keeps up; if it fails repeatedly, live text pauses for a minute and tries again. The
+  recording itself is never affected.
+- **Silence is not sent** — a piece with no sound above a low threshold is skipped, which also
+  keeps Whisper from inventing words in the quiet.
+- **Glossary** — your [glossary](#glossary) corrections apply to the live text too.
+- **Nothing is stored** — the live text disappears when you stop.
+
 ## Summarization
 
 The service that turns the transcript into the actual minutes. HTTP providers support

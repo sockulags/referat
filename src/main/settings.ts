@@ -13,6 +13,7 @@ import type {
   SummaryTemplate
 } from '../shared/types'
 import { builtInTemplates, DEFAULT_PROMPT_TEMPLATE, DEFAULT_TEMPLATE_ID } from './summaryTemplates'
+import { isLiveTranscriptionOn } from '../shared/live'
 
 /** On-disk shape: like AppSettings but with encrypted key blobs instead of hasApiKey. */
 interface StoredTranscription {
@@ -22,6 +23,8 @@ interface StoredTranscription {
   language: string
   /** base64 safeStorage ciphertext, or empty/undefined when no key stored. */
   apiKeyEnc?: string
+  /** Absent until the user chooses; see src/shared/live.ts for the default. */
+  live?: boolean
 }
 
 interface StoredSummary {
@@ -232,7 +235,8 @@ export function getSettings(): AppSettings {
       baseUrl: s.transcription.baseUrl,
       model: s.transcription.model,
       language: s.transcription.language,
-      hasApiKey: !!s.transcription.apiKeyEnc
+      hasApiKey: !!s.transcription.apiKeyEnc,
+      live: typeof s.transcription.live === 'boolean' ? s.transcription.live : null
     },
     summary: {
       preset: s.summary.preset,
@@ -265,7 +269,8 @@ export function saveTranscriptionSettings(payload: SaveTranscriptionSettings): v
     baseUrl: payload.baseUrl,
     model: payload.model,
     language: payload.language,
-    apiKeyEnc: resolveKey(payload.apiKey, s.transcription.apiKeyEnc)
+    apiKeyEnc: resolveKey(payload.apiKey, s.transcription.apiKeyEnc),
+    live: payload.live === undefined ? s.transcription.live : (payload.live ?? undefined)
   }
   persist(s)
 }
@@ -354,6 +359,8 @@ export interface TranscriptionConfig {
   model: string
   language: string
   apiKey: string
+  /** Resolved: the user's choice, or the default for this transcriber. */
+  live: boolean
 }
 
 /** How to reach the model. Which prompt to send is decided per summary. */
@@ -372,7 +379,12 @@ export function getTranscriptionConfig(): TranscriptionConfig {
     baseUrl: s.transcription.baseUrl,
     model: s.transcription.model,
     language: s.transcription.language,
-    apiKey: decryptKey(s.transcription.apiKeyEnc)
+    apiKey: decryptKey(s.transcription.apiKeyEnc),
+    live: isLiveTranscriptionOn(
+      s.transcription.live,
+      s.transcription.preset,
+      s.transcription.baseUrl
+    )
   }
 }
 

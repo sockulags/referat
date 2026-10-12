@@ -109,6 +109,29 @@ konfigureras med en bas-URL och en "Testa anslutning"-knapp.
   Embeddings persisteras per möte i transcript.json endast när flaggan är på;
   dimensionsmismatch (t.ex. efter modellbyte på servern) ignoreras defensivt.
 
+## Live-text under inspelning
+
+En förhandsvisning av transkriptet medan mötet pågår. Det riktiga transkriptet görs
+som förut från segmentfilerna när inspelningen stoppas — live-texten sparas aldrig och
+får aldrig störa inspelningen.
+
+- **Fönster** (`MeetingRecorder`): en andra `MediaRecorder` på samma mixade ström
+  startas om för varje fönster, så varje fönster blir en egen komplett webm-fil.
+  Fönstret klipps vid en paus (≥ 400 ms under en låg nivå) någonstans mellan 10 och
+  25 s, annars vid 25 s. Nästa fönster startas innan det förra stoppas. Tiden räknas
+  bara när inspelningen inte är pausad, som nivåkurvan. Fönster utan ljud över en
+  tröskel skickas inte (sparar anrop och hindrar Whisper från att hitta på ord).
+- **Kö** (`LiveQueue`, ren och enhetstestad): högst ett anrop i taget och ett som väntar;
+  ett nytt fönster ersätter det väntande så att texten följer mötet i stället för att
+  halka efter. Det som hoppas över visas som en lucka. Efter tre fel i rad vilar
+  live-texten en minut.
+- **Main** (`recording:transcribe-live`): kontrollerar inställningen igen — det är main
+  som avgör om ljud lämnar datorn under mötet — skickar fönstret till samma
+  `/audio/transcriptions` som pipelinen (60 s timeout) och kör ordlistan på texten.
+- **Inställning** (`transcription.live`): `null` tills användaren väljer. Standard är på
+  för den inbyggda modellen och servrar på loopback, av för allt annat
+  (`src/shared/live.ts`).
+
 ## Export
 
 - Markdown: skriv den valda sammanfattningens fil rakt av.

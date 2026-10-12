@@ -5,6 +5,8 @@
 // two sources apart afterwards.
 // The MediaRecorder is rotated into a fresh segment every 10 min so each
 // segment file stays under provider size caps and is independently decodable.
+// For live transcription a second MediaRecorder on the same mixed stream is
+// cut into short, self-contained windows at pauses in the speech.
 
 export interface RecorderOptions {
   microphoneId: string
@@ -18,6 +20,12 @@ export interface RecorderOptions {
   onChunk: (chunk: ArrayBuffer, segmentIndex: number) => Promise<void> | void
   /** System audio requested but unavailable — recording continues mic-only. */
   onSystemAudioUnavailable: () => void
+  /**
+   * Turns on live windows. Called with each window that contains speech;
+   * silent windows are dropped here. Must not block — the recording never
+   * waits for the transcriber.
+   */
+  onLiveWindow?: (window: LiveWindow) => void
 }
 
 export type MicPermissionError = { kind: 'mic-denied'; detail: string }
@@ -28,11 +36,26 @@ export function isMicPermissionError(e: unknown): e is MicPermissionError {
 
 import type { LevelEnvelope } from '../../../shared/levels'
 import { encodeLevel, LEVEL_RATE_HZ } from '../../../shared/levels'
+import { LIVE_QUIET_LEVEL, LIVE_SPEECH_LEVEL, shouldCutWindow, type LiveWindow } from './live'
 
 const MIME = 'audio/webm;codecs=opus'
 const TIMESLICE_MS = 5000
 /** Rotate to a new segment every 10 minutes. */
 const SEGMENT_MS = 10 * 60 * 1000
+/** How often the live window checks for a pause to cut at. */
+const LIVE_TICK_MS = 100
+
+/** The live window being recorded. Its recorder's onstop reads the final values. */
+interface OpenLiveWindow {
+  recorder: MediaRecorder
+  parts: Blob[]
+  startMs: number
+  endMs: number
+  /** Loudest raw level so far — decides whether the window holds any speech. */
+  peak: number
+  /** How long it has been quiet right now. */
+  quietMs: number
+}
 
 interface SourceMeter {
   analyser: AnalyserNode
@@ -63,6 +86,14 @@ export class MeetingRecorder {
   /** Serialize chunk writes so ordering survives the async arrayBuffer()/IPC. */
   private writeChain: Promise<void> = Promise.resolve()
   private stopped = false
+
+  // Live windows. Time is counted only while sampling, so window offsets match
+  // the recorded audio (pauses excluded), like the level envelope.
+  private onLiveWindow: ((window: LiveWindow) => void) | null = null
+  private liveWindow: OpenLiveWindow | null = null
+  private liveTimer: ReturnType<typeof setInterval> | null = null
+  private liveLastTick = 0
+  private recordedMs = 0
 
   hasSystemAudio = false
 
@@ -125,6 +156,72 @@ export class MeetingRecorder {
     }, SEGMENT_MS)
     this.sampling = true
     this.envelopeTimer = setInterval(() => this.sampleEnvelope(), 1000 / LEVEL_RATE_HZ)
+
+    if (opts.onLiveWindow) {
+      this.onLiveWindow = opts.onLiveWindow
+      this.startLiveWindow()
+      this.liveLastTick = performance.now()
+      this.liveTimer = setInterval(() => this.liveTick(), LIVE_TICK_MS)
+    }
+  }
+
+  /** Open a new live window on the mixed stream, starting at the current recorded time. */
+  private startLiveWindow(): void {
+    if (!this.mixDest) return
+    const mimeType = MediaRecorder.isTypeSupported(MIME) ? MIME : 'audio/webm'
+    const recorder = new MediaRecorder(this.mixDest.stream, { mimeType })
+    const win: OpenLiveWindow = {
+      recorder,
+      parts: [],
+      startMs: this.recordedMs,
+      endMs: this.recordedMs,
+      peak: 0,
+      quietMs: 0
+    }
+    recorder.ondataavailable = (ev: BlobEvent): void => {
+      if (ev.data && ev.data.size > 0) win.parts.push(ev.data)
+    }
+    recorder.onstop = (): void => {
+      const deliver = this.onLiveWindow
+      if (!deliver || win.peak < LIVE_SPEECH_LEVEL || win.parts.length === 0) return
+      void new Blob(win.parts, { type: mimeType }).arrayBuffer().then((audio) => {
+        if (this.stopped) return
+        deliver({ audio, startSec: win.startMs / 1000, endSec: win.endMs / 1000 })
+      })
+    }
+    this.liveWindow = win
+    recorder.start()
+  }
+
+  private liveTick(): void {
+    const now = performance.now()
+    const dt = now - this.liveLastTick
+    this.liveLastTick = now
+    const win = this.liveWindow
+    if (!win || !this.sampling || this.stopped) return
+    this.recordedMs += dt
+    const level = Math.max(this.rawRms(this.micMeter), this.rawRms(this.systemMeter))
+    win.peak = Math.max(win.peak, level)
+    win.quietMs = level < LIVE_QUIET_LEVEL ? win.quietMs + dt : 0
+    if (shouldCutWindow(this.recordedMs - win.startMs, win.quietMs)) {
+      win.endMs = this.recordedMs
+      // Start the next window before stopping this one so no audio falls
+      // between them; the old recorder flushes in the background.
+      this.startLiveWindow()
+      if (win.recorder.state !== 'inactive') win.recorder.stop()
+    }
+  }
+
+  /** Stop live windows without delivering the one in progress. */
+  private stopLive(): void {
+    if (this.liveTimer !== null) {
+      clearInterval(this.liveTimer)
+      this.liveTimer = null
+    }
+    this.onLiveWindow = null
+    const rec = this.liveWindow?.recorder
+    this.liveWindow = null
+    if (rec && rec.state !== 'inactive') rec.stop()
   }
 
   /** Create and start a MediaRecorder for the given segment on the mixed stream. */
@@ -214,6 +311,7 @@ export class MeetingRecorder {
   pause(): void {
     if (this.recorder?.state === 'recording') {
       this.recorder.pause()
+      if (this.liveWindow?.recorder.state === 'recording') this.liveWindow.recorder.pause()
       // No audio is written while paused, so the envelope must not advance
       // either — otherwise it slides against the transcript by the length of
       // the pause.
@@ -224,6 +322,7 @@ export class MeetingRecorder {
   resume(): void {
     if (this.recorder?.state === 'paused') {
       this.recorder.resume()
+      if (this.liveWindow?.recorder.state === 'paused') this.liveWindow.recorder.resume()
       this.sampling = true
     }
   }
@@ -236,6 +335,7 @@ export class MeetingRecorder {
   async stop(): Promise<void> {
     this.stopped = true
     this.sampling = false
+    this.stopLive()
     if (this.rotateTimer !== null) {
       clearInterval(this.rotateTimer)
       this.rotateTimer = null
@@ -260,6 +360,7 @@ export class MeetingRecorder {
   cleanup(): void {
     this.stopped = true
     this.sampling = false
+    this.stopLive()
     if (this.rotateTimer !== null) {
       clearInterval(this.rotateTimer)
       this.rotateTimer = null

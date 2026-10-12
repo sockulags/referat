@@ -6,8 +6,10 @@ import {
   getDiarizationConfig,
   getSettings,
   getSummaryConfig,
+  getTranscriptionConfig,
   saveDiarizationSettings,
-  saveSummarySettings
+  saveSummarySettings,
+  saveTranscriptionSettings
 } from './settings'
 
 vi.mock('electron', async () => {
@@ -138,5 +140,41 @@ describe('summary backend settings', () => {
     expect(getDiarizationConfig()).toMatchObject({ enabled: true, backend: 'built-in' })
     expect(getDiarizationConfig()).not.toHaveProperty('hfToken')
     expect(readFileSync(join(userData, 'settings.json'), 'utf8')).not.toContain('hfTokenEnc')
+  })
+})
+
+describe('live transcription setting', () => {
+  const openai = {
+    preset: 'openai' as const,
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'whisper-1',
+    language: 'sv'
+  }
+
+  it('follows the transcriber until the user chooses, then keeps the choice', () => {
+    saveTranscriptionSettings({ ...openai })
+    expect(getSettings().transcription.live).toBeNull()
+    expect(getTranscriptionConfig().live).toBe(false)
+
+    saveTranscriptionSettings({ ...openai, live: true })
+    expect(getSettings().transcription.live).toBe(true)
+    expect(getTranscriptionConfig().live).toBe(true)
+
+    // Onboarding and older callers send no live field: the choice survives.
+    saveTranscriptionSettings({ ...openai })
+    expect(getTranscriptionConfig().live).toBe(true)
+
+    saveTranscriptionSettings({
+      preset: 'built-in',
+      baseUrl: 'http://127.0.0.1:8310/v1',
+      model: 'KBLab/kb-whisper-small',
+      language: 'sv',
+      live: null
+    })
+    expect(getSettings().transcription.live).toBeNull()
+    expect(getTranscriptionConfig().live).toBe(true)
+    expect(
+      JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf-8')).transcription
+    ).not.toHaveProperty('live')
   })
 })

@@ -23,6 +23,7 @@ import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input, Select, Textarea, Field } from '../components/ui/Field'
 import { Toggle } from '../components/ui/Toggle'
+import { isLiveTranscriptionOn, liveTranscriptionDefault } from '../../../shared/live'
 import { Modal } from '../components/ui/Modal'
 import { ConnectionTest } from '../components/ConnectionTest'
 import { IconSun, IconMoon, IconMonitor, IconChevronDown } from '../components/icons'
@@ -160,6 +161,9 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
   const [baseUrl, setBaseUrl] = useState(t.baseUrl)
   const [model, setModel] = useState(t.model)
   const [language, setLanguage] = useState(t.language)
+  // null until the user flips the switch, so the default keeps following the
+  // transcriber: on for this computer, off for anything that sends audio away.
+  const [liveChoice, setLiveChoice] = useState<boolean | null>(t.live)
   const [apiKey, setApiKey] = useState('')
   const [saving, setSaving] = useState(false)
   const components = useLocalAiComponents()
@@ -179,6 +183,7 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
         baseUrl,
         model,
         language,
+        live: liveChoice,
         apiKey: apiKey || undefined
       })
       patchSettings({
@@ -188,6 +193,7 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
           baseUrl,
           model,
           language,
+          live: liveChoice,
           hasApiKey: t.hasApiKey || !!apiKey
         }
       })
@@ -242,6 +248,16 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
           hint={strings.settings.transcription.languageHint}
         />
       </div>
+      <Toggle
+        checked={isLiveTranscriptionOn(liveChoice, preset, baseUrl)}
+        onChange={setLiveChoice}
+        label={strings.settings.transcription.live}
+        description={
+          liveTranscriptionDefault(preset, baseUrl)
+            ? strings.settings.transcription.liveHintLocal
+            : strings.settings.transcription.liveHintRemote
+        }
+      />
       <SaveRow onSave={save} saving={saving} />
       <div className="pt-4 border-t border-border">
         <ConnectionTest

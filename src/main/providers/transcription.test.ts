@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { transcribe, testTranscriptionConnection } from './transcription'
+import { transcribe, testTranscriptionConnection, transcribeLiveWindow } from './transcription'
 import type { TranscriptionConfig } from '../settings'
 
 const config: TranscriptionConfig = {
@@ -10,7 +10,8 @@ const config: TranscriptionConfig = {
   baseUrl: 'http://localhost:8000/v1',
   model: 'whisper-1',
   language: 'sv',
-  apiKey: ''
+  apiKey: '',
+  live: true
 }
 
 let dir: string
@@ -181,5 +182,34 @@ describe('testTranscriptionConnection', () => {
     const res = await testTranscriptionConnection(config)
     expect(res.ok).toBe(false)
     expect(res.message).toBe('Servern svarar inte — kontrollera adressen')
+  })
+})
+
+describe('transcribeLiveWindow', () => {
+  it('uploads the window from memory and returns its text', async () => {
+    queueFetch([
+      jsonResponse({
+        language: 'sv',
+        text: ' Då kör vi. ',
+        segments: [{ start: 0, end: 2, text: ' Då kör vi. ' }]
+      })
+    ])
+    const audio = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]).buffer
+
+    await expect(transcribeLiveWindow(audio, config)).resolves.toBe('Då kör vi.')
+
+    const fetchMock = vi.mocked(fetch)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('http://localhost:8000/v1/audio/transcriptions')
+    const form = init.body as FormData
+    const file = form.get('file') as File
+    expect(file.name).toBe('live.webm')
+    expect(file.size).toBe(4)
+    expect(form.get('language')).toBe('sv')
+  })
+
+  it('rejects on an HTTP error so the live queue can count the failure', async () => {
+    queueFetch([new Response('overloaded', { status: 503 })])
+    await expect(transcribeLiveWindow(new ArrayBuffer(4), config)).rejects.toThrow()
   })
 })
