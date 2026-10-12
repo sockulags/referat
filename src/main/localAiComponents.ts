@@ -319,7 +319,9 @@ export async function ensureLocalAiComponentRunning(component: LocalAiComponent)
     emit({ component, state: 'running', message: 'Körs' })
   } catch (error) {
     stopComponent(component)
-    throw new Error(`${error instanceof Error ? error.message : String(error)}\n${stderr}`.trim())
+    throw new Error(`${error instanceof Error ? error.message : String(error)}\n${stderr}`.trim(), {
+      cause: error
+    })
   }
 }
 
