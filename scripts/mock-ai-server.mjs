@@ -51,7 +51,15 @@ const diarization = {
   }
 }
 
+/** The last chat prompt, so the E2E run can check what reached the model. */
+let lastPrompt = ''
+
 const server = http.createServer((req, res) => {
+  if (req.url === '/__last-prompt') {
+    res.setHeader('content-type', 'text/plain; charset=utf-8')
+    res.end(lastPrompt)
+    return
+  }
   const delay = req.url?.includes('transcriptions')
     ? 3000
     : req.url?.startsWith('/diarize')
@@ -61,9 +69,17 @@ const server = http.createServer((req, res) => {
         : 2000
   console.log(`${new Date().toISOString()} ${req.method} ${req.url}`)
 
-  // Drain request body
-  req.on('data', () => {})
+  const chunks = []
+  req.on('data', (c) => chunks.push(c))
   req.on('end', () => {
+    if (req.url?.startsWith('/v1/chat/completions')) {
+      try {
+        const body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+        lastPrompt = body.messages?.map((m) => m.content).join('\n') ?? ''
+      } catch {
+        lastPrompt = ''
+      }
+    }
     setTimeout(() => {
       res.setHeader('content-type', 'application/json')
       if (req.url?.startsWith('/v1/models')) {

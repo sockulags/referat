@@ -153,6 +153,42 @@ describe('summarize (openai-compatible)', () => {
     expect(content.endsWith('Sammanfatta:\nMÖTESTEXT')).toBe(true)
   })
 
+  it('substitutes {{projekt}} with the project background', async () => {
+    const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
+    await summarize(
+      'MÖTESTEXT',
+      baseConfig(),
+      req({
+        promptTemplate: 'Regler\n\n{{projekt}}\n\nText:\n{{transcript}}',
+        project: 'Bakgrund: styrgrupp'
+      })
+    )
+    const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
+    expect(content).toBe('Regler\n\nBakgrund: styrgrupp\n\nText:\nMÖTESTEXT')
+  })
+
+  it('puts the project background first when the template has no {{projekt}}', async () => {
+    const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
+    await summarize(
+      'MÖTESTEXT',
+      baseConfig(),
+      req({ glossary: '- Kubernetes', project: 'Bakgrund: styrgrupp' })
+    )
+    const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
+    expect(content).toBe('Bakgrund: styrgrupp\n\n- Kubernetes\n\nSammanfatta:\nMÖTESTEXT')
+  })
+
+  it('leaves no trace of an empty {{projekt}}', async () => {
+    const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
+    await summarize(
+      'MÖTESTEXT',
+      baseConfig(),
+      req({ promptTemplate: 'Regler\n\n{{projekt}}\n\nText:\n{{transcript}}' })
+    )
+    const content = (bodyOf(calls[0]).messages as { content: string }[])[0].content
+    expect(content).toBe('Regler\n\nText:\nMÖTESTEXT')
+  })
+
   it('leaves no blank gap when {{ordlista}} and {{fokus}} both resolve to nothing', async () => {
     const calls = recordFetch([json({ choices: [{ message: { content: 'ok' } }] })])
     await summarize(

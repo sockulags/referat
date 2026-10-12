@@ -9,7 +9,7 @@ import { Button, IconButton } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { StatusChip } from '../components/ui/StatusChip'
 import { Modal } from '../components/ui/Modal'
-import { Input, Select } from '../components/ui/Field'
+import { Input, Select, Textarea } from '../components/ui/Field'
 import { Tooltip } from '../components/ui/Tooltip'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import {
@@ -110,7 +110,7 @@ export function Home(): JSX.Element {
 
   const doSaveProject = async (
     id: string,
-    patch: { name: string; defaultTemplateId: string }
+    patch: { name: string; defaultTemplateId: string; description: string }
   ): Promise<void> => {
     await window.api.updateProject(id, patch)
     setEditingProject(null)
@@ -652,7 +652,10 @@ function ProjectSettingsModal({
   templates: SummaryTemplate[]
   meetingCount: number
   onClose: () => void
-  onSave: (id: string, patch: { name: string; defaultTemplateId: string }) => Promise<void>
+  onSave: (
+    id: string,
+    patch: { name: string; defaultTemplateId: string; description: string }
+  ) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }): JSX.Element {
   // Mounted fresh per project (keyed by id), so initial state is safe here.
@@ -660,6 +663,7 @@ function ProjectSettingsModal({
   const [defaultTemplateId, setDefaultTemplateId] = useState(
     templates.some((t) => t.id === project.defaultTemplateId) ? project.defaultTemplateId : ''
   )
+  const [description, setDescription] = useState(project.description)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   if (confirmDelete) {
@@ -708,7 +712,7 @@ function ProjectSettingsModal({
           <Button
             variant="primary"
             disabled={!name.trim()}
-            onClick={() => void onSave(project.id, { name, defaultTemplateId })}
+            onClick={() => void onSave(project.id, { name, defaultTemplateId, description })}
           >
             {strings.common.save}
           </Button>
@@ -734,6 +738,14 @@ function ProjectSettingsModal({
             </option>
           ))}
         </Select>
+        <Textarea
+          label={strings.projects.description}
+          hint={strings.projects.descriptionHint}
+          placeholder={strings.projects.descriptionPlaceholder}
+          value={description}
+          rows={4}
+          onChange={(e) => setDescription(e.target.value)}
+        />
       </div>
     </Modal>
   )

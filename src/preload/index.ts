@@ -65,7 +65,7 @@ const api: RendererApi = {
   createProject: (name: string): Promise<Project> => ipcRenderer.invoke(IPC.createProject, name),
   updateProject: (
     id: string,
-    patch: { name?: string; defaultTemplateId?: string }
+    patch: { name?: string; defaultTemplateId?: string; description?: string }
   ): Promise<Project | null> => ipcRenderer.invoke(IPC.updateProject, id, patch),
   deleteProject: (id: string): Promise<void> => ipcRenderer.invoke(IPC.deleteProject, id),
   setMeetingProject: (meetingId: string, projectId: string | null): Promise<void> =>

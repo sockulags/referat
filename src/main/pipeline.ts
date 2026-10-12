@@ -25,6 +25,7 @@ import {
   getUserName
 } from './settings'
 import { applyGlossary, glossaryPromptBlock, termsForProject } from './glossary'
+import { getProject, projectPromptBlock } from './projects'
 import { transcribe } from './providers/transcription'
 import { summarize } from './providers/summary'
 import { diarize } from './providers/diarization'
@@ -239,6 +240,7 @@ async function generateSummaryText(
   const markdown = await summarize(speakerAttributedText(transcript), getSummaryConfig(), {
     promptTemplate,
     glossary: glossaryPromptBlock(termsForProject(readMeta(meetingId)?.projectId)),
+    project: projectPromptBlock(getProject(readMeta(meetingId)?.projectId)),
     focus
   })
   if (!markdown.trim()) {

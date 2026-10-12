@@ -9,7 +9,7 @@ const templates: SummaryTemplate[] = [
 ]
 
 function project(defaultTemplateId: string): Project {
-  return { id: 'p', name: 'Styrgrupp', defaultTemplateId, createdAt: '' }
+  return { id: 'p', name: 'Styrgrupp', defaultTemplateId, description: '', createdAt: '' }
 }
 
 describe('resolveStartTemplateId', () => {

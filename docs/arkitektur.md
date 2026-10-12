@@ -35,7 +35,8 @@
   ut dess möten och tar sedan bort projektet. Vilken mall en inspelning startar med avgörs av
   `resolveStartTemplateId` (`src/shared/projects.ts`): användarens val > projektets
   standardmall > senast använda mall utanför projekt. Inom ett projekt uppdateras inte den
-  globala "senast använda".
+  globala "senast använda". Ett projekts bakgrundstext skickas till sammanfattningen via
+  `{{projekt}}` (`projectPromptBlock`); utan text skickas ingenting.
 - **Ordlista** (`src/main/glossary.ts`): `userData/glossary.json`, en lista där varje
   term har en korrekt stavning och flera felhörda varianter. En term gäller alla möten eller,
   med `projectId`, bara ett projekts möten; ett möte får de globala termerna plus sitt

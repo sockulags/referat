@@ -138,6 +138,11 @@ export interface Project {
   name: string
   /** Template a recording in this project starts with. '' = the global choice. */
   defaultTemplateId: string
+  /**
+   * Background the summary model gets with every meeting in the project: what
+   * it is about, who usually takes part and in what role. '' = none.
+   */
+  description: string
   createdAt: string
 }
 
@@ -342,7 +347,7 @@ export interface RendererApi {
   createProject(name: string): Promise<Project>
   updateProject(
     id: string,
-    patch: { name?: string; defaultTemplateId?: string }
+    patch: { name?: string; defaultTemplateId?: string; description?: string }
   ): Promise<Project | null>
   /** Deletes the project; its meetings stay and move to "Utan projekt". */
   deleteProject(id: string): Promise<void>

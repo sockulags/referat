@@ -122,8 +122,11 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(
     IPC.updateProject,
-    (_e, id: string, patch: { name?: string; defaultTemplateId?: string }): Project | null =>
-      projects.updateProject(id, patch)
+    (
+      _e,
+      id: string,
+      patch: { name?: string; defaultTemplateId?: string; description?: string }
+    ): Project | null => projects.updateProject(id, patch)
   )
 
   ipcMain.handle(IPC.deleteProject, (_e, id: string): void => {

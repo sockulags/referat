@@ -164,6 +164,9 @@ A template can use three placeholders:
 - **`{{fokus}}`** — what this particular summary was asked to be about (see below). It
   resolves to nothing for a summary of the whole meeting, and falls back to the same
   placement rule as `{{ordlista}}`.
+- **`{{projekt}}`** — the background of the meeting's [project](#projects). It resolves to
+  nothing outside a project or when the project has no background, and a template without
+  it gets the block first of all.
 
 ### Several summaries of one meeting
 
@@ -275,7 +278,13 @@ managed from the home screen, not under Settings.
   is picked is filed under that project ("Spelas in i …").
 - **New project** (_Nytt projekt_) — just a name; the new project is picked right away.
 - **Project settings** (the gear next to the chips, when a project is picked) — rename it,
-  choose its **default template** (_Standardmall_), or delete it.
+  choose its **default template** (_Standardmall_), write its **background**
+  (_Bakgrund till sammanfattningen_), or delete it.
+- **Background** — a few sentences on what the project is about and who usually takes part
+  in what role ("Styrgrupp för nytt ärendesystem. Anna Berg är projektledare."). It is sent
+  to the summary model with every meeting in the project, through the `{{projekt}}`
+  placeholder, so names and context come out right. It is background only: the model is told
+  to write just what was said in the meeting. Leave it empty and nothing is sent.
 - **Moving meetings** — the folder button on a meeting moves it into a project, to another
   one, or out to **Utan projekt**. Nothing is copied or re-processed; only which project it
   belongs to changes.

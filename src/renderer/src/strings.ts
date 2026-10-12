@@ -65,6 +65,11 @@ export const strings = {
     defaultTemplateHint:
       'Förvald när du spelar in i projektet. Du kan alltid välja en annan mall för ett enskilt möte.',
     defaultTemplateNone: 'Samma som utanför projekt',
+    description: 'Bakgrund till sammanfattningen',
+    descriptionHint:
+      'Skickas med till modellen för varje möte i projektet. Skriv vad projektet gäller och vilka som brukar vara med och i vilken roll — det hjälper modellen att förstå namn och sammanhang.',
+    descriptionPlaceholder:
+      'T.ex. Styrgrupp för nytt ärendesystem. Anna Berg är projektledare, Erik är IT-ansvarig.',
     deleteProject: 'Ta bort projekt',
     deleteTitle: 'Ta bort projektet?',
     deleteBody: (name: string, count: number): string =>
@@ -282,7 +287,7 @@ export const strings = {
       templateName: 'Mallens namn',
       promptTemplate: 'Instruktion',
       promptHint:
-        '{{transcript}} byts mot transkriptet, {{ordlista}} mot ordlistan och {{fokus}} mot det användaren vill att sammanfattningen ska handla om.',
+        '{{transcript}} byts mot transkriptet, {{ordlista}} mot ordlistan, {{fokus}} mot det användaren vill att sammanfattningen ska handla om och {{projekt}} mot projektets bakgrund.',
       templateAdd: 'Ny mall',
       templateNewName: 'Egen mall',
       templateDelete: 'Ta bort mallen',
