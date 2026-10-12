@@ -11,72 +11,72 @@ updates:
       # be merged individually — npm ci fails on the peer range.
       build-toolchain:
         patterns:
-          - "vite"
-          - "vitest"
-          - "@vitejs/*"
-          - "@vitest/*"
-          - "electron-vite"
-          - "tailwindcss"
-          - "@tailwindcss/*"
+          - 'vite'
+          - 'vitest'
+          - '@vitejs/*'
+          - '@vitest/*'
+          - 'electron-vite'
+          - 'tailwindcss'
+          - '@tailwindcss/*'
         # Minor and patch only: a blocked major inside the group would hold
         # every safe bump in it hostage behind a red check.
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
       # eslint majors land only once every plugin accepts them.
       lint-toolchain:
         patterns:
-          - "eslint"
-          - "eslint-*"
-          - "@electron-toolkit/eslint-*"
-          - "prettier"
+          - 'eslint'
+          - 'eslint-*'
+          - '@electron-toolkit/eslint-*'
+          - 'prettier'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
       # The shipped runtime plus the harness that has to be able to launch it.
       electron:
         patterns:
-          - "electron"
-          - "electron-builder"
-          - "electron-updater"
-          - "@electron-toolkit/*"
-          - "playwright-core"
+          - 'electron'
+          - 'electron-builder'
+          - 'electron-updater'
+          - '@electron-toolkit/*'
+          - 'playwright-core'
       react:
         patterns:
-          - "react"
-          - "react-dom"
-          - "@types/react"
-          - "@types/react-dom"
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
       # Everything else arrives as one PR per week no matter how many bumps
       # there are, so a stuck major can never seal the queue again.
       routine:
         patterns:
-          - "*"
+          - '*'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
     ignore:
       # typescript-eslint's peer range is ">=4.8.4 <6.1.0" and TS 7 removed the
       # compiler API its type-aware rules build on. Revisit when typescript-eslint
       # supports TS 7 (upstream issue typescript-eslint#12518).
-      - dependency-name: "typescript"
-        versions: [">=6"]
+      - dependency-name: 'typescript'
+        versions: ['>=6']
       # Electron 44 ships a Node 24 runtime (24.21.0) and itself depends on
       # @types/node ^24.9.0. Keep the types on the major the app actually runs:
       # newer ones would typecheck APIs that are not there at runtime.
-      - dependency-name: "@types/node"
-        versions: [">=25"]
+      - dependency-name: '@types/node'
+        versions: ['>=25']
       # vite 8 cannot be installed at all: electron-vite 5.0.0 (latest stable)
       # peers on vite ^5 || ^6 || ^7, and @vitejs/plugin-react 6 requires vite 8.
       # Both land together once electron-vite 6 ships stable.
-      - dependency-name: "vite"
-        versions: [">=8"]
-      - dependency-name: "@vitejs/plugin-react"
-        versions: [">=6"]
+      - dependency-name: 'vite'
+        versions: ['>=8']
+      - dependency-name: '@vitejs/plugin-react'
+        versions: ['>=6']
       # eslint-plugin-react 7.37.5 is the latest release and still caps at
       # eslint ^9.7. No published version accepts eslint 10 yet.
-      - dependency-name: "eslint"
-        versions: [">=10"]
+      - dependency-name: 'eslint'
+        versions: ['>=10']
 
   # The two local AI components are separate uv projects, each with its own
   # lockfile.
@@ -90,20 +90,20 @@ updates:
     groups:
       python:
         patterns:
-          - "*"
+          - '*'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
     ignore:
       # These caps live in the pyproject.toml files (huggingface-hub <2 in the
       # transcription server, torch/torchaudio <2.12 in the diarization
       # server); bumps past them could not resolve anyway.
-      - dependency-name: "huggingface-hub"
-        versions: [">=2"]
-      - dependency-name: "torch"
-        versions: [">=2.12"]
-      - dependency-name: "torchaudio"
-        versions: [">=2.12"]
+      - dependency-name: 'huggingface-hub'
+        versions: ['>=2']
+      - dependency-name: 'torch'
+        versions: ['>=2.12']
+      - dependency-name: 'torchaudio'
+        versions: ['>=2.12']
 
   - package-ecosystem: github-actions
     directory: /
@@ -113,4 +113,4 @@ updates:
     groups:
       github-actions:
         patterns:
-          - "*"
+          - '*'
