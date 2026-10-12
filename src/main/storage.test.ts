@@ -5,11 +5,15 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import type { Transcript } from '../shared/types'
 import {
   addSummary,
+  clearProject,
+  createMeeting,
   deleteSummary,
   dismissSpeakerSuggestion,
   listSummaries,
+  readMeta,
   readTranscript,
   renameSpeaker,
+  setMeetingProject,
   updateSummaryMarkdown,
   writeTranscript
 } from './storage'
@@ -257,5 +261,34 @@ describe('summaries', () => {
     add('Protokoll')
     expect(() => deleteSummary(MEETING_ID, 'finns-inte')).not.toThrow()
     expect(listSummaries(MEETING_ID)).toHaveLength(1)
+  })
+})
+
+describe('meeting projects', () => {
+  it('files a new meeting under its project, or none', () => {
+    const inProject = createMeeting('Styrgrupp vecka 3', 'protokoll', 'p1')
+    const loose = createMeeting('Fika')
+    expect(readMeta(inProject.id)?.projectId).toBe('p1')
+    expect(readMeta(loose.id)).not.toHaveProperty('projectId')
+  })
+
+  it('moves a meeting into a project and back out', () => {
+    const m = createMeeting('Möte')
+    setMeetingProject(m.id, 'p1')
+    expect(readMeta(m.id)?.projectId).toBe('p1')
+    setMeetingProject(m.id, null)
+    expect(readMeta(m.id)).not.toHaveProperty('projectId')
+    // Everything else in meta.json is left alone.
+    expect(readMeta(m.id)?.title).toBe('Möte')
+  })
+
+  it('moves every meeting of a deleted project out, and only those', () => {
+    const a = createMeeting('A', undefined, 'gone')
+    const b = createMeeting('B', undefined, 'gone')
+    const c = createMeeting('C', undefined, 'kept')
+    clearProject('gone')
+    expect(readMeta(a.id)).not.toHaveProperty('projectId')
+    expect(readMeta(b.id)).not.toHaveProperty('projectId')
+    expect(readMeta(c.id)?.projectId).toBe('kept')
   })
 })

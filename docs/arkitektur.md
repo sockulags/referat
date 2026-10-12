@@ -28,6 +28,14 @@
   `TranscriptionProvider { transcribe(file, opts): Promise<Transcript> }`,
   `SummaryProvider { summarize(transcript, template): Promise<string> }`.
   Även `testConnection(): Promise<{ok, message}>` per provider.
+- **Projekt** (`src/main/projects.ts`): `userData/projects.json` (id, namn, standardmall).
+  Ett möte pekar på sitt projekt med `projectId` i meta.json — mötesmappen flyttas aldrig,
+  så att flytta ett möte är en ändring i metadata. Utan `projectId` är mötet "Utan projekt",
+  vilket är där alla äldre möten hamnar utan migrering. Att ta bort ett projekt flyttar först
+  ut dess möten och tar sedan bort projektet. Vilken mall en inspelning startar med avgörs av
+  `resolveStartTemplateId` (`src/shared/projects.ts`): användarens val > projektets
+  standardmall > senast använda mall utanför projekt. Inom ett projekt uppdateras inte den
+  globala "senast använda".
 - **Ordlista** (`src/main/glossary.ts`): `userData/glossary.json`, en global lista där varje
   term har en korrekt stavning och flera felhörda varianter. Appliceras i pipelinen före
   sammanfattningen och kan köras separat direkt när användaren lägger till en term. Icke

@@ -134,7 +134,7 @@ export function isRecordingActive(): boolean {
   return recordingIds.size > 0
 }
 
-export function createMeeting(title: string, templateId?: string): MeetingMeta {
+export function createMeeting(title: string, templateId?: string, projectId?: string): MeetingMeta {
   const id = generateId()
   const meta: MeetingMeta = {
     id,
@@ -142,11 +142,29 @@ export function createMeeting(title: string, templateId?: string): MeetingMeta {
     createdAt: new Date().toISOString(),
     durationSec: 0,
     status: 'recording',
-    ...(templateId ? { templateId } : {})
+    ...(templateId ? { templateId } : {}),
+    ...(projectId ? { projectId } : {})
   }
   writeMeta(meta)
   recordingIds.add(id)
   return meta
+}
+
+/** Move a meeting into a project, or out of any project with null. */
+export function setMeetingProject(id: string, projectId: string | null): void {
+  const meta = readMeta(id)
+  if (!meta) return
+  const next: MeetingMeta = { ...meta }
+  if (projectId) next.projectId = projectId
+  else delete next.projectId
+  writeMeta(next)
+}
+
+/** Every meeting of a deleted project goes back to "Utan projekt". */
+export function clearProject(projectId: string): void {
+  for (const meta of listMeetings()) {
+    if (meta.projectId === projectId) setMeetingProject(meta.id, null)
+  }
 }
 
 export function listMeetings(): MeetingMeta[] {

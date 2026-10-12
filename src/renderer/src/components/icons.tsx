@@ -214,3 +214,15 @@ export const Wordmark = ({ size = 22 }: { size?: number }): JSX.Element => (
     <circle cx="20" cy="12" r="1.6" fill="currentColor" />
   </svg>
 )
+
+export const IconFolder = (p: IconProps): JSX.Element => (
+  <Base {...p}>
+    <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.6l2 2h8.4A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z" />
+  </Base>
+)
+
+export const IconPlus = (p: IconProps): JSX.Element => (
+  <Base {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Base>
+)

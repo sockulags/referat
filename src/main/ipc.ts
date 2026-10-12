@@ -26,6 +26,13 @@ export const IPC = {
   deleteGlossaryTerm: 'glossary:delete',
   applyGlossary: 'glossary:apply',
 
+  // Projects
+  listProjects: 'projects:list',
+  createProject: 'projects:create',
+  updateProject: 'projects:update',
+  deleteProject: 'projects:delete',
+  setMeetingProject: 'projects:set-meeting',
+
   // Recording
   startRecording: 'recording:start',
   appendAudioChunk: 'recording:append-chunk',

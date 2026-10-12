@@ -13,7 +13,8 @@ import type {
   SpeakerProfile,
   GlossaryTerm,
   LocalAiComponent,
-  LocalAiComponentStatus
+  LocalAiComponentStatus,
+  Project
 } from '../shared/types'
 import type { LevelEnvelope } from '../shared/levels'
 import { IPC } from './ipc'
@@ -21,6 +22,7 @@ import * as storage from './storage'
 import * as settings from './settings'
 import * as speakerProfiles from './speakerProfiles'
 import * as glossary from './glossary'
+import * as projects from './projects'
 import {
   applyGlossaryToMeeting,
   enqueue,
@@ -108,13 +110,43 @@ export function registerIpcHandlers(): void {
     applyGlossaryToMeeting(meetingId)
   )
 
-  // ---- Recording ----
-  ipcMain.handle(IPC.startRecording, (_e, title: string, templateId?: string): RecordingHandle => {
-    // The chosen template becomes the preselection for the next recording.
-    if (templateId) settings.setDefaultSummaryTemplate(templateId)
-    const meta = storage.createMeeting(title, templateId)
-    return { meetingId: meta.id }
+  // ---- Projects ----
+  ipcMain.handle(IPC.listProjects, (): Project[] => projects.listProjects())
+
+  ipcMain.handle(IPC.createProject, (_e, name: string): Project => projects.createProject(name))
+
+  ipcMain.handle(
+    IPC.updateProject,
+    (_e, id: string, patch: { name?: string; defaultTemplateId?: string }): Project | null =>
+      projects.updateProject(id, patch)
+  )
+
+  ipcMain.handle(IPC.deleteProject, (_e, id: string): void => {
+    // Meetings first: if this is interrupted, the project still exists and
+    // the user can delete it again; the other way round would leave meetings
+    // pointing at a project that is gone.
+    storage.clearProject(id)
+    projects.deleteProject(id)
   })
+
+  ipcMain.handle(IPC.setMeetingProject, (_e, meetingId: string, projectId: string | null): void => {
+    if (projectId && !projects.getProject(projectId)) throw new Error('Projektet finns inte')
+    storage.setMeetingProject(meetingId, projectId)
+  })
+
+  // ---- Recording ----
+  ipcMain.handle(
+    IPC.startRecording,
+    (_e, title: string, templateId?: string, projectId?: string): RecordingHandle => {
+      const project = projects.getProject(projectId)
+      // Outside a project the chosen template becomes the preselection for
+      // the next recording. A project keeps its own default instead, so one
+      // odd meeting does not change what the next one starts with.
+      if (templateId && !project) settings.setDefaultSummaryTemplate(templateId)
+      const meta = storage.createMeeting(title, templateId, project?.id)
+      return { meetingId: meta.id }
+    }
+  )
 
   ipcMain.handle(
     IPC.appendAudioChunk,

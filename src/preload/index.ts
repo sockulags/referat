@@ -14,7 +14,8 @@ import type {
   SpeakerProfile,
   GlossaryTerm,
   LocalAiComponent,
-  LocalAiComponentStatus
+  LocalAiComponentStatus,
+  Project
 } from '../shared/types'
 import type { LevelEnvelope } from '../shared/levels'
 import { IPC } from '../main/ipc'
@@ -55,9 +56,24 @@ const api: RendererApi = {
   applyGlossary: (meetingId: string): Promise<number | null> =>
     ipcRenderer.invoke(IPC.applyGlossary, meetingId),
 
+  // Projects
+  listProjects: (): Promise<Project[]> => ipcRenderer.invoke(IPC.listProjects),
+  createProject: (name: string): Promise<Project> => ipcRenderer.invoke(IPC.createProject, name),
+  updateProject: (
+    id: string,
+    patch: { name?: string; defaultTemplateId?: string }
+  ): Promise<Project | null> => ipcRenderer.invoke(IPC.updateProject, id, patch),
+  deleteProject: (id: string): Promise<void> => ipcRenderer.invoke(IPC.deleteProject, id),
+  setMeetingProject: (meetingId: string, projectId: string | null): Promise<void> =>
+    ipcRenderer.invoke(IPC.setMeetingProject, meetingId, projectId),
+
   // Recording
-  startRecording: (title: string, templateId?: string): Promise<RecordingHandle> =>
-    ipcRenderer.invoke(IPC.startRecording, title, templateId),
+  startRecording: (
+    title: string,
+    templateId?: string,
+    projectId?: string
+  ): Promise<RecordingHandle> =>
+    ipcRenderer.invoke(IPC.startRecording, title, templateId, projectId),
   appendAudioChunk: (meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void> =>
     ipcRenderer.invoke(IPC.appendAudioChunk, meetingId, chunk, segmentIndex),
   saveLevelEnvelope: (meetingId: string, envelope: LevelEnvelope): Promise<void> =>

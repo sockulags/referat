@@ -96,6 +96,7 @@ Read the full [architecture and security model](https://github.com/sockulags/ref
 - Microphone and Windows WASAPI loopback recording
 - Swedish and multilingual transcription through configurable providers
 - Live text while recording, as a preview of the transcript
+- Projects that group meetings, each with its own default summary template
 - Automatic "me and everyone else" labels whenever system audio is recorded
 - Optional local speaker diarization for individual voices
 - Glossary for terms the transcriber mishears, filled by selecting a word in the transcript

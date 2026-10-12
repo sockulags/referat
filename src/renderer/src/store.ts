@@ -4,6 +4,28 @@ import type { AppSettings } from '../../shared/types'
 
 export type View = 'home' | 'recording' | 'meeting' | 'settings' | 'onboarding'
 
+/** Which meetings Home lists: all of them, those outside any project, or one project's id. */
+export type ProjectFilter = 'all' | 'none' | (string & {})
+
+const FILTER_KEY = 'referat.projectFilter'
+
+/** The remembered filter is a convenience: unavailable storage just means 'all'. */
+function readFilter(): ProjectFilter {
+  try {
+    return window.localStorage.getItem(FILTER_KEY) || 'all'
+  } catch {
+    return 'all'
+  }
+}
+
+function writeFilter(filter: ProjectFilter): void {
+  try {
+    window.localStorage.setItem(FILTER_KEY, filter)
+  } catch {
+    /* not remembered, nothing else lost */
+  }
+}
+
 export interface Toast {
   id: number
   message: string
@@ -15,8 +37,14 @@ interface AppState {
   meetingId?: string
   /** Title carried from Home into the recording flow. */
   pendingTitle: string
-  /** Template carried from Home into the recording flow. '' = the default. */
+  /**
+   * The template the user picked on Home. '' = not picked, so the project's
+   * default (or the last used one) applies. Cleared when the project changes.
+   */
   pendingTemplateId: string
+  /** What the recording starts with, resolved on Home when Start is pressed. */
+  pendingStart: { templateId: string; projectId: string }
+  projectFilter: ProjectFilter
   settings?: AppSettings
   settingsLoaded: boolean
   toasts: Toast[]
@@ -25,6 +53,8 @@ interface AppState {
   openMeeting: (meetingId: string) => void
   setPendingTitle: (title: string) => void
   setPendingTemplateId: (templateId: string) => void
+  setPendingStart: (start: { templateId: string; projectId: string }) => void
+  setProjectFilter: (filter: ProjectFilter) => void
   setSettings: (settings: AppSettings) => void
   patchSettings: (partial: Partial<AppSettings>) => void
   toast: (message: string, tone?: Toast['tone']) => void
@@ -38,6 +68,8 @@ export const useApp = create<AppState>((set) => ({
   meetingId: undefined,
   pendingTitle: '',
   pendingTemplateId: '',
+  pendingStart: { templateId: '', projectId: '' },
+  projectFilter: readFilter(),
   settings: undefined,
   settingsLoaded: false,
   toasts: [],
@@ -46,6 +78,12 @@ export const useApp = create<AppState>((set) => ({
   openMeeting: (meetingId): void => set({ view: 'meeting', meetingId }),
   setPendingTitle: (pendingTitle): void => set({ pendingTitle }),
   setPendingTemplateId: (pendingTemplateId): void => set({ pendingTemplateId }),
+  setPendingStart: (pendingStart): void => set({ pendingStart }),
+  setProjectFilter: (projectFilter): void => {
+    writeFilter(projectFilter)
+    // A pick made for one project should not carry over to the next.
+    set({ projectFilter, pendingTemplateId: '' })
+  },
   setSettings: (settings): void => set({ settings, settingsLoaded: true }),
   patchSettings: (partial): void =>
     set((s) => (s.settings ? { settings: { ...s.settings, ...partial } } : {})),
