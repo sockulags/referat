@@ -37,6 +37,11 @@
   standardmall > senast använda mall utanför projekt. Inom ett projekt uppdateras inte den
   globala "senast använda". Ett projekts bakgrundstext skickas till sammanfattningen via
   `{{projekt}}` (`projectPromptBlock`); utan text skickas ingenting.
+- **Projektöversikt** (`src/main/projectSummary.ts`): en sammanfattning över ett projekts
+  möten, byggd av varje mötes första sammanfattning (inte transkripten — de får inte plats
+  tillsammans). Äldst först; får inte allt plats (`MAX_INPUT_CHARS`) utelämnas de äldsta.
+  Körs utanför mötenas pipelinekö eftersom den bara läser färdiga sammanfattningar. Sparas i
+  `userData/project-summaries/<projektId>.json`.
 - **Ordlista** (`src/main/glossary.ts`): `userData/glossary.json`, en lista där varje
   term har en korrekt stavning och flera felhörda varianter. En term gäller alla möten eller,
   med `projectId`, bara ett projekts möten; ett möte får de globala termerna plus sitt

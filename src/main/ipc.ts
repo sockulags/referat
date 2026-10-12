@@ -32,6 +32,10 @@ export const IPC = {
   updateProject: 'projects:update',
   deleteProject: 'projects:delete',
   setMeetingProject: 'projects:set-meeting',
+  listProjectSummaries: 'projects:list-summaries',
+  generateProjectSummary: 'projects:generate-summary',
+  deleteProjectSummary: 'projects:delete-summary',
+  copyProjectSummary: 'projects:copy-summary',
 
   // Recording
   startRecording: 'recording:start',

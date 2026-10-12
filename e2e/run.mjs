@@ -620,6 +620,37 @@ async function main() {
     'the project term is marked with its project in the glossary list'
   )
 
+  // --- Project overview: one summary across the project's two meetings
+  {
+    const home = page.getByLabel('Till startsidan')
+    if (await home.count()) await home.first().click()
+    else await page.getByText('referat', { exact: true }).first().click()
+    await page.waitForTimeout(1000)
+    await page.getByRole('button', { name: 'Styrgrupp', exact: true }).click()
+    await page.waitForTimeout(400)
+    await page.getByRole('button', { name: 'Projektöversikt' }).click()
+    await page.waitForTimeout(600)
+    await page.getByRole('button', { name: 'Skapa översikt' }).click()
+    const overview = await page
+      .getByTestId('project-overview')
+      .getByText('Sammanfattning')
+      .first()
+      .waitFor({ state: 'visible', timeout: 15000 })
+      .then(() => true)
+      .catch(() => false)
+    await shot('project-overview')
+    assert(overview, 'a project overview is generated and shown')
+    assert(
+      (await page.getByText(/bygger på 2 möten/).count()) > 0,
+      'the overview says how many meetings it read'
+    )
+    const prompt = await fetch('http://localhost:8000/__last-prompt').then((r) => r.text())
+    assert(
+      prompt.includes('### Veckomöte HR') && prompt.includes('### Uppföljning HR'),
+      "the overview is built from both of the project's meeting summaries"
+    )
+  }
+
   console.log('CONSOLE_ERRORS:', JSON.stringify(consoleErrors, null, 2))
   assert(consoleErrors.length === 0, 'no renderer console errors during the run')
 }

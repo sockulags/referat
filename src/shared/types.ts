@@ -146,6 +146,26 @@ export interface Project {
   createdAt: string
 }
 
+/** An overview across every meeting in a project. */
+export interface ProjectSummary {
+  id: string
+  createdAt: string
+  /** What the user asked it to be about; '' = the whole project. */
+  focus: string
+  markdown: string
+  /** How many meetings it was built from. */
+  meetingCount: number
+}
+
+export type ProjectOverviewResult =
+  | {
+      ok: true
+      summary: ProjectSummary
+      /** Oldest meetings that did not fit the model's input and were left out. */
+      leftOut: number
+    }
+  | { ok: false; message: string; detail?: string }
+
 // ---------- Settings & providers ----------
 
 export type TranscriptionPreset = 'built-in' | 'local' | 'openai' | 'azure' | 'custom'
@@ -353,6 +373,15 @@ export interface RendererApi {
   deleteProject(id: string): Promise<void>
   /** Move a meeting into a project, or out of any project with null. */
   setMeetingProject(meetingId: string, projectId: string | null): Promise<void>
+  /** Earlier overviews of the project, oldest first. */
+  listProjectSummaries(projectId: string): Promise<ProjectSummary[]>
+  /**
+   * Summarize the project from its meetings' summaries. Takes as long as a
+   * model call; failures come back as a result rather than a rejection.
+   */
+  generateProjectSummary(projectId: string, focus: string): Promise<ProjectOverviewResult>
+  deleteProjectSummary(projectId: string, summaryId: string): Promise<void>
+  copyProjectSummary(projectId: string, summaryId: string): Promise<void>
 
   // Recording: renderer captures & encodes; main persists chunks.
   /**

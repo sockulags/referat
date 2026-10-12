@@ -1,6 +1,6 @@
 // Registers every IPC handler in the RendererApi contract.
 
-import { ipcMain, app } from 'electron'
+import { ipcMain, app, clipboard } from 'electron'
 import type {
   MeetingMeta,
   MeetingDetail,
@@ -14,7 +14,9 @@ import type {
   GlossaryTerm,
   LocalAiComponent,
   LocalAiComponentStatus,
-  Project
+  Project,
+  ProjectOverviewResult,
+  ProjectSummary
 } from '../shared/types'
 import type { LevelEnvelope } from '../shared/levels'
 import { IPC } from './ipc'
@@ -23,8 +25,10 @@ import * as settings from './settings'
 import * as speakerProfiles from './speakerProfiles'
 import * as glossary from './glossary'
 import * as projects from './projects'
+import * as projectSummary from './projectSummary'
 import {
   applyGlossaryToMeeting,
+  generateProjectOverview,
   enqueue,
   generateSummary,
   retryPipeline,
@@ -135,12 +139,32 @@ export function registerIpcHandlers(): void {
     // pointing at a project that is gone.
     storage.clearProject(id)
     glossary.deleteProjectTerms(id)
+    projectSummary.deleteProjectSummaries(id)
     projects.deleteProject(id)
   })
 
   ipcMain.handle(IPC.setMeetingProject, (_e, meetingId: string, projectId: string | null): void => {
     if (projectId && !projects.getProject(projectId)) throw new Error('Projektet finns inte')
     storage.setMeetingProject(meetingId, projectId)
+  })
+
+  ipcMain.handle(IPC.listProjectSummaries, (_e, projectId: string): ProjectSummary[] =>
+    projectSummary.listProjectSummaries(projectId)
+  )
+
+  ipcMain.handle(
+    IPC.generateProjectSummary,
+    (_e, projectId: string, focus: string): Promise<ProjectOverviewResult> =>
+      generateProjectOverview(projectId, focus)
+  )
+
+  ipcMain.handle(IPC.deleteProjectSummary, (_e, projectId: string, summaryId: string): void =>
+    projectSummary.deleteProjectSummary(projectId, summaryId)
+  )
+
+  ipcMain.handle(IPC.copyProjectSummary, (_e, projectId: string, summaryId: string): void => {
+    const summary = projectSummary.listProjectSummaries(projectId).find((s) => s.id === summaryId)
+    clipboard.writeText(summary?.markdown ?? '')
   })
 
   // ---- Recording ----

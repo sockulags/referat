@@ -15,7 +15,8 @@ It exists to show the direction referat is heading.
   action items, decision log, follow-up email), chosen when the recording starts. The same
   meeting can get more summaries afterwards, each optionally narrowed to one part of the
   meeting — see [Configuration](Configuration).
-- **Projects** — group meetings into projects, each with its own default summary template;
+- **Projects** — group meetings into projects, each with its own default summary template,
+  background for the summary model, glossary terms and an overview across all its meetings;
   move meetings in and out of projects — see [Configuration](Configuration#projects).
 - **Live transcription** — text appears while the meeting is being recorded, as a preview;
   the full transcript is still made when you stop. On by default when the transcriber runs on
