@@ -5,7 +5,9 @@
 // Deterministic and CI-friendly:
 //  - fresh, isolated userData under RUNNER_TEMP/os.tmpdir via the
 //    REFERAT_USER_DATA test hook, so runs never share first-run state;
-//  - fake mic via Chromium flags so recording works headlessly;
+//  - fake mic via Chromium flags so recording works headlessly, fed with a
+//    generated file of tone bursts and pauses so live windows are cut at a
+//    pause the way they are with real speech;
 //  - screenshots to e2e/artifacts/;
 //  - collects renderer console errors;
 //  - exits non-zero on any failed assertion, pipeline error, or console error.
@@ -25,6 +27,37 @@ fs.mkdirSync(ARTIFACTS, { recursive: true })
 // Fresh isolated userData for a clean first run.
 const tmpRoot = process.env.RUNNER_TEMP || os.tmpdir()
 const userData = fs.mkdtempSync(path.join(tmpRoot, 'referat-e2e-'))
+
+/**
+ * 16-bit mono WAV of 2 s tone, 0.8 s silence, repeated. Chromium's default
+ * fake mic never goes quiet, so a live window would only ever end at its
+ * maximum length; real speech pauses, and this is what that looks like.
+ */
+function writeSpeechLikeWav(file, seconds = 60, rate = 16000) {
+  const samples = seconds * rate
+  const buf = Buffer.alloc(44 + samples * 2)
+  buf.write('RIFF', 0)
+  buf.writeUInt32LE(36 + samples * 2, 4)
+  buf.write('WAVEfmt ', 8)
+  buf.writeUInt32LE(16, 16)
+  buf.writeUInt16LE(1, 20)
+  buf.writeUInt16LE(1, 22)
+  buf.writeUInt32LE(rate, 24)
+  buf.writeUInt32LE(rate * 2, 28)
+  buf.writeUInt16LE(2, 32)
+  buf.writeUInt16LE(16, 34)
+  buf.write('data', 36)
+  buf.writeUInt32LE(samples * 2, 40)
+  for (let i = 0; i < samples; i++) {
+    const t = i / rate
+    const on = t % 2.8 < 2
+    const v = on ? Math.sin(2 * Math.PI * 440 * t) * 0.3 : 0
+    buf.writeInt16LE(Math.round(v * 32767), 44 + i * 2)
+  }
+  fs.writeFileSync(file, buf)
+}
+const fakeAudio = path.join(userData, 'fake-mic.wav')
+writeSpeechLikeWav(fakeAudio)
 
 const electronExe = path.join(
   REPO,
@@ -88,7 +121,12 @@ async function main() {
 
   app = await electron.launch({
     executablePath: electronExe,
-    args: [mainEntry, '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+    args: [
+      mainEntry,
+      '--use-fake-device-for-media-stream',
+      '--use-fake-ui-for-media-stream',
+      `--use-file-for-fake-audio-capture=${fakeAudio}`
+    ],
     env: { ...process.env, REFERAT_USER_DATA: userData }
   })
 
@@ -220,8 +258,20 @@ async function main() {
     .textContent()
     .catch(() => '')
   assert(/\d{1,2}:\d{2}/.test(timerText || ''), `recording view shows a timer (got "${timerText}")`)
+  // The mock transcriber runs on localhost, so live text is on by default.
+  assert(await seen('Live-text', 2000), 'recording view shows the live text panel')
   await page.waitForTimeout(12000)
+  // The fake mic's tone gives the first window after ~10s, then the mock
+  // answers in ~3s; allow some slack on slow runners.
+  const liveText = await page
+    .getByTestId('live-transcript')
+    .getByText(/rekryteringar/)
+    .first()
+    .waitFor({ state: 'visible', timeout: 10000 })
+    .then(() => true)
+    .catch(() => false)
   await shot('recording-12s')
+  assert(liveText, 'live text from the transcriber appears while still recording')
   await page.getByText('Stoppa och spara').click()
   await page.waitForTimeout(1500)
 
