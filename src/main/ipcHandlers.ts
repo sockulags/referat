@@ -29,7 +29,7 @@ import {
   resummarize
 } from './pipeline'
 import { exportProtocol, copyProtocol } from './export'
-import { testTranscriptionConnection } from './providers/transcription'
+import { testTranscriptionConnection, transcribeLiveWindow } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
 import { testDiarizationConnection } from './providers/diarization'
 import { openExternalSafe } from './security'
@@ -137,6 +137,19 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.cancelRecording, (_e, meetingId: string): Promise<void> =>
     storage.cancelRecording(meetingId)
   )
+
+  ipcMain.handle(IPC.transcribeLive, async (_e, audio: ArrayBuffer): Promise<string> => {
+    const config = settings.getTranscriptionConfig()
+    // Checked here, not only in the renderer: this is what decides whether
+    // audio leaves the computer while the meeting is still going on.
+    if (!config.live) throw new Error('Live-transkribering är avstängd')
+    const text = await transcribeLiveWindow(audio, config)
+    const { transcript } = glossary.applyGlossary(
+      { language: config.language, segments: [], text },
+      glossary.listGlossaryTerms()
+    )
+    return transcript.text
+  })
 
   // ---- Settings ----
   ipcMain.handle(IPC.getSettings, (): AppSettings => settings.getSettings())

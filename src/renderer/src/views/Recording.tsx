@@ -4,6 +4,8 @@ import { useApp } from '../store'
 import { strings } from '../strings'
 import { formatDuration } from '../format'
 import { MeetingRecorder, isMicPermissionError } from '../audio/recorder'
+import { LiveQueue, type LiveState } from '../audio/live'
+import { isLiveTranscriptionOn } from '../../../shared/live'
 import { LevelMeter } from '../components/LevelMeter'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
@@ -26,8 +28,17 @@ export function Recording(): JSX.Element {
   const [hasSystem, setHasSystem] = useState(false)
   const [micDetail, setMicDetail] = useState('')
   const [showCancel, setShowCancel] = useState(false)
+  const liveOn =
+    !!settings &&
+    isLiveTranscriptionOn(
+      settings.transcription.live,
+      settings.transcription.preset,
+      settings.transcription.baseUrl
+    )
+  const [live, setLive] = useState<LiveState>({ entries: [], status: 'waiting' })
 
   const recorderRef = useRef<MeetingRecorder | null>(null)
+  const liveQueueRef = useRef<LiveQueue | null>(null)
   const meetingIdRef = useRef<string | null>(null)
   const startedRef = useRef(false)
   const elapsedMsRef = useRef(0)
@@ -45,6 +56,10 @@ export function Recording(): JSX.Element {
 
     const recorder = new MeetingRecorder()
     recorderRef.current = recorder
+    const liveQueue = liveOn
+      ? new LiveQueue((w) => window.api.transcribeLive(w.audio), setLive)
+      : null
+    liveQueueRef.current = liveQueue
 
     ;(async (): Promise<void> => {
       try {
@@ -61,7 +76,8 @@ export function Recording(): JSX.Element {
               await window.api.appendAudioChunk(meetingIdRef.current, chunk, segmentIndex)
             }
           },
-          onSystemAudioUnavailable: () => setSystemMissing(true)
+          onSystemAudioUnavailable: () => setSystemMissing(true),
+          onLiveWindow: liveQueue ? (w) => liveQueue.push(w) : undefined
         })
         setHasSystem(recorder.hasSystemAudio)
         setPhase('recording')
@@ -78,6 +94,7 @@ export function Recording(): JSX.Element {
     })()
 
     return () => {
+      liveQueueRef.current?.stop()
       recorderRef.current?.cleanup()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,6 +136,7 @@ export function Recording(): JSX.Element {
   const stop = async (): Promise<void> => {
     if (phase === 'finishing' || phase === 'mic-denied') return
     setPhase('finishing')
+    liveQueueRef.current?.stop()
     const rec = recorderRef.current
     const id = meetingIdRef.current
     try {
@@ -144,6 +162,7 @@ export function Recording(): JSX.Element {
   const cancel = async (): Promise<void> => {
     const rec = recorderRef.current
     const id = meetingIdRef.current
+    liveQueueRef.current?.stop()
     rec?.cleanup()
     if (id) await window.api.cancelRecording(id)
     navigate('home')
@@ -217,6 +236,8 @@ export function Recording(): JSX.Element {
         </div>
       )}
 
+      {liveOn && !isStarting && <LivePanel state={live} />}
+
       {/* Controls */}
       <div className="flex items-center gap-3">
         <Button
@@ -268,6 +289,68 @@ export function Recording(): JSX.Element {
         <p className="text-sm text-fg-muted leading-relaxed">{strings.recording.cancelBody}</p>
       </Modal>
     </div>
+  )
+}
+
+/** The running preview text. Follows the newest line unless the reader has scrolled up. */
+function LivePanel({ state }: { state: LiveState }): JSX.Element {
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const pinnedRef = useRef(true)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el && pinnedRef.current) el.scrollTop = el.scrollHeight
+  }, [state.entries])
+
+  const onScroll = (): void => {
+    const el = scrollRef.current
+    if (el) pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+  }
+
+  const notice =
+    state.status === 'unavailable'
+      ? strings.recording.liveUnavailable
+      : state.status === 'behind'
+        ? strings.recording.liveBehind
+        : null
+
+  return (
+    <section
+      aria-label={strings.recording.liveTitle}
+      className="w-full mb-8 text-left rounded-[10px] border border-border bg-surface animate-fade-in"
+    >
+      <div className="flex items-baseline justify-between gap-3 px-4 pt-3 pb-2">
+        <h2 className="text-sm font-medium text-fg">{strings.recording.liveTitle}</h2>
+        <span className="text-xs text-fg-subtle">{strings.recording.liveNote}</span>
+      </div>
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        aria-live="polite"
+        data-testid="live-transcript"
+        className="max-h-48 overflow-y-auto px-4 pb-3 flex flex-col gap-2"
+      >
+        {state.entries.length === 0 ? (
+          <p className="text-sm text-fg-subtle">{strings.recording.liveWaiting}</p>
+        ) : (
+          state.entries.map((entry, i) =>
+            entry.kind === 'gap' ? (
+              <p key={i} className="text-xs italic text-fg-subtle">
+                {formatDuration(Math.floor(entry.startSec))} · {strings.recording.liveGap}
+              </p>
+            ) : (
+              <p key={i} className="text-sm text-fg leading-relaxed">
+                <span className="mr-2 text-xs tabular-nums text-fg-subtle">
+                  {formatDuration(Math.floor(entry.startSec))}
+                </span>
+                {entry.text}
+              </p>
+            )
+          )
+        )}
+      </div>
+      {notice && <p className="border-t border-border px-4 py-2 text-xs text-fg-muted">{notice}</p>}
+    </section>
   )
 }
 

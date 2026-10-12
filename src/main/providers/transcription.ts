@@ -91,7 +91,17 @@ async function transcribeFile(
   durationSec: number
 ): Promise<Transcript> {
   const bytes = await readFile(audioFilePath)
-  const file = new File([bytes], basename(audioFilePath), { type: 'audio/webm' })
+  return transcribeBytes(bytes, basename(audioFilePath), config, durationSec, WORK_TIMEOUT_MS)
+}
+
+async function transcribeBytes(
+  bytes: Uint8Array<ArrayBuffer>,
+  fileName: string,
+  config: TranscriptionConfig,
+  durationSec: number,
+  timeoutMs: number
+): Promise<Transcript> {
+  const file = new File([bytes], fileName, { type: 'audio/webm' })
 
   const form = new FormData()
   form.append('file', file)
@@ -104,7 +114,7 @@ async function transcribeFile(
     method: 'POST',
     headers: authHeaders(config.apiKey),
     body: form,
-    signal: AbortSignal.timeout(WORK_TIMEOUT_MS)
+    signal: AbortSignal.timeout(timeoutMs)
   })
 
   if (!res.ok) {
@@ -163,6 +173,30 @@ export async function transcribe(
     segments,
     text: texts.join(' ').trim()
   }
+}
+
+/**
+ * A live window is 10–25 s of audio. A transcriber that needs longer than
+ * this is too slow to keep up anyway, and the next window is already waiting.
+ */
+const LIVE_TIMEOUT_MS = 60_000
+
+/** Transcribe one live window — a complete webm file held in memory. */
+export async function transcribeLiveWindow(
+  audio: ArrayBuffer,
+  config: TranscriptionConfig
+): Promise<string> {
+  if (config.preset === 'built-in') {
+    await ensureLocalAiComponentRunning('transcription-cpu')
+  }
+  const transcript = await transcribeBytes(
+    new Uint8Array(audio),
+    'live.webm',
+    config,
+    0,
+    LIVE_TIMEOUT_MS
+  )
+  return transcript.text
 }
 
 export async function testTranscriptionConnection(

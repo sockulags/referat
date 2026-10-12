@@ -32,6 +32,7 @@ export const IPC = {
   finishRecording: 'recording:finish',
   cancelRecording: 'recording:cancel',
   saveLevelEnvelope: 'recording:levels',
+  transcribeLive: 'recording:transcribe-live',
 
   // Settings
   getSettings: 'settings:get',

@@ -144,8 +144,7 @@ till att informera deltagarna. Wikin dokumenterar ansvaret för IT/DPO.
 
 ## Utanför scope (MVP)
 
-Live-transkribering under mötet, kalenderintegration, team-delning,
-macOS/Linux, engelska UI. Arkitekturen ska inte blockera dessa senare.
+Kalenderintegration, team-delning, macOS/Linux, engelska UI. Arkitekturen ska inte blockera dessa senare.
 
 ## Distribution
 

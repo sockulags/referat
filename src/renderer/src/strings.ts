@@ -79,7 +79,13 @@ export const strings = {
     micDeniedBody:
       'referat behöver tillgång till mikrofonen för att spela in. Tillåt mikrofon i Windows sekretessinställningar och försök igen.',
     starting: 'Startar inspelning…',
-    elapsed: 'Inspelad tid'
+    elapsed: 'Inspelad tid',
+    liveTitle: 'Live-text',
+    liveNote: 'Förhandsvisning — hela transkriptet skapas när du stoppar.',
+    liveWaiting: 'Texten dyker upp här efter en stund.',
+    liveBehind: 'Transkriberingen hinner inte med, så vissa delar hoppas över.',
+    liveUnavailable: 'Live-texten är tillfälligt borta. Inspelningen påverkas inte.',
+    liveGap: 'En del hoppades över'
   },
 
   meeting: {
@@ -217,7 +223,12 @@ export const strings = {
       builtInTitle: 'Lokal CPU-transkribering',
       builtInDescription:
         'Referat installerar en svensk Whisper-modell och kör den lokalt. Ingen Docker, serveradress eller API-nyckel behövs.',
-      builtInSize: 'Cirka 700 MB efter installation.'
+      builtInSize: 'Cirka 700 MB efter installation.',
+      live: 'Visa text medan du spelar in',
+      liveHintLocal:
+        'Ljudet skickas i korta bitar till transkriberingen på den här datorn medan mötet pågår. Hela transkriptet skapas som vanligt när du stoppar.',
+      liveHintRemote:
+        'Ljudet skickas i korta bitar till tjänsten ovan medan mötet pågår, inte bara när du stoppar. Avstängt om du inte slår på det, eftersom ljudet lämnar datorn.'
     },
     summary: {
       title: 'Sammanfattning',

@@ -66,6 +66,8 @@ const api: RendererApi = {
     ipcRenderer.invoke(IPC.finishRecording, meetingId, durationSec),
   cancelRecording: (meetingId: string): Promise<void> =>
     ipcRenderer.invoke(IPC.cancelRecording, meetingId),
+  transcribeLive: (audio: ArrayBuffer): Promise<string> =>
+    ipcRenderer.invoke(IPC.transcribeLive, audio),
 
   // Settings
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.getSettings),

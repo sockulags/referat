@@ -15,6 +15,9 @@ It exists to show the direction referat is heading.
   action items, decision log, follow-up email), chosen when the recording starts. The same
   meeting can get more summaries afterwards, each optionally narrowed to one part of the
   meeting — see [Configuration](Configuration).
+- **Live transcription** — text appears while the meeting is being recorded, as a preview;
+  the full transcript is still made when you stop. On by default when the transcriber runs on
+  your computer, opt-in otherwise — see [Configuration](Configuration#live-text-while-recording).
 
 ## Planned
 
@@ -22,7 +25,6 @@ It exists to show the direction referat is heading.
   prepare for localization, and English is the next language.
 - **Code signing** — sign the Windows installer so the SmartScreen warning on first run goes
   away. See [Installation](Installation) for the current situation.
-- **Live transcription** — show text as the meeting happens, rather than only after you stop.
 
 ## Explicitly out of scope for now
 
