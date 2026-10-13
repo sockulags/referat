@@ -24,7 +24,7 @@ import {
   getTranscriptionConfig,
   getUserName
 } from './settings'
-import { applyGlossary, glossaryPromptBlock, listGlossaryTerms } from './glossary'
+import { applyGlossary, glossaryPromptBlock, termsForProject } from './glossary'
 import { transcribe } from './providers/transcription'
 import { summarize } from './providers/summary'
 import { diarize } from './providers/diarization'
@@ -215,7 +215,8 @@ function applySourceAttribution(meetingId: string): void {
 export function applyGlossaryToMeeting(meetingId: string): number | null {
   const transcript = readTranscript(meetingId)
   if (!transcript) return null
-  const { transcript: next, hits } = applyGlossary(transcript, listGlossaryTerms())
+  const terms = termsForProject(readMeta(meetingId)?.projectId)
+  const { transcript: next, hits } = applyGlossary(transcript, terms)
   // Always write: a removed term un-corrects the transcript, which is a change
   // worth persisting even though it produces no hits.
   writeTranscript(meetingId, next)
@@ -228,6 +229,7 @@ export function applyGlossaryToMeeting(meetingId: string): number | null {
  * thinking and come back with nothing.
  */
 async function generateSummaryText(
+  meetingId: string,
   transcript: Transcript,
   promptTemplate: string,
   focus: string
@@ -236,7 +238,7 @@ async function generateSummaryText(
   // ("Anna: …"); without speakers this is exactly transcript.text.
   const markdown = await summarize(speakerAttributedText(transcript), getSummaryConfig(), {
     promptTemplate,
-    glossary: glossaryPromptBlock(listGlossaryTerms()),
+    glossary: glossaryPromptBlock(termsForProject(readMeta(meetingId)?.projectId)),
     focus
   })
   if (!markdown.trim()) {
@@ -257,7 +259,7 @@ async function runSummaries(meetingId: string, transcript: Transcript): Promise<
   const existing = listSummaries(meetingId)
   if (existing.length === 0) {
     const template = getSummaryTemplate(readMeta(meetingId)?.templateId)
-    const markdown = await generateSummaryText(transcript, template.promptTemplate, '')
+    const markdown = await generateSummaryText(meetingId, transcript, template.promptTemplate, '')
     addSummary(meetingId, {
       templateId: template.id,
       templateName: template.name,
@@ -270,7 +272,12 @@ async function runSummaries(meetingId: string, transcript: Transcript): Promise<
     // The template may have been renamed, edited or deleted since; falling back
     // to the default beats refusing to refresh the summary at all.
     const template = getSummaryTemplate(summary.templateId)
-    const markdown = await generateSummaryText(transcript, template.promptTemplate, summary.focus)
+    const markdown = await generateSummaryText(
+      meetingId,
+      transcript,
+      template.promptTemplate,
+      summary.focus
+    )
     updateSummaryMarkdown(meetingId, summary.id, markdown)
   }
 }
@@ -287,7 +294,12 @@ async function runAddSummary(meetingId: string, request: SummaryRequest): Promis
     const transcript = readTranscript(meetingId)
     if (!transcript) throw new UserFacingError('Transkript saknas — kan inte sammanfatta')
     const template = getSummaryTemplate(request.templateId)
-    const markdown = await generateSummaryText(transcript, template.promptTemplate, request.focus)
+    const markdown = await generateSummaryText(
+      meetingId,
+      transcript,
+      template.promptTemplate,
+      request.focus
+    )
     addSummary(meetingId, {
       templateId: template.id,
       templateName: template.name,

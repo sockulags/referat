@@ -57,7 +57,10 @@ export function Recording(): JSX.Element {
     const recorder = new MeetingRecorder()
     recorderRef.current = recorder
     const liveQueue = liveOn
-      ? new LiveQueue((w) => window.api.transcribeLive(w.audio), setLive)
+      ? new LiveQueue(
+          (w) => window.api.transcribeLive(w.audio, meetingIdRef.current ?? undefined),
+          setLive
+        )
       : null
     liveQueueRef.current = liveQueue
 

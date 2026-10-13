@@ -94,14 +94,19 @@ export function registerIpcHandlers(): void {
   // ---- Glossary ----
   ipcMain.handle(IPC.listGlossaryTerms, (): GlossaryTerm[] => glossary.listGlossaryTerms())
 
-  ipcMain.handle(IPC.addGlossaryEntry, (_e, canonical: string, variant: string): GlossaryTerm =>
-    glossary.addGlossaryEntry(canonical, variant)
+  ipcMain.handle(
+    IPC.addGlossaryEntry,
+    (_e, canonical: string, variant: string, projectId?: string): GlossaryTerm =>
+      glossary.addGlossaryEntry(canonical, variant, projectId)
   )
 
   ipcMain.handle(
     IPC.updateGlossaryTerm,
-    (_e, id: string, patch: { canonical?: string; variants?: string[] }): GlossaryTerm | null =>
-      glossary.updateGlossaryTerm(id, patch)
+    (
+      _e,
+      id: string,
+      patch: { canonical?: string; variants?: string[]; projectId?: string | null }
+    ): GlossaryTerm | null => glossary.updateGlossaryTerm(id, patch)
   )
 
   ipcMain.handle(IPC.deleteGlossaryTerm, (_e, id: string): void => glossary.deleteGlossaryTerm(id))
@@ -126,6 +131,7 @@ export function registerIpcHandlers(): void {
     // the user can delete it again; the other way round would leave meetings
     // pointing at a project that is gone.
     storage.clearProject(id)
+    glossary.deleteProjectTerms(id)
     projects.deleteProject(id)
   })
 
@@ -170,18 +176,21 @@ export function registerIpcHandlers(): void {
     storage.cancelRecording(meetingId)
   )
 
-  ipcMain.handle(IPC.transcribeLive, async (_e, audio: ArrayBuffer): Promise<string> => {
-    const config = settings.getTranscriptionConfig()
-    // Checked here, not only in the renderer: this is what decides whether
-    // audio leaves the computer while the meeting is still going on.
-    if (!config.live) throw new Error('Live-transkribering är avstängd')
-    const text = await transcribeLiveWindow(audio, config)
-    const { transcript } = glossary.applyGlossary(
-      { language: config.language, segments: [], text },
-      glossary.listGlossaryTerms()
-    )
-    return transcript.text
-  })
+  ipcMain.handle(
+    IPC.transcribeLive,
+    async (_e, audio: ArrayBuffer, meetingId?: string): Promise<string> => {
+      const config = settings.getTranscriptionConfig()
+      // Checked here, not only in the renderer: this is what decides whether
+      // audio leaves the computer while the meeting is still going on.
+      if (!config.live) throw new Error('Live-transkribering är avstängd')
+      const text = await transcribeLiveWindow(audio, config)
+      const { transcript } = glossary.applyGlossary(
+        { language: config.language, segments: [], text },
+        glossary.termsForProject(meetingId ? storage.readMeta(meetingId)?.projectId : undefined)
+      )
+      return transcript.text
+    }
+  )
 
   // ---- Settings ----
   ipcMain.handle(IPC.getSettings, (): AppSettings => settings.getSettings())

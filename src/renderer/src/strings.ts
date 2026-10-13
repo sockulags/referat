@@ -71,6 +71,7 @@ export const strings = {
       count === 0
         ? `Projektet "${name}" tas bort. Det har inga möten.`
         : `Projektet "${name}" tas bort. ${count === 1 ? 'Dess möte' : `Dess ${count} möten`} finns kvar under Utan projekt.`,
+    deleteTermsNote: 'Ordlistetermer som bara gäller projektet tas också bort.',
     deleteConfirm: 'Ja, ta bort projektet',
     deleted: 'Projektet har tagits bort',
     recordingInto: (name: string): string => `Spelas in i ${name}`,
@@ -173,6 +174,9 @@ export const strings = {
     glossaryCorrectHint: 'Skrivs exakt så här i transkriptet och protokollet.',
     glossaryPickExisting: 'Eller välj en term du redan har',
     glossaryPickNew: 'Ny term',
+    glossaryScope: 'Gäller för',
+    glossaryScopeProject: (name: string): string => `Bara projektet ${name}`,
+    glossaryScopeAll: 'Alla möten',
     glossarySave: 'Spara i ordlistan',
     glossaryCorrectedTitle: 'Rättad från ordlistan',
     glossaryChangedHint: 'Transkriptet är rättat från ordlistan. Skapa protokollet igen.',
@@ -326,13 +330,15 @@ export const strings = {
     glossary: {
       title: 'Ordlista',
       description:
-        'Termer som transkriberingen hör fel på. Varje term kan ha flera varianter — samma ord blir olika beroende på vem som talar. Listan gäller alla möten.',
+        'Termer som transkriberingen hör fel på. Varje term kan ha flera varianter — samma ord blir olika beroende på vem som talar. En term gäller alla möten, eller bara mötena i ett projekt.',
       empty:
         'Ordlistan är tom. Markera ett felhört ord i ett transkript och välj "Lägg till i ordlistan".',
       canonical: 'Korrekt stavning',
       variants: 'Hördes som',
       variantsHint: 'En variant per rad.',
       variantCount: (n: number): string => (n === 1 ? '1 variant' : `${n} varianter`),
+      scope: 'Gäller för',
+      scopeAll: 'Alla möten',
       delete: 'Ta bort termen',
       deleteConfirmTitle: 'Ta bort termen?',
       deleteConfirmBody:

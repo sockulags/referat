@@ -36,8 +36,11 @@
   `resolveStartTemplateId` (`src/shared/projects.ts`): användarens val > projektets
   standardmall > senast använda mall utanför projekt. Inom ett projekt uppdateras inte den
   globala "senast använda".
-- **Ordlista** (`src/main/glossary.ts`): `userData/glossary.json`, en global lista där varje
-  term har en korrekt stavning och flera felhörda varianter. Appliceras i pipelinen före
+- **Ordlista** (`src/main/glossary.ts`): `userData/glossary.json`, en lista där varje
+  term har en korrekt stavning och flera felhörda varianter. En term gäller alla möten eller,
+  med `projectId`, bara ett projekts möten; ett möte får de globala termerna plus sitt
+  projekts (`termsForProject`) — i rättningen, i `{{ordlista}}` och i live-texten. Samma
+  stavning i två omfång är två termer. Ett borttaget projekts egna termer tas bort med det. Appliceras i pipelinen före
   sammanfattningen och kan köras separat direkt när användaren lägger till en term. Icke
   förstörande: providerns text sparas i `originalText` och varje applicering utgår från den,
   så en borttagen term backar rättningen. Kanoniska stavningar skickas dessutom med i

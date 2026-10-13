@@ -666,24 +666,41 @@ function TranscriptTab({
   const speakers = meeting.transcript?.speakers
   const suggestions = meeting.transcript?.speakerSuggestions
 
+  const [projectName, setProjectName] = useState<string | undefined>(undefined)
+  const projectId = meeting.projectId
+  // This meeting sees the global terms plus its project's own.
+  const applies = useCallback(
+    (all: GlossaryTerm[]): GlossaryTerm[] =>
+      all.filter((t) => !t.projectId || t.projectId === projectId),
+    [projectId]
+  )
+
   const loadTerms = useCallback(async (): Promise<void> => {
-    setTerms(await window.api.listGlossaryTerms())
-  }, [])
+    setTerms(applies(await window.api.listGlossaryTerms()))
+  }, [applies])
 
   useEffect(() => {
     let cancelled = false
     window.api
       .listGlossaryTerms()
       .then((t) => {
-        if (!cancelled) setTerms(t)
+        if (!cancelled) setTerms(applies(t))
       })
       .catch(() => {
         if (!cancelled) setTerms([])
       })
+    if (projectId) {
+      window.api
+        .listProjects()
+        .then((list) => {
+          if (!cancelled) setProjectName(list.find((p) => p.id === projectId)?.name)
+        })
+        .catch(() => undefined)
+    }
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [applies, projectId])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -712,8 +729,8 @@ function TranscriptTab({
   const updateLabel =
     meeting.summaries.length > 1 ? strings.meeting.updateSummaries : strings.meeting.updateProtocol
 
-  const saveTerm = async (canonical: string, variant: string): Promise<void> => {
-    await window.api.addGlossaryEntry(canonical, variant)
+  const saveTerm = async (canonical: string, variant: string, scoped: boolean): Promise<void> => {
+    await window.api.addGlossaryEntry(canonical, variant, scoped ? projectId : undefined)
     // Correcting the transcript is local string work, so it happens right away
     // — the user sees the fix land instead of waiting for a new protocol.
     const hits = await window.api.applyGlossary(meeting.id)
@@ -806,6 +823,7 @@ function TranscriptTab({
         key={pending ?? 'closed'}
         heard={pending}
         terms={terms}
+        projectName={projectId ? projectName : undefined}
         onClose={() => setPending(null)}
         onSave={saveTerm}
       />
@@ -817,24 +835,30 @@ function TranscriptTab({
 function GlossaryModal({
   heard,
   terms,
+  projectName,
   onClose,
   onSave
 }: {
   /** The selected text, or null when the dialog is closed. */
   heard: string | null
   terms: GlossaryTerm[]
+  /** Set when the meeting is in a project: offers to keep the term to it. */
+  projectName?: string
   onClose: () => void
-  onSave: (canonical: string, variant: string) => Promise<void>
+  onSave: (canonical: string, variant: string, scoped: boolean) => Promise<void>
 }): JSX.Element {
   const [variant, setVariant] = useState(heard ?? '')
   const [canonical, setCanonical] = useState('')
+  // Inside a project, a misheard word is most likely that project's own
+  // vocabulary — a customer's product name — so default to keeping it there.
+  const [scoped, setScoped] = useState(true)
   const [saving, setSaving] = useState(false)
 
   const save = async (): Promise<void> => {
     if (!canonical.trim() || !variant.trim() || saving) return
     setSaving(true)
     try {
-      await onSave(canonical, variant)
+      await onSave(canonical, variant, !!projectName && scoped)
     } finally {
       setSaving(false)
     }
@@ -885,6 +909,16 @@ function GlossaryModal({
                 {t.canonical}
               </option>
             ))}
+          </Select>
+        )}
+        {projectName && (
+          <Select
+            label={strings.meeting.glossaryScope}
+            value={scoped ? 'project' : 'all'}
+            onChange={(e) => setScoped(e.target.value === 'project')}
+          >
+            <option value="project">{strings.meeting.glossaryScopeProject(projectName)}</option>
+            <option value="all">{strings.meeting.glossaryScopeAll}</option>
           </Select>
         )}
       </div>
