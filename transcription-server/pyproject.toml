@@ -12,6 +12,10 @@ dependencies = [
   # HTTP stack (httpx -> httpx2); hold it until a model download has been
   # verified end to end on Windows.
   "huggingface-hub<2",
+  # faster-whisper 1.2.1 opens audio with av.open(..., metadata_errors=...),
+  # a keyword PyAV 19 removed; every transcription then fails. Hold PyAV
+  # below 19 until faster-whisper drops the keyword.
+  "av<19",
 ]
 
 [project.scripts]
