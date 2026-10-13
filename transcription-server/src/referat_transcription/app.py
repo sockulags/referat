@@ -80,6 +80,28 @@ def create_app(model: WhisperModel, model_name: str, device: str) -> FastAPI:
     return app
 
 
+def resolve_model_path(model_name: str) -> str:
+    """Local directory of the model, downloading it only when it is missing.
+
+    faster-whisper asks the Hugging Face Hub for the latest revision on every
+    start, even with the model cached. On a network whose IPv6 route is broken
+    each of huggingface.co's IPv6 addresses waits out a TCP timeout before
+    IPv4 is tried, which held every start for about 170 s, and offline it is
+    pointless anyway. The cached copy is used as is; a model update needs a
+    cleared cache.
+    """
+    if os.path.isdir(model_name):
+        return model_name
+    from faster_whisper.utils import download_model
+    from huggingface_hub.errors import LocalEntryNotFoundError
+
+    try:
+        return download_model(model_name, local_files_only=True)
+    except LocalEntryNotFoundError:
+        log.info("Model %s is not cached yet; downloading it", model_name)
+        return download_model(model_name)
+
+
 def load_model(model_name: str, device: str) -> WhisperModel:
     from faster_whisper import WhisperModel
 
@@ -118,13 +140,14 @@ def main() -> None:
     cuda_directories = register_cuda_libraries()
     if cuda_directories:
         log.info("Bundled CUDA libraries: %s", ", ".join(cuda_directories))
+    model_path = resolve_model_path(args.model)
     devices = ["cuda", "cpu"] if args.device == "auto" else [args.device]
     loaded = None
     actual_device = ""
     last_error: Exception | None = None
     for device in devices:
         try:
-            loaded = load_model(args.model, device)
+            loaded = load_model(model_path, device)
             actual_device = device
             break
         except Exception as error:
