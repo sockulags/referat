@@ -258,7 +258,8 @@ export interface SaveSummarySettings extends Omit<SummarySettings, 'hasApiKey'> 
  */
 export type SaveDiarizationSettings = DiarizationSettings
 
-export type LocalAiComponent = 'transcription-cpu' | 'diarization-cpu' | 'diarization-gpu'
+export type LocalAiComponent =
+  'transcription-cpu' | 'transcription-gpu' | 'diarization-cpu' | 'diarization-gpu'
 export type LocalAiComponentState =
   'not-installed' | 'downloading' | 'installing' | 'installed' | 'starting' | 'running' | 'error'
 

@@ -395,6 +395,9 @@ function OnboardingTranscriptionInstall(): JSX.Element {
           <span className="text-xs text-danger">{status.detail || status.message}</span>
         )}
       </div>
+      <p className="mt-3 text-xs leading-relaxed text-fg-subtle">
+        {strings.onboarding.provider.localGpuHint}
+      </p>
     </div>
   )
 }

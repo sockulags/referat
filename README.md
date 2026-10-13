@@ -130,7 +130,8 @@ explains the limitation and the exact steps. Windows 10 and 11 are supported.
 Choose **Built-in local model** under **Settings → Transcription** and click **Install**.
 referat downloads a packaged CPU runtime plus KB-Whisper Small, verifies the package checksum,
 and starts it only when a meeting needs processing. Python, Docker and administrator access are
-not required.
+not required. With an NVIDIA GPU, also install the GPU transcription component next to it: referat
+then uses CUDA and falls back to the CPU runtime if the GPU cannot be used.
 
 When system audio is recorded, referat separates you from everyone else on its own — the
 microphone and the system audio are measured separately while recording, and each

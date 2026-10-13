@@ -217,13 +217,22 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
         onChange={(v) => onPreset(v as TranscriptionPreset)}
       />
       {preset === 'built-in' ? (
-        <ComponentInstallCard
-          component="transcription-cpu"
-          title={strings.settings.transcription.builtInTitle}
-          description={strings.settings.transcription.builtInDescription}
-          detail={strings.settings.transcription.builtInSize}
-          manager={components}
-        />
+        <div className="flex flex-col gap-3">
+          <ComponentInstallCard
+            component="transcription-cpu"
+            title={strings.settings.transcription.builtInTitle}
+            description={strings.settings.transcription.builtInDescription}
+            detail={strings.settings.transcription.builtInSize}
+            manager={components}
+          />
+          <ComponentInstallCard
+            component="transcription-gpu"
+            title={strings.settings.transcription.gpuTitle}
+            description={strings.settings.transcription.gpuDescription}
+            detail={strings.settings.transcription.gpuSize}
+            manager={components}
+          />
+        </div>
       ) : (
         <>
           <Input

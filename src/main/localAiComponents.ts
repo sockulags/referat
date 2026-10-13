@@ -25,6 +25,12 @@ const DEFINITIONS: Record<LocalAiComponent, ComponentDefinition> = {
     port: 8310,
     args: ['--host', '127.0.0.1', '--port', '8310', '--device', 'cpu']
   },
+  'transcription-gpu': {
+    asset: 'referat-transcription-gpu-win-x64.zip',
+    executable: 'referat-transcription.exe',
+    port: 8310,
+    args: ['--host', '127.0.0.1', '--port', '8310', '--device', 'cuda']
+  },
   'diarization-cpu': {
     asset: 'referat-diarization-cpu-win-x64.zip',
     executable: 'referat-diarization.exe',
@@ -80,6 +86,11 @@ function currentStatus(component: LocalAiComponent): LocalAiComponentStatus {
     component,
     state: existsSync(executablePath(component)) ? 'installed' : 'not-installed'
   }
+}
+
+/** Whether the component's program is on disk, whatever state it is in. */
+export function isLocalAiComponentInstalled(component: LocalAiComponent): boolean {
+  return existsSync(executablePath(component))
 }
 
 export function listLocalAiComponents(): LocalAiComponentStatus[] {
@@ -253,11 +264,19 @@ export async function removeLocalAiComponent(component: LocalAiComponent): Promi
   emit({ component, state: 'not-installed' })
 }
 
-async function waitForHealth(port: number): Promise<void> {
+/**
+ * Poll until the component answers. `exited` reports why the process is gone,
+ * so a component that crashes while loading (a GPU build on a machine whose
+ * CUDA setup does not work, say) fails in seconds instead of after the
+ * timeout meant for a first-start model download.
+ */
+async function waitForHealth(port: number, exited: () => string | null): Promise<void> {
   // First start also downloads and warms the model; slow connections need room.
   const deadline = Date.now() + 15 * 60_000
   let lastError = ''
   while (Date.now() < deadline) {
+    const exitReason = exited()
+    if (exitReason) throw new Error(`Komponenten avslutades innan den blev redo (${exitReason})`)
     try {
       const response = await fetch(`http://127.0.0.1:${port}/health`, {
         signal: AbortSignal.timeout(1_500)
@@ -272,7 +291,22 @@ async function waitForHealth(port: number): Promise<void> {
   throw new Error(`Komponenten blev inte redo: ${lastError}`)
 }
 
-export async function ensureLocalAiComponentRunning(component: LocalAiComponent): Promise<void> {
+const starting = new Map<LocalAiComponent, Promise<void>>()
+
+/**
+ * Start the component unless it already runs. Callers that arrive while it is
+ * starting share that start, so none of them talks to a process that is not
+ * ready yet — or that is about to fail.
+ */
+export function ensureLocalAiComponentRunning(component: LocalAiComponent): Promise<void> {
+  const pending = starting.get(component)
+  if (pending) return pending
+  const start = startComponent(component).finally(() => starting.delete(component))
+  starting.set(component, start)
+  return start
+}
+
+async function startComponent(component: LocalAiComponent): Promise<void> {
   const definition = DEFINITIONS[component]
   if (!existsSync(executablePath(component))) {
     throw new Error(
@@ -282,9 +316,9 @@ export async function ensureLocalAiComponentRunning(component: LocalAiComponent)
   const existing = children.get(component)
   if (existing && existing.exitCode === null) return
 
-  // CPU/GPU diarization variants share a port and must never run together.
-  if (component.startsWith('diarization-')) {
-    stopComponent(component === 'diarization-cpu' ? 'diarization-gpu' : 'diarization-cpu')
+  // CPU and GPU variants of a service share its port and must never run together.
+  for (const other of Object.keys(DEFINITIONS) as LocalAiComponent[]) {
+    if (other !== component && DEFINITIONS[other].port === definition.port) stopComponent(other)
   }
   emit({ component, state: 'starting', message: 'Startar komponenten…' })
   const child = spawn(executablePath(component), definition.args, {
@@ -305,30 +339,46 @@ export async function ensureLocalAiComponentRunning(component: LocalAiComponent)
   })
   children.set(component, child)
   let stderr = ''
+  let exitReason: string | null = null
   child.stderr?.on('data', (chunk) => {
     stderr = (stderr + String(chunk)).slice(-8_000)
   })
-  child.once('exit', (code) => {
+  child.once('error', (error) => {
+    exitReason = error.message
+  })
+  child.once('exit', (code, signal) => {
+    exitReason = code !== null ? `kod ${code}` : `signal ${signal}`
+    // A process stopped on purpose (stopComponent) is no longer the current
+    // child; only a process that died on its own is an error to show.
+    if (children.get(component) !== child) return
     children.delete(component)
     if (code !== 0) {
       emit({ component, state: 'error', message: 'Komponenten stannade', detail: stderr })
     }
   })
   try {
-    await waitForHealth(definition.port)
+    await waitForHealth(definition.port, () => exitReason)
     emit({ component, state: 'running', message: 'Körs' })
   } catch (error) {
     stopComponent(component)
-    throw new Error(`${error instanceof Error ? error.message : String(error)}\n${stderr}`.trim(), {
-      cause: error
+    const reason = error instanceof Error ? error.message : String(error)
+    emit({
+      component,
+      state: 'error',
+      message: 'Komponenten kunde inte starta',
+      detail: `${reason}\n${stderr}`.trim()
     })
+    throw new Error(`${reason}\n${stderr}`.trim(), { cause: error })
   }
 }
 
 function stopComponent(component: LocalAiComponent): void {
   const child = children.get(component)
-  if (child && child.exitCode === null) child.kill()
   children.delete(component)
+  if (child && child.exitCode === null) {
+    child.kill()
+    emit({ component, state: 'installed' })
+  }
 }
 
 export function stopAllLocalAiComponents(): void {
