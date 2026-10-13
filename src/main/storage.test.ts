@@ -7,13 +7,16 @@ import {
   addSummary,
   clearProject,
   createMeeting,
+  deleteMeeting,
   deleteSummary,
   dismissSpeakerSuggestion,
+  listMeetings,
   listSummaries,
   readMeta,
   readTranscript,
   renameSpeaker,
   setMeetingProject,
+  updateMeta,
   updateSummaryMarkdown,
   writeTranscript
 } from './storage'
@@ -290,5 +293,23 @@ describe('meeting projects', () => {
     expect(readMeta(a.id)).not.toHaveProperty('projectId')
     expect(readMeta(b.id)).not.toHaveProperty('projectId')
     expect(readMeta(c.id)?.projectId).toBe('kept')
+  })
+})
+
+describe('meta cache', () => {
+  it('hands out copies, so a caller mutating one cannot change the stored meta', () => {
+    const m = createMeeting('Original')
+    const copy = readMeta(m.id)!
+    copy.title = 'Ändrad i minnet'
+    expect(readMeta(m.id)?.title).toBe('Original')
+  })
+
+  it('serves updates and forgets deleted meetings', () => {
+    const m = createMeeting('Före')
+    updateMeta(m.id, { title: 'Efter' })
+    expect(listMeetings().find((x) => x.id === m.id)?.title).toBe('Efter')
+    deleteMeeting(m.id)
+    expect(readMeta(m.id)).toBeNull()
+    expect(listMeetings().some((x) => x.id === m.id)).toBe(false)
   })
 })

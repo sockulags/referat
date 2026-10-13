@@ -98,10 +98,22 @@ function generateId(): string {
   return `${ts}-${rand}`
 }
 
+/**
+ * Every meta.json read so far, by meeting id. All writes go through writeMeta
+ * and deletes through deleteMeeting, so the cache cannot drift from the disk
+ * through the app. Without it the home view re-read every meeting's file on
+ * each pipeline status change: about 280 ms of blocked main process with 1000
+ * meetings on Windows. Callers get copies, so mutating one cannot reach it.
+ */
+const metaCache = new Map<string, MeetingMeta>()
+
 export function readMeta(id: string): MeetingMeta | null {
+  const cached = metaCache.get(id)
+  if (cached) return structuredClone(cached)
   try {
-    const raw = readFileSync(metaPath(id), 'utf-8')
-    return JSON.parse(raw) as MeetingMeta
+    const meta = JSON.parse(readFileSync(metaPath(id), 'utf-8')) as MeetingMeta
+    metaCache.set(id, meta)
+    return structuredClone(meta)
   } catch {
     return null
   }
@@ -116,6 +128,7 @@ export function writeMeta(meta: MeetingMeta): void {
   const tmp = `${target}.tmp`
   writeFileSync(tmp, JSON.stringify(meta, null, 2), 'utf-8')
   renameSync(tmp, target)
+  metaCache.set(meta.id, structuredClone(meta))
 }
 
 /** Patch selected fields of a meeting's meta and persist. Returns the new meta. */
@@ -427,6 +440,7 @@ export function getMeeting(id: string): MeetingDetail | null {
 }
 
 export function deleteMeeting(id: string): void {
+  metaCache.delete(id)
   const dir = meetingDir(id)
   if (existsSync(dir)) rmSync(dir, { recursive: true, force: true })
 }
