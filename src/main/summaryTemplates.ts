@@ -33,6 +33,8 @@ Regler:
 - Använd endast information som finns i transkriptionen. Hitta aldrig på namn, beslut eller siffror.
 - Var koncis och saklig.
 
+{{projekt}}
+
 {{ordlista}}
 
 {{fokus}}
@@ -50,6 +52,8 @@ Regler:
 - Svara på samma språk som transkriptionen är skriven på.
 - Använd endast information som finns i transkriptionen. Hitta aldrig på namn, beslut eller siffror.
 - Utelämna småprat och sidospår.
+
+{{projekt}}
 
 {{ordlista}}
 
@@ -74,6 +78,8 @@ Regler:
 - Ta bara med det som någon faktiskt åtog sig eller fick — inte idéer som nämndes i förbigående.
 - Hitta aldrig på namn, uppgifter eller datum.
 
+{{projekt}}
+
 {{ordlista}}
 
 {{fokus}}
@@ -96,6 +102,8 @@ Regler:
 - Ta bara med det som faktiskt avgjordes, inte det som lämnades öppet.
 - Hitta aldrig på motiveringar som inte sades.
 
+{{projekt}}
+
 {{ordlista}}
 
 {{fokus}}
@@ -115,6 +123,8 @@ Regler:
 - Utelämna interna resonemang och allt annat som mottagaren inte ska läsa.
 - Lova ingenting som inte sades på mötet, och hitta aldrig på datum eller priser.
 - Avsluta utan hälsningsfras och avsändarnamn — det fyller användaren i själv.
+
+{{projekt}}
 
 {{ordlista}}
 

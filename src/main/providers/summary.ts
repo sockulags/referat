@@ -42,28 +42,27 @@ function focusInstruction(focus: string): string {
 }
 
 /**
- * Fill the template. {{ordlista}} and {{fokus}} are optional: when the template
- * does not use them and there is something to pass, the block is prepended
- * instead, so an existing hand-edited template still gets both.
+ * Put a block where the template asks for it, or in front when it does not
+ * ask — an existing hand-edited template still gets what there is to pass.
  */
+function fill(prompt: string, placeholder: string, block: string): string {
+  if (prompt.includes(placeholder)) return prompt.replaceAll(placeholder, block)
+  return block ? `${block}\n\n${prompt}` : prompt
+}
+
+/** Fill the template. {{projekt}}, {{ordlista}} and {{fokus}} are optional. */
 function renderPrompt(
   template: string,
   transcript: string,
   glossary: string,
-  focus: string
+  focus: string,
+  project: string
 ): string {
-  const focusBlock = focusInstruction(focus)
-  let prompt = template.includes('{{ordlista}}')
-    ? template.replaceAll('{{ordlista}}', glossary)
-    : glossary
-      ? `${glossary}\n\n${template}`
-      : template
-  prompt = prompt.includes('{{fokus}}')
-    ? prompt.replaceAll('{{fokus}}', focusBlock)
-    : focusBlock
-      ? `${focusBlock}\n\n${prompt}`
-      : prompt
-  // An empty glossary or focus leaves the placeholder's blank lines behind.
+  let prompt = fill(template, '{{ordlista}}', glossary)
+  prompt = fill(prompt, '{{fokus}}', focusInstruction(focus))
+  // Last, so a template without {{projekt}} gets the background first of all.
+  prompt = fill(prompt, '{{projekt}}', project)
+  // An empty block leaves the placeholder's blank lines behind.
   // Tidy them before the transcript goes in, so its own paragraph breaks are
   // untouched.
   prompt = prompt.replace(/\n{3,}/g, '\n\n').trim()
@@ -147,6 +146,8 @@ export interface SummaryRequest {
   glossary?: string
   /** Free text narrowing the summary to one part of the meeting. */
   focus?: string
+  /** Background about the meeting's project. Empty outside a project. */
+  project?: string
 }
 
 /** Produce the markdown summary from the transcript text. */
@@ -159,7 +160,8 @@ export async function summarize(
     request.promptTemplate,
     transcriptText,
     request.glossary ?? '',
-    request.focus ?? ''
+    request.focus ?? '',
+    request.project ?? ''
   )
   if (config.backend === 'codex-cli') {
     try {

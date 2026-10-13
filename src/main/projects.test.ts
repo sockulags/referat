@@ -2,7 +2,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { app } from 'electron'
 import { join } from 'node:path'
 import { rmSync, writeFileSync } from 'node:fs'
-import { createProject, deleteProject, getProject, listProjects, updateProject } from './projects'
+import {
+  createProject,
+  deleteProject,
+  getProject,
+  listProjects,
+  projectPromptBlock,
+  updateProject
+} from './projects'
 
 vi.mock('electron', async () => {
   const { mkdtempSync } = await import('node:fs')
@@ -77,7 +84,29 @@ describe('projects', () => {
     )
     // A project from a hand edit without defaultTemplateId gets the empty default.
     expect(listProjects()).toEqual([
-      { id: 'ok', name: 'Kvar', createdAt: '2026-01-01T00:00:00.000Z', defaultTemplateId: '' }
+      {
+        id: 'ok',
+        name: 'Kvar',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        defaultTemplateId: '',
+        description: ''
+      }
     ])
+  })
+})
+
+describe('projectPromptBlock', () => {
+  it('is empty outside a project or without a description', () => {
+    expect(projectPromptBlock(undefined)).toBe('')
+    expect(projectPromptBlock(createProject('Styrgrupp'))).toBe('')
+  })
+
+  it('names the project and passes the description on, trimmed', () => {
+    const p = createProject('Styrgrupp')
+    const updated = updateProject(p.id, { description: '  Anna är projektledare.  ' })
+    expect(updated?.description).toBe('Anna är projektledare.')
+    const block = projectPromptBlock(updated ?? undefined)
+    expect(block).toContain('"Styrgrupp"')
+    expect(block.endsWith('\n\nAnna är projektledare.')).toBe(true)
   })
 })

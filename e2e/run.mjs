@@ -460,6 +460,9 @@ async function main() {
   await page.getByRole('button', { name: 'Projektinställningar' }).click()
   await page.waitForTimeout(300)
   await page.getByLabel('Standardmall').selectOption('beslutslogg')
+  await page
+    .getByLabel('Bakgrund till sammanfattningen')
+    .fill('Styrgrupp för rekryteringen. Anna är HR-ansvarig.')
   await shot('project-settings')
   await page.getByRole('button', { name: 'Spara', exact: true }).click()
   await page.waitForTimeout(800)
@@ -513,6 +516,12 @@ async function main() {
   await page.waitForTimeout(1500)
   assert(await seen('Protokoll', 40000), 'second meeting pipeline reaches done')
   {
+    const prompt = await fetch('http://localhost:8000/__last-prompt').then((r) => r.text())
+    assert(
+      prompt.includes('Bakgrund om projektet "Styrgrupp"') &&
+        prompt.includes('Anna är HR-ansvarig.'),
+      "the project's background reaches the summary prompt"
+    )
     const metas = fs
       .readdirSync(path.join(userData, 'meetings'), { withFileTypes: true })
       .filter((e) => e.isDirectory())

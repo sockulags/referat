@@ -1,6 +1,7 @@
 // Projects group meetings, e.g. a steering group or a customer, and carry the
-// settings that differ between those groups — for now the summary template a
-// new recording starts with. One JSON file at userData/projects.json.
+// settings that differ between those groups: the summary template a new
+// recording starts with, and a description the summary model gets as
+// background. One JSON file at userData/projects.json.
 //
 // A meeting points at its project through meta.json (projectId); its folder
 // never moves. Meetings without a projectId are "Utan projekt", which is
@@ -35,9 +36,11 @@ function load(): Project[] {
     if (!existsSync(path)) return []
     const parsed = JSON.parse(readFileSync(path, 'utf-8')) as unknown
     if (!Array.isArray(parsed)) return []
-    return parsed
-      .filter(isProject)
-      .map((p) => ({ ...p, defaultTemplateId: p.defaultTemplateId ?? '' }))
+    return parsed.filter(isProject).map((p) => ({
+      ...p,
+      defaultTemplateId: p.defaultTemplateId ?? '',
+      description: p.description ?? ''
+    }))
   } catch {
     return []
   }
@@ -69,6 +72,7 @@ export function createProject(name: string): Project {
     id: randomUUID(),
     name: cleanName(name),
     defaultTemplateId: '',
+    description: '',
     createdAt: new Date().toISOString()
   }
   projects.push(created)
@@ -78,13 +82,14 @@ export function createProject(name: string): Project {
 
 export function updateProject(
   id: string,
-  patch: { name?: string; defaultTemplateId?: string }
+  patch: { name?: string; defaultTemplateId?: string; description?: string }
 ): Project | null {
   const projects = load()
   const project = projects.find((p) => p.id === id)
   if (!project) return null
   if (patch.name !== undefined) project.name = cleanName(patch.name)
   if (patch.defaultTemplateId !== undefined) project.defaultTemplateId = patch.defaultTemplateId
+  if (patch.description !== undefined) project.description = patch.description.trim()
   save(projects)
   return project
 }
@@ -94,4 +99,19 @@ export function deleteProject(id: string): void {
   const projects = load()
   const next = projects.filter((p) => p.id !== id)
   if (next.length !== projects.length) save(next)
+}
+
+/**
+ * The {{projekt}} block for the summary prompt. Empty without a description:
+ * a bare project name tells the model nothing it can use.
+ */
+export function projectPromptBlock(project: Project | undefined): string {
+  const description = project?.description.trim()
+  if (!project || !description) return ''
+  return [
+    `Bakgrund om projektet "${project.name}", skriven av användaren. Använd den för att`,
+    'förstå sammanhang, namn och roller — men skriv bara det som faktiskt sades på mötet.',
+    '',
+    description
+  ].join('\n')
 }
