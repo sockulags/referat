@@ -12,6 +12,9 @@ dependencies = [
   # HTTP stack (httpx -> httpx2); hold it until a model download has been
   # verified end to end on Windows.
   "huggingface-hub<2",
+  # faster-whisper 1.2.1 opens audio with av.open(..., metadata_errors=...),
+  # which av 19 removed; every transcription then fails with a TypeError.
+  "av<19",
 ]
 
 [project.scripts]
