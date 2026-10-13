@@ -47,7 +47,40 @@ export const strings = {
     emptyCta: 'Starta ditt första möte',
     openMeeting: 'Öppna möte',
     renameMeeting: 'Byt namn',
-    deleteMeeting: 'Ta bort möte'
+    deleteMeeting: 'Ta bort möte',
+    moveMeeting: 'Flytta till projekt'
+  },
+
+  projects: {
+    filterLabel: 'Projekt',
+    all: 'Alla möten',
+    none: 'Utan projekt',
+    newProject: 'Nytt projekt',
+    nameLabel: 'Namn',
+    namePlaceholder: 'T.ex. Styrgrupp ärendesystem',
+    create: 'Skapa projekt',
+    created: 'Projektet har skapats',
+    settings: 'Projektinställningar',
+    defaultTemplate: 'Standardmall',
+    defaultTemplateHint:
+      'Förvald när du spelar in i projektet. Du kan alltid välja en annan mall för ett enskilt möte.',
+    defaultTemplateNone: 'Samma som utanför projekt',
+    deleteProject: 'Ta bort projekt',
+    deleteTitle: 'Ta bort projektet?',
+    deleteBody: (name: string, count: number): string =>
+      count === 0
+        ? `Projektet "${name}" tas bort. Det har inga möten.`
+        : `Projektet "${name}" tas bort. ${count === 1 ? 'Dess möte' : `Dess ${count} möten`} finns kvar under Utan projekt.`,
+    deleteConfirm: 'Ja, ta bort projektet',
+    deleted: 'Projektet har tagits bort',
+    recordingInto: (name: string): string => `Spelas in i ${name}`,
+    moveTitle: 'Flytta mötet',
+    moveLabel: 'Projekt',
+    move: 'Flytta',
+    moved: 'Mötet har flyttats',
+    emptyProject:
+      'Inga möten i projektet ännu. Det du spelar in här hamnar i projektet, och tidigare möten kan du flytta hit från Alla möten.',
+    emptyNone: 'Alla möten ligger i ett projekt.'
   },
 
   status: {

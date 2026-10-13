@@ -2,7 +2,8 @@
 
 All settings live under **Settings** in the app. There are six groups: **Audio**,
 **Transcription**, **Summarization**, **Ordlista** (glossary), **Speakers** and
-**Appearance**. This page explains every field.
+**Appearance**. This page explains every field, and [projects](#projects), which are managed
+from the home screen.
 
 referat uses two independent providers: **transcription** (speech → text) and
 **summarization** (text → minutes). You configure them separately, so you can mix modes —
@@ -253,6 +254,34 @@ group is called **Talare**.
 
 A diarization failure never blocks the minutes: the meeting gets a warning note and the
 protocol is still produced, just without speaker labels.
+
+## Projects
+
+Projects group meetings — a steering group, a customer, a recurring team meeting. They are
+managed from the home screen, not under Settings.
+
+- **Picking a project** — the row of chips above the record button: **Alla möten** (every
+  meeting), **Utan projekt** (meetings outside any project) and one chip per project. The
+  list below shows the meetings of what you picked, and a recording started while a project
+  is picked is filed under that project ("Spelas in i …").
+- **New project** (_Nytt projekt_) — just a name; the new project is picked right away.
+- **Project settings** (the gear next to the chips, when a project is picked) — rename it,
+  choose its **default template** (_Standardmall_), or delete it.
+- **Moving meetings** — the folder button on a meeting moves it into a project, to another
+  one, or out to **Utan projekt**. Nothing is copied or re-processed; only which project it
+  belongs to changes.
+- **Deleting a project** never deletes meetings: they move to **Utan projekt**.
+
+Meetings recorded before projects existed are all under **Utan projekt** until you move them.
+
+### Which template a recording starts with
+
+1. The template you pick in the **Sammanfattning** menu for this recording, if you change it.
+2. Otherwise, inside a project, the project's default template.
+3. Otherwise the template you used last outside a project (as before projects).
+
+A project's default only changes in its settings — recording one meeting with another
+template does not change what the next meeting in the project starts with.
 
 ## Audio
 

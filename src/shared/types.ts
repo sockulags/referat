@@ -20,6 +20,8 @@ export interface MeetingMeta {
    * existed, which fall back to the default template.
    */
   templateId?: string
+  /** The project the meeting belongs to. Absent = "Utan projekt". */
+  projectId?: string
   /** Present when status === 'error'. Plain-language message + raw detail. */
   error?: { message: string; detail?: string; failedStep: 'transcribe' | 'summarize' }
   /**
@@ -121,6 +123,17 @@ export interface MeetingDetail extends MeetingMeta {
   transcript?: Transcript
   /** Every summary generated for this meeting, oldest first. */
   summaries: MeetingSummary[]
+}
+
+// ---------- Projects ----------
+
+/** A group of meetings, e.g. a steering group or a customer. */
+export interface Project {
+  id: string
+  name: string
+  /** Template a recording in this project starts with. '' = the global choice. */
+  defaultTemplateId: string
+  createdAt: string
 }
 
 // ---------- Settings & providers ----------
@@ -316,9 +329,25 @@ export interface RendererApi {
    */
   applyGlossary(meetingId: string): Promise<number | null>
 
+  // Projects
+  listProjects(): Promise<Project[]>
+  /** Rejects when the name is blank. */
+  createProject(name: string): Promise<Project>
+  updateProject(
+    id: string,
+    patch: { name?: string; defaultTemplateId?: string }
+  ): Promise<Project | null>
+  /** Deletes the project; its meetings stay and move to "Utan projekt". */
+  deleteProject(id: string): Promise<void>
+  /** Move a meeting into a project, or out of any project with null. */
+  setMeetingProject(meetingId: string, projectId: string | null): Promise<void>
+
   // Recording: renderer captures & encodes; main persists chunks.
-  /** `templateId` decides which summary the pipeline produces; '' = default. */
-  startRecording(title: string, templateId?: string): Promise<RecordingHandle>
+  /**
+   * `templateId` decides which summary the pipeline produces; '' = default.
+   * `projectId` files the meeting under a project; omitted = no project.
+   */
+  startRecording(title: string, templateId?: string, projectId?: string): Promise<RecordingHandle>
   /** segmentIndex identifies the rotated segment file; defaults to 0. */
   appendAudioChunk(meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void>
   /**

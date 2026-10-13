@@ -441,6 +441,68 @@ async function main() {
   await shot('home-list')
   assert(await seen('Klar', 8000), 'meeting list shows the "Klar" status chip')
 
+  // --- Projects: create one with its own default template, move the first
+  // meeting into it, and record the second meeting there.
+  await page.getByRole('button', { name: 'Nytt projekt' }).click()
+  await page.waitForTimeout(300)
+  await page.getByLabel('Namn', { exact: true }).fill('Styrgrupp')
+  await page.getByRole('button', { name: 'Skapa projekt' }).click()
+  await page.waitForTimeout(800)
+  assert(await seen('Spelas in i Styrgrupp', 3000), 'a new project is selected and recorded into')
+  assert(
+    await seen(
+      'Inga möten i projektet ännu. Det du spelar in här hamnar i projektet, och tidigare möten kan du flytta hit från Alla möten.',
+      3000
+    ),
+    'a new project starts empty'
+  )
+
+  await page.getByRole('button', { name: 'Projektinställningar' }).click()
+  await page.waitForTimeout(300)
+  await page.getByLabel('Standardmall').selectOption('beslutslogg')
+  await shot('project-settings')
+  await page.getByRole('button', { name: 'Spara', exact: true }).click()
+  await page.waitForTimeout(800)
+  const startTemplate = await page.getByLabel('Sammanfattning', { exact: true }).inputValue()
+  assert(
+    startTemplate === 'beslutslogg',
+    `the project's default template is preselected (got "${startTemplate}")`
+  )
+
+  await page.getByRole('button', { name: 'Alla möten' }).click()
+  await page.waitForTimeout(400)
+  const allTemplate = await page.getByLabel('Sammanfattning', { exact: true }).inputValue()
+  assert(
+    allTemplate !== 'beslutslogg',
+    `outside the project the project default does not apply (got "${allTemplate}")`
+  )
+  await page.getByRole('button', { name: 'Flytta till projekt' }).first().click()
+  await page.waitForTimeout(300)
+  await page
+    .getByRole('dialog')
+    .getByLabel('Projekt', { exact: true })
+    .selectOption({ label: 'Styrgrupp' })
+  await page.getByRole('button', { name: 'Flytta', exact: true }).click()
+  await page.waitForTimeout(800)
+  await shot('home-projects')
+  assert(
+    (await page
+      .locator('li')
+      .filter({ hasText: 'Veckomöte HR' })
+      .filter({ hasText: 'Styrgrupp' })
+      .count()) > 0,
+    'the moved meeting shows its project in the full list'
+  )
+  await page.getByRole('button', { name: 'Utan projekt' }).click()
+  await page.waitForTimeout(400)
+  assert(
+    await seen('Alla möten ligger i ett projekt.', 3000),
+    'no meetings are left outside a project'
+  )
+  await page.getByRole('button', { name: 'Styrgrupp', exact: true }).click()
+  await page.waitForTimeout(400)
+  assert(await seen('Veckomöte HR', 3000), 'the project lists the moved meeting')
+
   // --- Second meeting: the voice enrolled as "Anna" is recognized again
   const title2 = page.getByPlaceholder(/titel/i)
   if (await title2.count()) await title2.fill('Uppföljning HR')
@@ -450,6 +512,20 @@ async function main() {
   await page.getByText('Stoppa och spara').click()
   await page.waitForTimeout(1500)
   assert(await seen('Protokoll', 40000), 'second meeting pipeline reaches done')
+  {
+    const metas = fs
+      .readdirSync(path.join(userData, 'meetings'), { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) =>
+        JSON.parse(fs.readFileSync(path.join(userData, 'meetings', e.name, 'meta.json'), 'utf8'))
+      )
+    const second = metas.find((m) => m.title === 'Uppföljning HR')
+    const projectsFile = JSON.parse(fs.readFileSync(path.join(userData, 'projects.json'), 'utf8'))
+    assert(
+      second?.projectId === projectsFile[0]?.id && second?.templateId === 'beslutslogg',
+      `a meeting recorded in a project is filed there with its default template (got ${JSON.stringify({ projectId: second?.projectId, templateId: second?.templateId })})`
+    )
+  }
   await page.waitForTimeout(1000)
 
   await page.getByText('Transkript', { exact: true }).first().click()
