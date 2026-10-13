@@ -22,13 +22,14 @@ import {
   getSummaryConfig,
   getSummaryTemplate,
   getTranscriptionConfig,
-  getUserName
+  getUserName,
+  type DiarizationConfig
 } from './settings'
 import { applyGlossary, glossaryPromptBlock, termsForProject } from './glossary'
 import { getProject, projectPromptBlock } from './projects'
 import { transcribe } from './providers/transcription'
 import { summarize } from './providers/summary'
-import { diarize } from './providers/diarization'
+import { diarize, type DiarizationResult } from './providers/diarization'
 import {
   isDefaultSpeakerName,
   matchSpeakerProfiles,
@@ -120,22 +121,48 @@ function fail(meetingId: string, step: 'transcribe' | 'summarize', err: unknown)
   emit({ meetingId, status: 'error' })
 }
 
+interface StartedDiarization {
+  config: DiarizationConfig
+  result: Promise<DiarizationResult>
+}
+
+/**
+ * Send the meeting's audio for diarization without waiting for the answer.
+ * Diarization needs only the audio, never the transcript, so a full run starts
+ * it alongside transcription and the two overlap instead of queueing. Returns
+ * null when diarization is off or there is no audio.
+ */
+function startDiarization(meetingId: string): StartedDiarization | null {
+  const config = getDiarizationConfig()
+  if (!config.enabled) return null
+  const audioPaths = audioSegmentPaths(meetingId)
+  if (audioPaths.length === 0) return null
+  const result = diarize(audioPaths, config)
+  // Awaited in runDiarization, which turns a failure into a warning. When
+  // transcription fails first nobody awaits it, so keep that rejection from
+  // surfacing as unhandled.
+  result.catch(() => undefined)
+  return { config, result }
+}
+
 /**
  * Optional diarization step. Failures degrade gracefully: the meeting gets a
  * warning in meta.json and the pipeline continues to the summary — a
  * diarization failure must never set status 'error'.
  */
-async function runDiarization(meetingId: string): Promise<void> {
-  const config = getDiarizationConfig()
-  if (!config.enabled) return
-  const audioPaths = audioSegmentPaths(meetingId)
+async function runDiarization(
+  meetingId: string,
+  started: StartedDiarization | null
+): Promise<void> {
+  if (!started) return
+  const { config, result: pending } = started
   const transcript = readTranscript(meetingId)
-  if (!transcript || audioPaths.length === 0) return
+  if (!transcript) return
 
   updateMeta(meetingId, { status: 'diarizing' })
   emit({ meetingId, status: 'diarizing' })
   try {
-    const result = await diarize(audioPaths, config)
+    const result = await pending
     let merged = mergeDiarization(transcript, result.turns)
 
     // Diarization clusters voices but cannot say which cluster is the person
@@ -333,6 +360,11 @@ async function runJob(job: Job): Promise<void> {
     updateMeta(meetingId, { warning: undefined })
   }
 
+  // Started before transcription so the two run at the same time; on a CPU
+  // this cut a three-segment meeting from 191 s to 164 s, and with the GPU
+  // component diarization hides almost entirely behind transcription.
+  const diarization = mode === 'full' || mode === 'diarize' ? startDiarization(meetingId) : null
+
   if (mode === 'full') {
     updateMeta(meetingId, { status: 'transcribing' })
     emit({ meetingId, status: 'transcribing' })
@@ -350,9 +382,7 @@ async function runJob(job: Job): Promise<void> {
     }
   }
 
-  if (mode === 'full' || mode === 'diarize') {
-    await runDiarization(meetingId)
-  }
+  await runDiarization(meetingId, diarization)
 
   applySourceAttribution(meetingId)
 
