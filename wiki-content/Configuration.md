@@ -288,7 +288,16 @@ managed from the home screen, not under Settings.
 - **Moving meetings** — the folder button on a meeting moves it into a project, to another
   one, or out to **Utan projekt**. Nothing is copied or re-processed; only which project it
   belongs to changes.
-- **Deleting a project** never deletes meetings: they move to **Utan projekt**.
+- **Deleting a project** never deletes meetings: they move to **Utan projekt**. The project's
+  own glossary terms and overviews are deleted with it.
+- **Project overview** (_Projektöversikt_, next to the gear) — one summary across every
+  meeting in the project: where it stands, decisions so far (in date order, with later changes
+  taken into account), open action items and open questions. Optionally narrow it with a
+  focus, as for a meeting's summaries. It is built from each meeting's first summary — the one
+  made automatically when the recording finished — not from the transcripts, so meetings still
+  being processed are left out. If the summaries do not all fit the model's input, the oldest
+  meetings are left out and the overview says so. Overviews are saved per project: the newest
+  is shown, earlier ones stay in the menu, and each can be copied or deleted.
 
 Meetings recorded before projects existed are all under **Utan projekt** until you move them.
 

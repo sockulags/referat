@@ -15,7 +15,9 @@ import type {
   GlossaryTerm,
   LocalAiComponent,
   LocalAiComponentStatus,
-  Project
+  Project,
+  ProjectOverviewResult,
+  ProjectSummary
 } from '../shared/types'
 import type { LevelEnvelope } from '../shared/levels'
 import { IPC } from '../main/ipc'
@@ -70,6 +72,14 @@ const api: RendererApi = {
   deleteProject: (id: string): Promise<void> => ipcRenderer.invoke(IPC.deleteProject, id),
   setMeetingProject: (meetingId: string, projectId: string | null): Promise<void> =>
     ipcRenderer.invoke(IPC.setMeetingProject, meetingId, projectId),
+  listProjectSummaries: (projectId: string): Promise<ProjectSummary[]> =>
+    ipcRenderer.invoke(IPC.listProjectSummaries, projectId),
+  generateProjectSummary: (projectId: string, focus: string): Promise<ProjectOverviewResult> =>
+    ipcRenderer.invoke(IPC.generateProjectSummary, projectId, focus),
+  deleteProjectSummary: (projectId: string, summaryId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.deleteProjectSummary, projectId, summaryId),
+  copyProjectSummary: (projectId: string, summaryId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.copyProjectSummary, projectId, summaryId),
 
   // Recording
   startRecording: (

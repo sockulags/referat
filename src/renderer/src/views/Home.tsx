@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { useCallback, useEffect, useState } from 'react'
-import type { MeetingMeta, Project, SummaryTemplate } from '../../../shared/types'
+import type { MeetingMeta, Project, ProjectSummary, SummaryTemplate } from '../../../shared/types'
 import { resolveStartTemplateId } from '../../../shared/projects'
 import { useApp, type ProjectFilter } from '../store'
 import { strings } from '../strings'
@@ -9,6 +9,8 @@ import { Button, IconButton } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { StatusChip } from '../components/ui/StatusChip'
 import { Modal } from '../components/ui/Modal'
+import { Markdown } from '../components/Markdown'
+import { Spinner } from '../components/ui/Spinner'
 import { Input, Select, Textarea } from '../components/ui/Field'
 import { Tooltip } from '../components/ui/Tooltip'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
@@ -20,6 +22,7 @@ import {
   IconRetry,
   IconChevronRight,
   IconClock,
+  IconCopy,
   IconFolder,
   IconPlus,
   IconSettings
@@ -44,6 +47,7 @@ export function Home(): JSX.Element {
   const [creatingProject, setCreatingProject] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [moveTarget, setMoveTarget] = useState<MeetingMeta | null>(null)
+  const [overviewProject, setOverviewProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [renameTarget, setRenameTarget] = useState<MeetingMeta | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<MeetingMeta | null>(null)
@@ -159,6 +163,7 @@ export function Home(): JSX.Element {
         onFilter={setProjectFilter}
         onNew={() => setCreatingProject(true)}
         onSettings={project ? () => setEditingProject(project) : undefined}
+        onOverview={project ? () => setOverviewProject(project) : undefined}
       />
 
       <Hero
@@ -235,6 +240,13 @@ export function Home(): JSX.Element {
           onDelete={doDeleteProject}
         />
       )}
+      {overviewProject && (
+        <ProjectOverviewModal
+          key={overviewProject.id}
+          project={overviewProject}
+          onClose={() => setOverviewProject(null)}
+        />
+      )}
       {moveTarget && (
         <MoveModal
           key={moveTarget.id}
@@ -254,13 +266,15 @@ function ProjectBar({
   filter,
   onFilter,
   onNew,
-  onSettings
+  onSettings,
+  onOverview
 }: {
   projects: Project[]
   filter: ProjectFilter
   onFilter: (f: ProjectFilter) => void
   onNew: () => void
   onSettings?: () => void
+  onOverview?: () => void
 }): JSX.Element {
   const chip = (value: ProjectFilter, label: string): JSX.Element => (
     <button
@@ -289,6 +303,11 @@ function ProjectBar({
       <Button variant="ghost" size="sm" onClick={onNew} iconLeft={<IconPlus size={16} />}>
         {strings.projects.newProject}
       </Button>
+      {onOverview && (
+        <Button variant="secondary" size="sm" onClick={onOverview} className="ml-auto">
+          {strings.projects.overview}
+        </Button>
+      )}
       {onSettings && (
         <Tooltip label={strings.projects.settings}>
           <IconButton label={strings.projects.settings} size="sm" onClick={onSettings}>
@@ -798,6 +817,213 @@ function MoveModal({
           </option>
         ))}
       </Select>
+    </Modal>
+  )
+}
+
+/**
+ * Overviews across every meeting in the project. Generating one is a model
+ * call that can take a while; it is saved as it finishes, so closing the
+ * dialog meanwhile loses nothing.
+ */
+function ProjectOverviewModal({
+  project,
+  onClose
+}: {
+  project: Project
+  onClose: () => void
+}): JSX.Element {
+  const toast = useApp((s) => s.toast)
+  const [summaries, setSummaries] = useState<ProjectSummary[] | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [focus, setFocus] = useState('')
+  const [working, setWorking] = useState(false)
+  const [error, setError] = useState<{ message: string; detail?: string } | null>(null)
+  const [leftOut, setLeftOut] = useState(0)
+
+  const reload = useCallback(
+    async (select?: string): Promise<void> => {
+      const list = await window.api.listProjectSummaries(project.id)
+      setSummaries(list)
+      setSelectedId(select ?? list[list.length - 1]?.id ?? null)
+    },
+    [project.id]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    window.api
+      .listProjectSummaries(project.id)
+      .then((list) => {
+        if (cancelled) return
+        setSummaries(list)
+        setSelectedId(list[list.length - 1]?.id ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setSummaries([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [project.id])
+
+  const selected = summaries?.find((s) => s.id === selectedId)
+  const showForm = creating || (summaries !== null && summaries.length === 0)
+
+  const generate = async (): Promise<void> => {
+    setWorking(true)
+    setError(null)
+    try {
+      const result = await window.api.generateProjectSummary(project.id, focus)
+      if (result.ok) {
+        setCreating(false)
+        setFocus('')
+        setLeftOut(result.leftOut)
+        await reload(result.summary.id)
+      } else {
+        setError({ message: result.message, detail: result.detail })
+      }
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  const remove = async (id: string): Promise<void> => {
+    await window.api.deleteProjectSummary(project.id, id)
+    setLeftOut(0)
+    await reload()
+    toast(strings.projects.overviewDeleted)
+  }
+
+  const copy = async (id: string): Promise<void> => {
+    await window.api.copyProjectSummary(project.id, id)
+    toast(strings.projects.overviewCopied)
+  }
+
+  let footer: JSX.Element | undefined
+  if (showForm) {
+    footer = (
+      <>
+        <Button variant="ghost" onClick={summaries?.length ? () => setCreating(false) : onClose}>
+          {strings.common.cancel}
+        </Button>
+        <Button variant="primary" onClick={() => void generate()} loading={working}>
+          {strings.projects.overviewCreate}
+        </Button>
+      </>
+    )
+  } else if (selected) {
+    footer = (
+      <>
+        <Button
+          variant="ghost"
+          className="mr-auto hover:text-danger"
+          onClick={() => void remove(selected.id)}
+          iconLeft={<IconTrash size={16} />}
+        >
+          {strings.common.delete}
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => void copy(selected.id)}
+          iconLeft={<IconCopy size={16} />}
+        >
+          {strings.projects.overviewCopy}
+        </Button>
+        <Button
+          variant="primary"
+          onClick={() => {
+            setCreating(true)
+            setError(null)
+          }}
+        >
+          {strings.projects.overviewNew}
+        </Button>
+      </>
+    )
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`${strings.projects.overview} · ${project.name}`}
+      widthClass="max-w-2xl"
+      footer={footer}
+    >
+      {summaries === null ? (
+        <div className="flex justify-center py-10">
+          <Spinner />
+        </div>
+      ) : showForm ? (
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-fg-muted leading-relaxed">{strings.projects.overviewIntro}</p>
+          <Input
+            label={strings.projects.overviewFocus}
+            hint={strings.projects.overviewFocusHint}
+            placeholder={strings.projects.overviewFocusPlaceholder}
+            value={focus}
+            disabled={working}
+            onChange={(e) => setFocus(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !working) void generate()
+            }}
+          />
+          {working && (
+            <p className="flex items-center gap-2 text-sm text-fg-muted" role="status">
+              <Spinner size={16} />
+              {strings.projects.overviewWorking}
+            </p>
+          )}
+          {error && (
+            <div className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
+              <p className="font-medium">{strings.projects.overviewFailed}</p>
+              <p className="mt-1">{error.message}</p>
+            </div>
+          )}
+        </div>
+      ) : selected ? (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs text-fg-muted">
+              <p>
+                {strings.projects.overviewMeta(
+                  formatRelativeDate(selected.createdAt),
+                  selected.meetingCount
+                )}
+              </p>
+              {selected.focus && <p>{strings.projects.overviewFocusLabel(selected.focus)}</p>}
+            </div>
+            {summaries.length > 1 && (
+              <Select
+                aria-label={strings.projects.overviewHistory}
+                value={selected.id}
+                onChange={(e) => {
+                  setSelectedId(e.target.value)
+                  setLeftOut(0)
+                }}
+                className="w-auto"
+              >
+                {[...summaries].reverse().map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {formatRelativeDate(s.createdAt)}
+                    {s.focus ? ` · ${s.focus}` : ''}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </div>
+          {leftOut > 0 && (
+            <p className="rounded-lg bg-warning-soft px-4 py-2.5 text-sm text-warning">
+              {strings.projects.overviewLeftOut(leftOut)}
+            </p>
+          )}
+          <div className="max-h-[55vh] overflow-y-auto pr-1" data-testid="project-overview">
+            <Markdown source={selected.markdown} />
+          </div>
+        </div>
+      ) : null}
     </Modal>
   )
 }

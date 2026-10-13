@@ -86,7 +86,26 @@ export const strings = {
     moved: 'Mötet har flyttats',
     emptyProject:
       'Inga möten i projektet ännu. Det du spelar in här hamnar i projektet, och tidigare möten kan du flytta hit från Alla möten.',
-    emptyNone: 'Alla möten ligger i ett projekt.'
+    emptyNone: 'Alla möten ligger i ett projekt.',
+    overview: 'Projektöversikt',
+    overviewIntro:
+      'En sammanfattning av alla möten i projektet: läget just nu, beslut hittills, öppna actionpunkter och frågor. Den bygger på varje mötes sammanfattning.',
+    overviewFocus: 'Fokus (valfritt)',
+    overviewFocusPlaceholder: 'T.ex. bara budgeten',
+    overviewFocusHint: 'Lämna tomt för hela projektet.',
+    overviewCreate: 'Skapa översikt',
+    overviewNew: 'Ny översikt',
+    overviewWorking: 'Läser mötena och skriver översikten…',
+    overviewMeta: (date: string, n: number): string =>
+      `${date} · bygger på ${n === 1 ? '1 möte' : `${n} möten`}`,
+    overviewFocusLabel: (focus: string): string => `Fokus: ${focus}`,
+    overviewLeftOut: (n: number): string =>
+      `${n === 1 ? 'Det äldsta mötet' : `De ${n} äldsta mötena`} fick inte plats och utelämnades.`,
+    overviewHistory: 'Översikt',
+    overviewCopy: 'Kopiera',
+    overviewCopied: 'Kopierat',
+    overviewDeleted: 'Översikten har tagits bort',
+    overviewFailed: 'Översikten kunde inte skapas'
   },
 
   status: {

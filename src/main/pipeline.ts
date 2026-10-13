@@ -44,7 +44,8 @@ import {
   nameMicSpeaker
 } from './sourceAttribution'
 import { classifyError, UserFacingError } from './providers/shared'
-import type { Transcript } from '../shared/types'
+import type { ProjectOverviewResult, Transcript } from '../shared/types'
+import { addProjectSummary, buildProjectInput, PROJECT_OVERVIEW_PROMPT } from './projectSummary'
 
 /**
  * 'diarize' = re-run diarization on the existing transcript, then summarize.
@@ -428,5 +429,50 @@ export function recoverPipeline(): void {
       default:
         break // done / error: leave as-is
     }
+  }
+}
+
+/**
+ * Summarize a whole project from its meetings' summaries. Runs outside the
+ * per-meeting queue: it reads finished summaries and writes nothing to any
+ * meeting, so it cannot interfere with a meeting being processed.
+ */
+export async function generateProjectOverview(
+  projectId: string,
+  focus: string
+): Promise<ProjectOverviewResult> {
+  try {
+    const project = getProject(projectId)
+    if (!project) throw new UserFacingError('Projektet finns inte längre.')
+    const input = buildProjectInput(
+      listMeetings()
+        .filter((m) => m.projectId === projectId)
+        // The first summary is the one the pipeline made from the template
+        // chosen at recording; later ones are narrower by design.
+        .map((m) => ({ meta: m, markdown: listSummaries(m.id)[0]?.markdown }))
+    )
+    if (input.included === 0) {
+      throw new UserFacingError('Inget möte i projektet har någon sammanfattning ännu.')
+    }
+    const markdown = await summarize(input.text, getSummaryConfig(), {
+      promptTemplate: PROJECT_OVERVIEW_PROMPT,
+      glossary: glossaryPromptBlock(termsForProject(projectId)),
+      focus,
+      project: projectPromptBlock(project)
+    })
+    if (!markdown.trim()) {
+      throw new UserFacingError(
+        'Modellen gav ett tomt svar. Prova en annan modell i inställningarna.'
+      )
+    }
+    const summary = addProjectSummary(projectId, {
+      focus: focus.trim(),
+      markdown,
+      meetingCount: input.included
+    })
+    return { ok: true, summary, leftOut: input.leftOut }
+  } catch (err) {
+    const { message, detail } = classifyError(err)
+    return { ok: false, message, detail }
   }
 }
