@@ -230,6 +230,8 @@ export const strings = {
         body: 'Referat installerar transkriberingen åt dig. Ljudet stannar på datorn.'
       },
       localGuide: 'Så installerar du en lokal AI-server',
+      localGpuHint:
+        'Har du ett Nvidia-grafikkort kan du lägga till snabbare GPU-transkribering under Inställningar.',
       server: {
         title: 'På företagets server',
         body: 'Din IT-avdelning ger dig en adress och eventuellt en nyckel.'
@@ -285,6 +287,11 @@ export const strings = {
       builtInDescription:
         'Referat installerar en svensk Whisper-modell och kör den lokalt. Ingen Docker, serveradress eller API-nyckel behövs.',
       builtInSize: 'Cirka 700 MB efter installation.',
+      gpuTitle: 'Snabbare med Nvidia GPU',
+      gpuDescription:
+        'Samma modell, körd på ett Nvidia-grafikkort — flera gånger snabbare för långa möten. Används automatiskt när den är installerad. Behåll CPU-transkriberingen som reserv: den tar över om grafikkortet inte går att använda.',
+      gpuSize:
+        'Cirka 1,5 GB efter installation. Kräver ett Nvidia-grafikkort och en aktuell drivrutin.',
       live: 'Visa text medan du spelar in',
       liveHintLocal:
         'Ljudet skickas i korta bitar till transkriberingen på den här datorn medan mötet pågår. Hela transkriptet skapas som vanligt när du stoppar.',

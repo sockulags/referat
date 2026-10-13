@@ -2,9 +2,18 @@
 
 import { readFile } from 'fs/promises'
 import { basename } from 'path'
-import type { ConnectionTestResult, Transcript, TranscriptSegment } from '../../shared/types'
+import type {
+  ConnectionTestResult,
+  LocalAiComponent,
+  Transcript,
+  TranscriptSegment
+} from '../../shared/types'
 import type { TranscriptionConfig } from '../settings'
-import { ensureLocalAiComponentRunning } from '../localAiComponents'
+import {
+  ensureLocalAiComponentRunning,
+  isLocalAiComponentInstalled,
+  localAiComponentBaseUrl
+} from '../localAiComponents'
 import {
   authHeaders,
   errorDetail,
@@ -15,8 +24,73 @@ import {
   readBodyText,
   TEST_TIMEOUT_MS,
   trimBaseUrl,
+  UserFacingError,
   WORK_TIMEOUT_MS
 } from './shared'
+
+/**
+ * Why the GPU component could not start, once it has failed in this session.
+ * Later requests go straight to the CPU component instead of paying for
+ * another failed start — live windows arrive every few seconds.
+ */
+let gpuStartFailure: string | null = null
+
+interface BuiltInTranscriber {
+  component: LocalAiComponent
+  baseUrl: string
+  /** Set when the GPU component is installed but the CPU one had to step in. */
+  gpuFailure?: string
+}
+
+/**
+ * Start the managed transcription component: the GPU build when it is
+ * installed, else the CPU build. A GPU build that cannot start (no CUDA-capable
+ * card, a driver too old for CUDA 12) must not leave the user without
+ * transcription, so the CPU build takes over when it is installed too.
+ *
+ * `retryGpu` tries the GPU build again even after it failed in this session —
+ * the connection test does, so it reports what works now.
+ */
+export async function startBuiltInTranscription({
+  retryGpu = false
+}: { retryGpu?: boolean } = {}): Promise<BuiltInTranscriber> {
+  const cpuInstalled = isLocalAiComponentInstalled('transcription-cpu')
+  if (isLocalAiComponentInstalled('transcription-gpu')) {
+    if (retryGpu) gpuStartFailure = null
+    if (!gpuStartFailure) {
+      try {
+        await ensureLocalAiComponentRunning('transcription-gpu')
+        return builtIn('transcription-gpu')
+      } catch (err) {
+        gpuStartFailure = errorDetail(err)
+      }
+    }
+    if (!cpuInstalled) {
+      throw new UserFacingError(
+        'GPU-transkriberingen kunde inte starta på den här datorn. Installera CPU-transkriberingen i Inställningar, så används den i stället.',
+        gpuStartFailure
+      )
+    }
+    await ensureLocalAiComponentRunning('transcription-cpu')
+    return { ...builtIn('transcription-cpu'), gpuFailure: gpuStartFailure }
+  }
+  await ensureLocalAiComponentRunning('transcription-cpu')
+  return builtIn('transcription-cpu')
+}
+
+function builtIn(component: LocalAiComponent): BuiltInTranscriber {
+  return { component, baseUrl: `${localAiComponentBaseUrl(component)}/v1` }
+}
+
+/**
+ * The config to send requests with. For the managed component the address is
+ * where referat started it, not the base URL from settings.
+ */
+async function resolveConfig(config: TranscriptionConfig): Promise<TranscriptionConfig> {
+  if (config.preset !== 'built-in') return config
+  const transcriber = await startBuiltInTranscription()
+  return { ...config, baseUrl: transcriber.baseUrl }
+}
 
 interface VerboseSegment {
   start?: number
@@ -133,15 +207,13 @@ async function transcribeBytes(
  */
 export async function transcribe(
   audioFilePaths: string[],
-  config: TranscriptionConfig,
+  settingsConfig: TranscriptionConfig,
   durationSec: number
 ): Promise<Transcript> {
   if (audioFilePaths.length === 0) {
     throw new Error('Ingen ljudfil att transkribera')
   }
-  if (config.preset === 'built-in') {
-    await ensureLocalAiComponentRunning('transcription-cpu')
-  }
+  const config = await resolveConfig(settingsConfig)
 
   // Even split as a fallback when a server returns no per-segment timings.
   const fallbackPerSegment = durationSec > 0 ? durationSec / audioFilePaths.length : 0
@@ -184,11 +256,9 @@ const LIVE_TIMEOUT_MS = 60_000
 /** Transcribe one live window — a complete webm file held in memory. */
 export async function transcribeLiveWindow(
   audio: ArrayBuffer,
-  config: TranscriptionConfig
+  settingsConfig: TranscriptionConfig
 ): Promise<string> {
-  if (config.preset === 'built-in') {
-    await ensureLocalAiComponentRunning('transcription-cpu')
-  }
+  const config = await resolveConfig(settingsConfig)
   const transcript = await transcribeBytes(
     new Uint8Array(audio),
     'live.webm',
@@ -202,10 +272,17 @@ export async function transcribeLiveWindow(
 export async function testTranscriptionConnection(
   config: TranscriptionConfig
 ): Promise<ConnectionTestResult> {
+  let base = trimBaseUrl(config.baseUrl)
+  let gpuFailure: string | undefined
   if (config.preset === 'built-in') {
     try {
-      await ensureLocalAiComponentRunning('transcription-cpu')
+      const transcriber = await startBuiltInTranscription({ retryGpu: true })
+      base = transcriber.baseUrl
+      gpuFailure = transcriber.gpuFailure
     } catch (err) {
+      if (err instanceof UserFacingError) {
+        return { ok: false, message: err.message, detail: err.rawDetail ?? errorDetail(err) }
+      }
       return {
         ok: false,
         message: 'Den lokala transkriberingen är inte redo',
@@ -213,7 +290,6 @@ export async function testTranscriptionConnection(
       }
     }
   }
-  const base = trimBaseUrl(config.baseUrl)
   try {
     // Prefer GET /models — any HTTP response means the server is reachable.
     let res: Response
@@ -241,6 +317,13 @@ export async function testTranscriptionConnection(
       }
     }
     // Any other HTTP response (incl. 404) = server reachable, treat as success.
+    if (gpuFailure) {
+      return {
+        ok: true,
+        message: 'GPU-transkriberingen kunde inte starta — CPU-transkriberingen används i stället',
+        detail: gpuFailure
+      }
+    }
     return {
       ok: true,
       message: 'Anslutningen fungerar',

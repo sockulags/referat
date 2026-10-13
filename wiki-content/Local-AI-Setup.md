@@ -15,6 +15,12 @@ under `%LOCALAPPDATA%\referat\local-ai`. KB-Whisper Small is downloaded on first
 `local-ai\models`. The default runtime uses CPU with int8 quantization. It does not need to keep up
 with the meeting in real time: recordings remain available and failed processing can be retried.
 
+With an NVIDIA GPU you can also install the **NVIDIA GPU** transcription component (about 650 MB
+to download). It runs the same model in float16 on CUDA and bundles the cuBLAS libraries it needs,
+so no CUDA toolkit is required, only a current NVIDIA driver. When it is installed referat uses it
+automatically. If it cannot start on CUDA, referat falls back to the CPU component, so keep that
+one installed as well.
+
 ## Local speaker identification
 
 Speaker identification is optional and substantially heavier than transcription.

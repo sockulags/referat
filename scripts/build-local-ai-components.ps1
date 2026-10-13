@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('transcription-cpu', 'diarization-cpu', 'diarization-gpu', 'all')]
+  [ValidateSet('transcription-cpu', 'transcription-gpu', 'diarization-cpu', 'diarization-gpu', 'all')]
   [string]$Component = 'all',
   [string]$CertificateSha1 = ''
 )
@@ -112,18 +112,34 @@ function Split-LargeArchive([string]$assetName) {
   Remove-Item -LiteralPath $zip -Force
 }
 
-function Build-TranscriptionCpu {
+function Build-Transcription([bool]$gpu) {
   $project = Join-Path $root 'transcription-server'
   Push-Location $project
   try {
-    uv sync --group dev
+    # uv sync removes whatever the requested groups do not list, so the CPU
+    # build never picks up CUDA libraries left behind by a GPU build.
+    $groups = @('--group', 'dev')
+    $cudaArgs = @()
+    if ($gpu) {
+      $groups += @('--group', 'cuda')
+      # CTranslate2 finds these through cuda_libraries.py at startup.
+      $cudaArgs = @('--collect-binaries', 'nvidia.cublas')
+    }
+    uv sync @groups
+    if ($LASTEXITCODE -ne 0) { throw 'uv sync failed for the transcription component.' }
     uv run pyinstaller --noconfirm --clean --onedir --name referat-transcription `
-      --collect-data faster_whisper --collect-all av `
+      --collect-data faster_whisper --collect-all av @cudaArgs `
       'runtime_entry.py'
+    if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed for the transcription component.' }
     $runtime = Join-Path $project 'dist\referat-transcription'
     Sign-Executable (Join-Path $runtime 'referat-transcription.exe')
-    Package-Directory $runtime `
-      'referat-transcription-cpu-win-x64.zip'
+    $name = if ($gpu) { 'referat-transcription-gpu-win-x64.zip' } else { 'referat-transcription-cpu-win-x64.zip' }
+    Package-Directory $runtime $name
+    # The app downloads this archive as one asset (no `parts` in
+    # localAiComponents.ts). Fail here rather than publish one GitHub refuses.
+    if ((Get-Item -LiteralPath (Join-Path $output $name)).Length -gt 1800MB) {
+      throw "$name outgrew one release asset; split it and set parts in localAiComponents.ts."
+    }
   } finally { Pop-Location }
 }
 
@@ -167,6 +183,7 @@ function Build-Diarization([bool]$gpu) {
   }
 }
 
-if ($Component -in @('transcription-cpu', 'all')) { Build-TranscriptionCpu }
+if ($Component -in @('transcription-cpu', 'all')) { Build-Transcription $false }
+if ($Component -in @('transcription-gpu', 'all')) { Build-Transcription $true }
 if ($Component -in @('diarization-cpu', 'all')) { Build-Diarization $false }
 if ($Component -in @('diarization-gpu', 'all')) { Build-Diarization $true }

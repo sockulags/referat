@@ -12,6 +12,9 @@ dependencies = [
   # HTTP stack (httpx -> httpx2); hold it until a model download has been
   # verified end to end on Windows.
   "huggingface-hub<2",
+  # faster-whisper 1.2.1 opens audio with av.open(..., metadata_errors=...),
+  # which av 19 removed; every transcription then fails with a TypeError.
+  "av<19",
 ]
 
 [project.scripts]
@@ -19,6 +22,12 @@ referat-transcription = "referat_transcription.app:main"
 
 [dependency-groups]
 dev = ["pyinstaller>=6.10"]
+# CTranslate2 loads cuBLAS 12 by name when a model runs on CUDA. Only the GPU
+# component syncs this group, so the CPU component stays small. cuDNN is left
+# out on purpose: the Windows build of ctranslate2 4.8 references no cuDNN
+# function (Conv1D runs as im2col + GEMM), so its ~1 GB would never load.
+# 12.8 is the first cuBLAS with kernels for Blackwell (sm_120) GPUs.
+cuda = ["nvidia-cublas-cu12>=12.8,<13"]
 
 [build-system]
 requires = ["hatchling"]

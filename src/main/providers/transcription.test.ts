@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach, vi } from 'vitest'
+
+const componentMocks = vi.hoisted(() => ({
+  ensureLocalAiComponentRunning: vi.fn<(component: string) => Promise<void>>(async () => undefined),
+  isLocalAiComponentInstalled: vi.fn<(component: string) => boolean>(() => false),
+  localAiComponentBaseUrl: vi.fn(() => 'http://127.0.0.1:8310')
+}))
+
+vi.mock('../localAiComponents', () => componentMocks)
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -211,5 +219,122 @@ describe('transcribeLiveWindow', () => {
   it('rejects on an HTTP error so the live queue can count the failure', async () => {
     queueFetch([new Response('overloaded', { status: 503 })])
     await expect(transcribeLiveWindow(new ArrayBuffer(4), config)).rejects.toThrow()
+  })
+})
+
+describe('built-in transcription component', () => {
+  const builtInConfig: TranscriptionConfig = {
+    ...config,
+    preset: 'built-in',
+    // A stale settings value must not decide where the managed component is.
+    baseUrl: 'http://localhost:9999/v1'
+  }
+  // The module remembers a failed GPU start; each test starts from a fresh one.
+  let mod: typeof import('./transcription')
+
+  function installed(...components: string[]): void {
+    componentMocks.isLocalAiComponentInstalled.mockImplementation((c: string) =>
+      components.includes(c)
+    )
+  }
+
+  function gpuFailsToStart(): void {
+    componentMocks.ensureLocalAiComponentRunning.mockImplementation(async (c: string) => {
+      if (c === 'transcription-gpu') {
+        throw new Error('Komponenten avslutades innan den blev redo (kod 1)')
+      }
+    })
+  }
+
+  beforeEach(async () => {
+    componentMocks.ensureLocalAiComponentRunning.mockReset()
+    componentMocks.ensureLocalAiComponentRunning.mockImplementation(async () => undefined)
+    componentMocks.isLocalAiComponentInstalled.mockReset()
+    vi.resetModules()
+    mod = await import('./transcription')
+  })
+
+  function started(): string[] {
+    return componentMocks.ensureLocalAiComponentRunning.mock.calls.map(([c]) => c)
+  }
+
+  it('uses the GPU component when it is installed', async () => {
+    installed('transcription-cpu', 'transcription-gpu')
+    queueFetch([jsonResponse({ language: 'sv', text: 'Hej', segments: [] })])
+
+    await mod.transcribeLiveWindow(new ArrayBuffer(4), builtInConfig)
+
+    expect(started()).toEqual(['transcription-gpu'])
+    const [url] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('http://127.0.0.1:8310/v1/audio/transcriptions')
+  })
+
+  it('uses the CPU component when the GPU one is not installed', async () => {
+    installed('transcription-cpu')
+    await expect(mod.startBuiltInTranscription()).resolves.toMatchObject({
+      component: 'transcription-cpu',
+      baseUrl: 'http://127.0.0.1:8310/v1'
+    })
+    expect(started()).toEqual(['transcription-cpu'])
+  })
+
+  it('falls back to the CPU component when the GPU one cannot start', async () => {
+    installed('transcription-cpu', 'transcription-gpu')
+    gpuFailsToStart()
+    const a = makeFile('fallback.webm')
+    queueFetch([jsonResponse({ language: 'sv', segments: [{ start: 0, end: 2, text: 'Hej' }] })])
+
+    const t = await mod.transcribe([a], builtInConfig, 2)
+
+    expect(t.text).toBe('Hej')
+    expect(started()).toEqual(['transcription-gpu', 'transcription-cpu'])
+  })
+
+  it('does not retry a failed GPU start for every later request', async () => {
+    installed('transcription-cpu', 'transcription-gpu')
+    gpuFailsToStart()
+
+    await mod.startBuiltInTranscription()
+    await mod.startBuiltInTranscription()
+
+    expect(started()).toEqual(['transcription-gpu', 'transcription-cpu', 'transcription-cpu'])
+  })
+
+  it('explains in Swedish when the GPU fails and there is no CPU component', async () => {
+    installed('transcription-gpu')
+    gpuFailsToStart()
+
+    const error = await mod.startBuiltInTranscription().catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(Error)
+    expect((error as Error).message).toMatch(/GPU-transkriberingen kunde inte starta/)
+    expect((error as Error).message).toMatch(/Installera CPU-transkriberingen/)
+    expect((error as { rawDetail?: string }).rawDetail).toMatch(/kod 1/)
+    expect(started()).toEqual(['transcription-gpu'])
+  })
+
+  it('reports the CPU fallback from the connection test, retrying the GPU first', async () => {
+    installed('transcription-cpu', 'transcription-gpu')
+    gpuFailsToStart()
+    await mod.startBuiltInTranscription()
+    componentMocks.ensureLocalAiComponentRunning.mockClear()
+    queueFetch([jsonResponse({ data: [] })])
+
+    const res = await mod.testTranscriptionConnection(builtInConfig)
+
+    expect(started()).toEqual(['transcription-gpu', 'transcription-cpu'])
+    expect(res.ok).toBe(true)
+    expect(res.message).toMatch(/CPU-transkriberingen används i stället/)
+    expect(res.detail).toMatch(/kod 1/)
+  })
+
+  it('fails the connection test with the Swedish explanation when nothing can run', async () => {
+    installed('transcription-gpu')
+    gpuFailsToStart()
+
+    const res = await mod.testTranscriptionConnection(builtInConfig)
+
+    expect(res.ok).toBe(false)
+    expect(res.message).toMatch(/GPU-transkriberingen kunde inte starta/)
   })
 })

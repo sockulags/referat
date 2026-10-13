@@ -6,9 +6,14 @@ import os
 import tempfile
 import threading
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from faster_whisper import WhisperModel
+
+from referat_transcription.cuda_libraries import register_cuda_libraries
+
+if TYPE_CHECKING:
+    from faster_whisper import WhisperModel
 
 DEFAULT_MODEL = "KBLab/kb-whisper-small"
 log = logging.getLogger("referat_transcription")
@@ -75,6 +80,32 @@ def create_app(model: WhisperModel, model_name: str, device: str) -> FastAPI:
     return app
 
 
+def load_model(model_name: str, device: str) -> WhisperModel:
+    from faster_whisper import WhisperModel
+
+    model = WhisperModel(
+        model_name,
+        device=device,
+        compute_type="float16" if device == "cuda" else "int8",
+    )
+    if device == "cuda":
+        # Loading succeeds even when cuDNN or a kernel for this GPU is missing;
+        # those only fail once the encoder runs. Run it now, so a broken CUDA
+        # setup fails the start (and the app can fall back to the CPU
+        # component) instead of failing the user's first recording.
+        import numpy as np
+
+        segments, _ = model.transcribe(
+            np.zeros(16_000, dtype=np.float32),
+            language="sv",
+            beam_size=1,
+            vad_filter=False,
+            without_timestamps=True,
+        )
+        list(segments)
+    return model
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="127.0.0.1")
@@ -84,17 +115,16 @@ def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
+    cuda_directories = register_cuda_libraries()
+    if cuda_directories:
+        log.info("Bundled CUDA libraries: %s", ", ".join(cuda_directories))
     devices = ["cuda", "cpu"] if args.device == "auto" else [args.device]
     loaded = None
     actual_device = ""
     last_error: Exception | None = None
     for device in devices:
         try:
-            loaded = WhisperModel(
-                args.model,
-                device=device,
-                compute_type="float16" if device == "cuda" else "int8",
-            )
+            loaded = load_model(args.model, device)
             actual_device = device
             break
         except Exception as error:
