@@ -15,6 +15,7 @@ import {
   readTranscript,
   updateMeta,
   updateSummaryMarkdown,
+  whenNoRecording,
   writeTranscript
 } from './storage'
 import {
@@ -23,7 +24,8 @@ import {
   getSummaryTemplate,
   getTranscriptionConfig,
   getUserName,
-  type DiarizationConfig
+  type DiarizationConfig,
+  type TranscriptionConfig
 } from './settings'
 import { applyGlossary, glossaryPromptBlock, termsForProject } from './glossary'
 import { getProject, projectPromptBlock } from './projects'
@@ -46,6 +48,7 @@ import {
 } from './sourceAttribution'
 import { classifyError, UserFacingError } from './providers/shared'
 import type { ProjectOverviewResult, Transcript } from '../shared/types'
+import { isLoopbackUrl } from '../shared/live'
 import { addProjectSummary, buildProjectInput, PROJECT_OVERVIEW_PROMPT } from './projectSummary'
 
 /**
@@ -113,6 +116,18 @@ async function runNext(): Promise<void> {
     runningKey = null
     if (queue.length > 0) void runNext()
   }
+}
+
+/**
+ * Whether this meeting's transcription should step aside while another
+ * meeting is being recorded. A local transcriber serves one request at a time,
+ * so a 10-minute segment from an earlier meeting would hold every live window
+ * of the current one past its timeout and the live text would give up. Waiting
+ * between segments caps a live window's wait at the one segment in progress.
+ * A remote server is not shared with this computer's live text in that way.
+ */
+function yieldsToLiveTranscription(config: TranscriptionConfig): boolean {
+  return config.live && (config.preset === 'built-in' || isLoopbackUrl(config.baseUrl))
 }
 
 function fail(meetingId: string, step: 'transcribe' | 'summarize', err: unknown): void {
@@ -370,10 +385,14 @@ async function runJob(job: Job): Promise<void> {
     emit({ meetingId, status: 'transcribing' })
     try {
       const meta = readMeta(meetingId)
+      const config = getTranscriptionConfig()
       const transcript = await transcribe(
         audioSegmentPaths(meetingId),
-        getTranscriptionConfig(),
-        meta?.durationSec ?? 0
+        config,
+        meta?.durationSec ?? 0,
+        {
+          beforeSegment: yieldsToLiveTranscription(config) ? whenNoRecording : undefined
+        }
       )
       writeTranscript(meetingId, transcript)
     } catch (err) {

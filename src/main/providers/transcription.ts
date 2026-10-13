@@ -199,6 +199,11 @@ async function transcribeBytes(
   return buildTranscript(data, config.language, durationSec)
 }
 
+export interface TranscribeOptions {
+  /** Awaited before each segment is sent; lets the caller hold the transcriber. */
+  beforeSegment?: () => Promise<void>
+}
+
 /**
  * Transcribe one or more recorded segments in order and concatenate them,
  * offsetting each segment's timestamps by the cumulative duration of prior
@@ -208,7 +213,8 @@ async function transcribeBytes(
 export async function transcribe(
   audioFilePaths: string[],
   settingsConfig: TranscriptionConfig,
-  durationSec: number
+  durationSec: number,
+  opts: TranscribeOptions = {}
 ): Promise<Transcript> {
   if (audioFilePaths.length === 0) {
     throw new Error('Ingen ljudfil att transkribera')
@@ -224,6 +230,7 @@ export async function transcribe(
   let offset = 0
 
   for (const path of audioFilePaths) {
+    await opts.beforeSegment?.()
     const part = await transcribeFile(path, config, fallbackPerSegment)
     if (!language) language = part.language
     for (const seg of part.segments) {

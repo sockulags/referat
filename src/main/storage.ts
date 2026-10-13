@@ -147,6 +147,22 @@ export function isRecordingActive(): boolean {
   return recordingIds.size > 0
 }
 
+let noRecordingWaiters: (() => void)[] = []
+
+/** Resolves once no meeting is being recorded; at once when none is. */
+export function whenNoRecording(): Promise<void> {
+  if (recordingIds.size === 0) return Promise.resolve()
+  return new Promise((resolve) => noRecordingWaiters.push(resolve))
+}
+
+function endRecording(id: string): void {
+  recordingIds.delete(id)
+  if (recordingIds.size > 0) return
+  const waiters = noRecordingWaiters
+  noRecordingWaiters = []
+  for (const resolve of waiters) resolve()
+}
+
 export function createMeeting(title: string, templateId?: string, projectId?: string): MeetingMeta {
   const id = generateId()
   const meta: MeetingMeta = {
@@ -515,7 +531,7 @@ export async function finishRecording(id: string, durationSec: number): Promise<
   // Mark closed first so any concurrently-arriving late chunk is dropped.
   closedRecordings.add(id)
   await closeStreams(id)
-  recordingIds.delete(id)
+  endRecording(id)
   updateMeta(id, { durationSec: Math.max(0, Math.round(durationSec)), status: 'recorded' })
 }
 
@@ -523,6 +539,6 @@ export async function finishRecording(id: string, durationSec: number): Promise<
 export async function cancelRecording(id: string): Promise<void> {
   closedRecordings.add(id)
   await closeStreams(id)
-  recordingIds.delete(id)
+  endRecording(id)
   deleteMeeting(id)
 }

@@ -338,3 +338,29 @@ describe('built-in transcription component', () => {
     expect(res.message).toMatch(/GPU-transkriberingen kunde inte starta/)
   })
 })
+
+describe('transcribe beforeSegment', () => {
+  it('waits for the gate before sending each segment', async () => {
+    const a = makeFile('gate-a.webm')
+    const b = makeFile('gate-b.webm')
+    queueFetch([
+      jsonResponse({ language: 'sv', segments: [{ start: 0, end: 4, text: 'Hej' }] }),
+      jsonResponse({ language: 'sv', segments: [{ start: 0, end: 3, text: 'då' }] })
+    ])
+    const releases: (() => void)[] = []
+    const beforeSegment = vi.fn(() => new Promise<void>((resolve) => releases.push(resolve)))
+
+    const result = transcribe([a, b], config, 7, { beforeSegment })
+    await vi.waitFor(() => expect(beforeSegment).toHaveBeenCalledTimes(1))
+    expect(fetch).not.toHaveBeenCalled()
+
+    releases[0]()
+    await vi.waitFor(() => expect(beforeSegment).toHaveBeenCalledTimes(2))
+    expect(fetch).toHaveBeenCalledTimes(1)
+
+    releases[1]()
+    const transcript = await result
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(transcript.text).toBe('Hej då')
+  })
+})
