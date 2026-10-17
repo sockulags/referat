@@ -165,6 +165,11 @@ export const strings = {
     actionItemNoOwner: 'Ingen ansvarig',
     actionItemDue: (date: string): string => `senast ${date}`,
     actionItemAt: (time: string): string => `vid ${time}`,
+    audioTitle: 'Inspelningen',
+    audioPlay: 'Spela upp',
+    audioPause: 'Pausa',
+    audioPosition: 'Position i inspelningen',
+    playFrom: (time: string): string => `Spela från ${time}`,
     newSummary: 'Ny sammanfattning',
     newSummaryTitle: 'Ny sammanfattning',
     newSummaryIntro:

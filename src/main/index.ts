@@ -12,6 +12,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipcHandlers'
+import { handleMediaRequests, registerMediaScheme } from './media'
 import { stopAllLocalAiComponents } from './localAiComponents'
 import { openExternalSafe } from './security'
 import { recoverPipeline } from './pipeline'
@@ -135,6 +136,8 @@ function registerDisplayMediaHandler(): void {
   )
 }
 
+registerMediaScheme()
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('se.referat.app')
 
@@ -144,6 +147,7 @@ app.whenReady().then(() => {
 
   registerDisplayMediaHandler()
   registerIpcHandlers()
+  handleMediaRequests()
   ensureTray()
   recoverPipeline()
 
