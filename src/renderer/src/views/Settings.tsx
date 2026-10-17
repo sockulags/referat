@@ -62,6 +62,7 @@ export function Settings(): JSX.Element {
 
       <div className="flex flex-col gap-4">
         <AudioSection settings={settings} />
+        <BackgroundSection settings={settings} />
         <TranscriptionSection settings={settings} />
         <SummarySection settings={settings} />
         <GlossarySection />
@@ -143,6 +144,40 @@ function AudioSection({ settings }: { settings: AppSettings }): JSX.Element {
         onChange={(v) => void setSystemAudio(v)}
         label={strings.settings.audio.systemAudio}
         description={strings.settings.audio.systemAudioHint}
+      />
+    </Section>
+  )
+}
+
+// ---------- Background ----------
+
+function BackgroundSection({ settings }: { settings: AppSettings }): JSX.Element {
+  const patchSettings = useApp((s) => s.patchSettings)
+  const toast = useApp((s) => s.toast)
+  const b = strings.settings.background
+
+  const save = async (patch: {
+    runInBackground?: boolean
+    openAtLogin?: boolean
+  }): Promise<void> => {
+    patchSettings(patch)
+    await window.api.saveGeneralSettings(patch)
+    toast(strings.common.saved)
+  }
+
+  return (
+    <Section title={b.title} description={b.description}>
+      <Toggle
+        checked={settings.runInBackground}
+        onChange={(v) => void save({ runInBackground: v })}
+        label={b.runInBackground}
+        description={b.runInBackgroundHint}
+      />
+      <Toggle
+        checked={settings.openAtLogin}
+        onChange={(v) => void save({ openAtLogin: v })}
+        label={b.openAtLogin}
+        description={b.openAtLoginHint}
       />
     </Section>
   )

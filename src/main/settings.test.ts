@@ -5,6 +5,7 @@ import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import {
   getDiarizationConfig,
   getSettings,
+  saveGeneralSettings,
   getSummaryConfig,
   getTranscriptionConfig,
   saveDiarizationSettings,
@@ -145,6 +146,13 @@ describe('summary backend settings', () => {
       defaultTemplateId: 'borttagen'
     })
     expect(getSettings().summary.defaultTemplateId).toBe('protokoll')
+  })
+
+  it('keeps referat out of the background until the user turns it on', () => {
+    expect(getSettings()).toMatchObject({ runInBackground: false, openAtLogin: false })
+    saveGeneralSettings({ runInBackground: true, openAtLogin: true })
+    expect(getSettings()).toMatchObject({ runInBackground: true, openAtLogin: true })
+    saveGeneralSettings({ runInBackground: false, openAtLogin: false })
   })
 
   it('migrates diarization defaults and carries no Hugging Face token forward', () => {

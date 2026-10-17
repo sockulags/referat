@@ -263,6 +263,10 @@ export interface AppSettings {
   microphoneId: string
   /** Whether to capture system audio (loopback) in addition to the microphone. */
   captureSystemAudio: boolean
+  /** Closing the window keeps referat running in the tray. Off by default. */
+  runInBackground: boolean
+  /** Start with Windows, hidden in the tray. Off by default. */
+  openAtLogin: boolean
   theme: 'system' | 'light' | 'dark'
   onboardingCompleted: boolean
 }
@@ -358,6 +362,8 @@ export interface SearchResult {
 export interface SaveGeneralSettings {
   microphoneId?: string
   captureSystemAudio?: boolean
+  runInBackground?: boolean
+  openAtLogin?: boolean
   userName?: string
   theme?: AppSettings['theme']
   onboardingCompleted?: boolean
