@@ -84,6 +84,7 @@ const api: RendererApi = {
   // Export
   exportProtocol: invoke('exportProtocol'),
   copyProtocol: invoke('copyProtocol'),
+  openFollowUpEmail: invoke('openFollowUpEmail'),
 
   // Events
   onPipelineProgress: listen<PipelineProgressEvent>(IPC.pipelineProgress),

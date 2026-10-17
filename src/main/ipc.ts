@@ -66,6 +66,7 @@ export const IPC = {
   // Export
   exportProtocol: 'export:protocol',
   copyProtocol: 'export:copy',
+  openFollowUpEmail: 'export:follow-up-email',
 
   // Updates
   installUpdateNow: 'updater:install-now',

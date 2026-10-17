@@ -378,6 +378,11 @@ async function main() {
     await seen('Fokus: bara rekryteringen', 5000),
     'the second summary shows what it was asked to focus on'
   )
+  // Not clicked: it would open the machine's real mail program.
+  assert(
+    (await page.getByRole('button', { name: 'Öppna som mejlutkast', exact: true }).count()) === 1,
+    'a follow-up email summary offers to open as a mail draft'
+  )
   const chips = await page.locator('button[aria-pressed]').allTextContents()
   assert(
     chips.some((c) => c.includes('Protokoll')) && chips.some((c) => c.includes('Uppföljningsmejl')),

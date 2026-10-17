@@ -6,8 +6,11 @@ import { writeFile } from 'fs/promises'
 import { Document, Packer, Paragraph, HeadingLevel, TextRun } from 'docx'
 import type { ActionItem, MeetingDetail, MeetingSummary } from '../shared/types'
 import { formatDueDate } from '../shared/dates'
+import { FOLLOW_UP_TEMPLATE_ID } from '../shared/templates'
 import { getMeeting } from './storage'
 import { DEFAULT_TEMPLATE_ID } from './summaryTemplates'
+import { openExternalSafe } from './security'
+import { UserFacingError } from './providers/shared'
 
 function sanitizeFilename(name: string): string {
   // Strip characters Windows disallows in filenames, collapse whitespace.
@@ -225,6 +228,83 @@ export async function exportActionItems(
   if (result.canceled || !result.filePath) return { savedTo: null }
   await writeFile(result.filePath, actionItemsAsCsv(items, meeting), 'utf-8')
   return { savedTo: result.filePath }
+}
+
+/** Markdown as plain text for a mail body: no heading marks, bold or code ticks. */
+export function markdownToPlainText(markdown: string): string {
+  return markdown
+    .split(/\r?\n/)
+    .map((line) =>
+      line
+        .replace(/^#{1,6}\s+/, '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/__(.+?)__/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+    )
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+/**
+ * Subject and body of a follow-up email summary. The template writes the
+ * subject as a "**Ämne:** …" line; without one the meeting title stands in.
+ * The meeting's corrected action items follow the text.
+ */
+export function followUpEmail(
+  meeting: MeetingDetail,
+  summary: MeetingSummary,
+  now: Date = new Date()
+): { subject: string; body: string } {
+  const lines = summary.markdown.split(/\r?\n/)
+  const subjectAt = lines.findIndex((line) => /^\s*\**\s*Ämne\s*:/i.test(line))
+  let subject = meeting.title
+  if (subjectAt >= 0) {
+    const found = lines[subjectAt]
+      .replace(/^\s*\**\s*Ämne\s*:\s*\**/i, '')
+      .replace(/\*+/g, '')
+      .trim()
+    if (found) subject = found
+    lines.splice(subjectAt, 1)
+  }
+  let body = markdownToPlainText(lines.join('\n'))
+  const list = actionItemsAsList(meeting.actionItems ?? [], now)
+  if (list) body += `\n\nActionpunkter:\n${list}`
+  return { subject, body }
+}
+
+/** Mail clients and Windows cut mailto: links somewhere past 2,000 characters. */
+const MAILTO_LIMIT = 1800
+
+function mailto(subject: string, body?: string): string {
+  const params = [`subject=${encodeURIComponent(subject)}`]
+  if (body !== undefined) params.push(`body=${encodeURIComponent(body.replace(/\n/g, '\r\n'))}`)
+  return `mailto:?${params.join('&')}`
+}
+
+/**
+ * Open a follow-up email summary as a draft in the user's mail program. A
+ * body too long for a mailto: link is copied instead, and the draft opens
+ * with the subject only; `copied` tells the renderer to say so.
+ */
+export async function openFollowUpEmail(
+  id: string,
+  summaryId: string
+): Promise<{ copied: boolean }> {
+  const meeting = getMeeting(id)
+  const summary = pickSummary(meeting, summaryId)
+  if (!meeting || !summary || summary.templateId !== FOLLOW_UP_TEMPLATE_ID) {
+    throw new UserFacingError('Det finns inget uppföljningsmejl att öppna')
+  }
+  const { subject, body } = followUpEmail(meeting, summary)
+  const full = mailto(subject, body)
+  if (full.length <= MAILTO_LIMIT) {
+    await openExternalSafe(full)
+    return { copied: false }
+  }
+  clipboard.writeText(body)
+  await openExternalSafe(mailto(subject))
+  return { copied: true }
 }
 
 export function copyProtocol(id: string, summaryId?: string): void {
