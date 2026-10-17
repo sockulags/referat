@@ -16,6 +16,7 @@ import {
 } from '../localAiComponents'
 import {
   authHeaders,
+  classifyError,
   errorDetail,
   HttpError,
   isConnectionError,
@@ -287,9 +288,7 @@ export async function testTranscriptionConnection(
       base = transcriber.baseUrl
       gpuFailure = transcriber.gpuFailure
     } catch (err) {
-      if (err instanceof UserFacingError) {
-        return { ok: false, message: err.message, detail: err.rawDetail ?? errorDetail(err) }
-      }
+      if (err instanceof UserFacingError) return { ok: false, ...classifyError(err) }
       return {
         ok: false,
         message: 'Den lokala transkriberingen är inte redo',

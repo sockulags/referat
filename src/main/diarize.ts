@@ -133,6 +133,15 @@ export function isDefaultSpeakerName(name: string): boolean {
   return /^Talare \d+$/.test(name)
 }
 
+/** A voice embedding: a non-empty array of finite numbers. */
+export function isValidEmbedding(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((n) => typeof n === 'number' && Number.isFinite(n))
+  )
+}
+
 /**
  * Cosine similarity in [-1, 1]. Vectors of different length (e.g. after a
  * model change on the server) or with zero norm compare as 0 — never a match.

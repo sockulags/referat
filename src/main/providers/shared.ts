@@ -81,8 +81,12 @@ export function errorDetail(err: unknown): string {
 /**
  * Map an arbitrary provider failure to a plain-language Swedish message + raw detail.
  * Used by the pipeline so a provider error always lands as a friendly meeting error.
+ * `wording` lets a caller that knows more say what a 404 or an unknown failure means.
  */
-export function classifyError(err: unknown): { message: string; detail: string } {
+export function classifyError(
+  err: unknown,
+  wording: { notFound?: string; fallback?: string } = {}
+): { message: string; detail: string } {
   const detail = errorDetail(err)
   if (err instanceof UserFacingError) {
     return { message: err.message, detail: err.rawDetail ?? detail }
@@ -99,13 +103,15 @@ export function classifyError(err: unknown): { message: string; detail: string }
     }
     if (err.status === 404) {
       return {
-        message: 'Modellen eller endpointen hittades inte — kontrollera inställningarna',
+        message:
+          wording.notFound ??
+          'Modellen eller endpointen hittades inte — kontrollera inställningarna',
         detail
       }
     }
     return { message: `Servern svarade med ett fel (${err.status})`, detail }
   }
-  return { message: 'Något gick fel vid bearbetningen', detail }
+  return { message: wording.fallback ?? 'Något gick fel vid bearbetningen', detail }
 }
 
 /** An error whose message is already plain-language Swedish, safe to show as-is. */

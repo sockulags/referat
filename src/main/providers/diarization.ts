@@ -11,6 +11,7 @@ import {
   isLocalAiComponentInstalled,
   localAiComponentBaseUrl
 } from '../localAiComponents'
+import { isValidEmbedding } from '../diarize'
 import {
   errorDetail,
   HttpError,
@@ -69,13 +70,7 @@ function buildEmbeddings(data: DiarizeResponse): Record<string, number[]> | unde
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined
   const embeddings: Record<string, number[]> = {}
   for (const [speaker, value] of Object.entries(raw)) {
-    if (
-      Array.isArray(value) &&
-      value.length > 0 &&
-      value.every((n) => typeof n === 'number' && Number.isFinite(n))
-    ) {
-      embeddings[speaker] = value as number[]
-    }
+    if (isValidEmbedding(value)) embeddings[speaker] = value
   }
   return Object.keys(embeddings).length > 0 ? embeddings : undefined
 }

@@ -15,6 +15,7 @@ import {
   createWriteStream
 } from 'fs'
 import type { WriteStream } from 'fs'
+import { randomUUID } from 'crypto'
 import type { MeetingMeta, MeetingDetail, MeetingSummary, Transcript } from '../shared/types'
 import type { LevelEnvelope } from '../shared/levels'
 import { dismissSuggestionInTranscript, renameSpeakerInTranscript } from './diarize'
@@ -376,7 +377,7 @@ export function addSummary(
   const dir = meetingDir(id)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   const entry: SummaryEntry = {
-    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    id: randomUUID(),
     fileName: summaryFileName(id, summary.templateName, summary.focus),
     templateId: summary.templateId,
     templateName: summary.templateName,

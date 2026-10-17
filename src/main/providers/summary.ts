@@ -4,10 +4,8 @@ import type { ConnectionTestResult } from '../../shared/types'
 import type { SummaryConfig } from '../settings'
 import {
   authHeaders,
-  errorDetail,
+  classifyError,
   HttpError,
-  isConnectionError,
-  isTimeoutError,
   providerFetch,
   readBodyText,
   TEST_TIMEOUT_MS,
@@ -195,37 +193,12 @@ export async function testSummaryConnection(config: SummaryConfig): Promise<Conn
     if (err instanceof CodexCliError) {
       return { ok: false, message: codexErrorMessage(err), detail: err.detail }
     }
-    if (isTimeoutError(err)) {
-      return { ok: false, message: 'Servern svarar inte (timeout)', detail: errorDetail(err) }
-    }
-    if (isConnectionError(err)) {
-      return {
-        ok: false,
-        message: 'Servern svarar inte — kontrollera adressen',
-        detail: errorDetail(err)
-      }
-    }
-    if (err instanceof HttpError) {
-      if (err.status === 401 || err.status === 403) {
-        return { ok: false, message: 'Fel eller saknad API-nyckel', detail: errorDetail(err) }
-      }
-      if (err.status === 404) {
-        return {
-          ok: false,
-          message: 'Modellen hittades inte — kontrollera modellnamnet',
-          detail: errorDetail(err)
-        }
-      }
-      return {
-        ok: false,
-        message: `Servern svarade med ett fel (${err.status})`,
-        detail: errorDetail(err)
-      }
-    }
     return {
       ok: false,
-      message: 'Något gick fel — kontrollera inställningarna',
-      detail: errorDetail(err)
+      ...classifyError(err, {
+        notFound: 'Modellen hittades inte — kontrollera modellnamnet',
+        fallback: 'Något gick fel — kontrollera inställningarna'
+      })
     }
   }
 }

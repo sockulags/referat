@@ -7,7 +7,8 @@ import { app } from 'electron'
 import { join } from 'path'
 import { rmSync } from 'fs'
 import type { SpeakerProfile } from '../shared/types'
-import type { ProfileWithEmbedding } from './diarize'
+import { randomUUID } from 'crypto'
+import { isValidEmbedding, type ProfileWithEmbedding } from './diarize'
 import { readJsonArray, writeJsonAtomic } from './jsonFile'
 
 /** On-disk shape: the IPC SpeakerProfile plus the embedding centroid. */
@@ -17,14 +18,6 @@ interface StoredProfile extends SpeakerProfile {
 
 function profilesPath(): string {
   return join(app.getPath('userData'), 'speaker-profiles.json')
-}
-
-function isValidEmbedding(value: unknown): value is number[] {
-  return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((n) => typeof n === 'number' && Number.isFinite(n))
-  )
 }
 
 function isStoredProfile(value: unknown): value is StoredProfile {
@@ -50,10 +43,6 @@ function persist(profiles: StoredProfile[]): void {
   } catch (err) {
     console.error('Failed to write speaker-profiles.json', err)
   }
-}
-
-function generateId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 /** Scale a vector to unit L2 norm. Zero vectors are returned unchanged. */
@@ -107,7 +96,7 @@ export function upsertProfile(name: string, embedding: number[]): void {
 
   if (!existing) {
     profiles.push({
-      id: generateId(),
+      id: randomUUID(),
       name: trimmed,
       embedding: l2Normalize(embedding),
       updatedAt: now,
