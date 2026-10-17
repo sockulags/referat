@@ -171,6 +171,40 @@ export async function extractActionItems(meetingId: string): Promise<ActionItem[
   return items
 }
 
+/** More than any meeting has; a cap on what the renderer may store. */
+const MAX_SAVED_ITEMS = 200
+
+/**
+ * The user's edited list, cleaned the way extracted items are. Entries that
+ * are not objects are dropped; an item still being typed may have no text.
+ */
+export function sanitizeActionItems(items: unknown): ActionItem[] {
+  if (!Array.isArray(items)) return []
+  const out: ActionItem[] = []
+  for (const entry of items.slice(0, MAX_SAVED_ITEMS)) {
+    if (typeof entry !== 'object' || entry === null) continue
+    const raw = entry as Record<string, unknown>
+    const atSec =
+      typeof raw.atSec === 'number' && Number.isFinite(raw.atSec) && raw.atSec >= 0
+        ? raw.atSec
+        : undefined
+    out.push({
+      id: typeof raw.id === 'string' && raw.id ? raw.id.slice(0, 64) : randomUUID(),
+      text: typeof raw.text === 'string' ? raw.text.slice(0, MAX_TEXT) : '',
+      owner: clean(raw.owner, MAX_OWNER),
+      due: parseDue(raw.due),
+      ...(atSec !== undefined ? { atSec } : {})
+    })
+  }
+  return out
+}
+
+/** Store the list as the user edited it. */
+export function saveActionItems(meetingId: string, items: unknown): void {
+  if (!readMeta(meetingId)) throw new UserFacingError('Mötet finns inte')
+  writeActionItems(meetingId, sanitizeActionItems(items))
+}
+
 /** Whether the pipeline still has to extract this meeting's action items. */
 export function needsActionItems(meetingId: string): boolean {
   return readActionItems(meetingId) === undefined

@@ -1,7 +1,6 @@
 import type { JSX } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
-  ActionItem,
   GlossaryTerm,
   MeetingDetail,
   MeetingSummary,
@@ -9,7 +8,7 @@ import type {
 } from '../../../shared/types'
 import { useApp } from '../store'
 import { strings } from '../strings'
-import { formatRelativeDate, formatDuration, formatTimestamp, formatDueDate } from '../format'
+import { formatRelativeDate, formatDuration, formatTimestamp } from '../format'
 import { Markdown } from '../components/Markdown'
 import { ProgressSteps } from '../components/ui/ProgressSteps'
 import { Button } from '../components/ui/Button'
@@ -32,6 +31,7 @@ import {
 } from '../components/icons'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import { AudioPlayer } from '../components/AudioPlayer'
+import { ActionItems } from '../components/ActionItems'
 import { useMeetingAudio } from '../audio/meetingAudio'
 import { cn } from '../components/ui/cn'
 
@@ -454,7 +454,12 @@ function ProtocolTab({
         )
       )}
 
-      <ActionItems meeting={meeting} onChanged={onChanged} onPlayFrom={onPlayFrom} />
+      <ActionItems
+        key={`${meeting.id}:${meeting.actionItems ? 'items' : 'none'}`}
+        meeting={meeting}
+        onChanged={onChanged}
+        onPlayFrom={onPlayFrom}
+      />
 
       <NewSummaryModal open={creating} onClose={() => setCreating(false)} onCreate={create} />
       <ConfirmModal
@@ -467,98 +472,6 @@ function ProtocolTab({
         {strings.meeting.deleteSummaryBody(selected?.templateName ?? '')}
       </ConfirmModal>
     </div>
-  )
-}
-
-/**
- * The action items taken from the transcript, read-only for now. A meeting
- * recorded before the pipeline took them out offers to do it here.
- */
-function ActionItems({
-  meeting,
-  onChanged,
-  onPlayFrom
-}: {
-  meeting: MeetingDetail
-  onChanged: () => Promise<void>
-  onPlayFrom?: (sec: number) => void
-}): JSX.Element | null {
-  const toast = useApp((s) => s.toast)
-  const [extracting, setExtracting] = useState(false)
-  const items = meeting.actionItems
-  const processing = meeting.status !== 'done' && meeting.status !== 'error'
-  if (!items && (processing || !meeting.transcript)) return null
-
-  const extract = async (): Promise<void> => {
-    setExtracting(true)
-    try {
-      await window.api.extractActionItems(meeting.id)
-      await onChanged()
-    } catch {
-      toast(strings.meeting.actionItemsFailed, 'error')
-    } finally {
-      setExtracting(false)
-    }
-  }
-
-  return (
-    <section aria-labelledby="action-items-title" className="mt-6">
-      <h2 id="action-items-title" className="pb-3 text-base font-semibold text-fg">
-        {strings.meeting.actionItemsTitle}
-      </h2>
-      <Card className="px-6 py-5">
-        {!items ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-fg-muted">{strings.meeting.actionItemsMissing}</p>
-            <Button variant="secondary" size="sm" onClick={extract} loading={extracting}>
-              {strings.meeting.actionItemsExtract}
-            </Button>
-          </div>
-        ) : items.length === 0 ? (
-          <p className="text-sm text-fg-muted">{strings.meeting.actionItemsNone}</p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border">
-            {items.map((item) => (
-              <ActionItemRow key={item.id} item={item} onPlayFrom={onPlayFrom} />
-            ))}
-          </ul>
-        )}
-      </Card>
-    </section>
-  )
-}
-
-function ActionItemRow({
-  item,
-  onPlayFrom
-}: {
-  item: ActionItem
-  onPlayFrom?: (sec: number) => void
-}): JSX.Element {
-  const due = formatDueDate(item.due)
-  return (
-    <li className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
-      <span className="text-[15px] leading-relaxed text-fg">{item.text}</span>
-      <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-fg-muted">
-        <span>{item.owner || strings.meeting.actionItemNoOwner}</span>
-        {due && <span>{strings.meeting.actionItemDue(due)}</span>}
-        {item.atSec !== undefined &&
-          (onPlayFrom ? (
-            <button
-              type="button"
-              onClick={() => onPlayFrom(item.atSec ?? 0)}
-              aria-label={strings.meeting.playFrom(formatTimestamp(item.atSec))}
-              className="tabular-nums text-accent underline-offset-2 hover:underline rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              {strings.meeting.actionItemAt(formatTimestamp(item.atSec))}
-            </button>
-          ) : (
-            <span className="tabular-nums">
-              {strings.meeting.actionItemAt(formatTimestamp(item.atSec))}
-            </span>
-          ))}
-      </span>
-    </li>
   )
 }
 

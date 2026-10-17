@@ -381,6 +381,8 @@ export interface RendererApi {
    * before this ran in the pipeline. Takes as long as a model call.
    */
   extractActionItems(meetingId: string): Promise<ActionItem[]>
+  /** Store the action items as the user edited them. */
+  updateActionItems(meetingId: string, items: ActionItem[]): Promise<void>
 
   // Speakers
   /**
