@@ -8,7 +8,7 @@ import type { ConnectionTestResult } from '../../shared/types'
 import type { DiarizationConfig } from '../settings'
 import {
   ensureLocalAiComponentRunning,
-  listLocalAiComponents,
+  isLocalAiComponentInstalled,
   localAiComponentBaseUrl
 } from '../localAiComponents'
 import {
@@ -94,11 +94,9 @@ function buildEmbeddings(data: DiarizeResponse): Record<string, number[]> | unde
  */
 async function resolveEndpoint(config: DiarizationConfig): Promise<string> {
   if (config.backend !== 'built-in') return trimBaseUrl(config.baseUrl)
-  const statuses = listLocalAiComponents()
-  const gpuInstalled = statuses.some(
-    (status) => status.component === 'diarization-gpu' && status.state !== 'not-installed'
-  )
-  const component = gpuInstalled ? 'diarization-gpu' : 'diarization-cpu'
+  const component = isLocalAiComponentInstalled('diarization-gpu')
+    ? 'diarization-gpu'
+    : 'diarization-cpu'
   await ensureLocalAiComponentRunning(component)
   return localAiComponentBaseUrl(component)
 }
@@ -148,18 +146,16 @@ interface HealthResponse {
 export async function testDiarizationConnection(
   config: DiarizationConfig
 ): Promise<ConnectionTestResult> {
-  if (config.backend === 'built-in') {
-    try {
-      await resolveEndpoint(config)
-    } catch (err) {
-      return {
-        ok: false,
-        message: 'Den lokala talaridentifieringen är inte redo',
-        detail: errorDetail(err)
-      }
+  let base: string
+  try {
+    base = await resolveEndpoint(config)
+  } catch (err) {
+    return {
+      ok: false,
+      message: 'Den lokala talaridentifieringen är inte redo',
+      detail: errorDetail(err)
     }
   }
-  const base = trimBaseUrl(config.baseUrl)
   try {
     const res = await providerFetch(`${base}/health`, {
       method: 'GET',

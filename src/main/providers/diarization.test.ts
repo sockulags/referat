@@ -2,11 +2,12 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest
 
 const componentMocks = vi.hoisted(() => ({
   ensureLocalAiComponentRunning: vi.fn(async () => undefined),
-  listLocalAiComponents: vi.fn(() => [
-    { component: 'diarization-cpu', state: 'installed' },
-    { component: 'diarization-gpu', state: 'not-installed' }
-  ]),
-  localAiComponentBaseUrl: vi.fn(() => 'http://127.0.0.1:8300')
+  isLocalAiComponentInstalled: vi.fn<(component: string) => boolean>(
+    (component) => component === 'diarization-cpu'
+  ),
+  localAiComponentBaseUrl: vi.fn((component: string) =>
+    component === 'diarization-gpu' ? 'http://127.0.0.1:8301' : 'http://127.0.0.1:8300'
+  )
 }))
 
 vi.mock('../localAiComponents', () => componentMocks)
@@ -275,5 +276,46 @@ describe('testDiarizationConnection', () => {
     const res = await testDiarizationConnection(config)
     expect(res.ok).toBe(false)
     expect(res.message).toBe('Servern svarar inte (timeout)')
+  })
+})
+
+describe('testDiarizationConnection (managed component)', () => {
+  const builtIn: DiarizationConfig = {
+    ...config,
+    backend: 'built-in',
+    baseUrl: 'http://localhost:8300'
+  }
+
+  it('probes the component it started, not the address in settings', async () => {
+    const fetchFn = queueFetch([jsonResponse({ status: 'ok' })])
+
+    const res = await testDiarizationConnection(builtIn)
+
+    expect(res.ok).toBe(true)
+    expect(componentMocks.ensureLocalAiComponentRunning).toHaveBeenCalledWith('diarization-cpu')
+    expect(fetchFn.mock.calls[0][0]).toBe('http://127.0.0.1:8300/health')
+  })
+
+  it('probes the GPU component when it is installed', async () => {
+    componentMocks.isLocalAiComponentInstalled.mockImplementationOnce(() => true)
+    const fetchFn = queueFetch([jsonResponse({ status: 'ok' })])
+
+    await testDiarizationConnection(builtIn)
+
+    expect(componentMocks.ensureLocalAiComponentRunning).toHaveBeenCalledWith('diarization-gpu')
+    expect(fetchFn.mock.calls[0][0]).toBe('http://127.0.0.1:8301/health')
+  })
+
+  it('reports the component as not ready when it cannot be started', async () => {
+    componentMocks.ensureLocalAiComponentRunning.mockRejectedValueOnce(new Error('spawn failed'))
+    const fetchFn = queueFetch([])
+
+    const res = await testDiarizationConnection(builtIn)
+
+    expect(res).toMatchObject({
+      ok: false,
+      message: 'Den lokala talaridentifieringen är inte redo'
+    })
+    expect(fetchFn).not.toHaveBeenCalled()
   })
 })
