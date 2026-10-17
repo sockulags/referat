@@ -183,6 +183,9 @@ async function main() {
   // In the background: with the setting on, closing the window hides it to
   // the tray instead of quitting, and it can be shown again.
   await page.getByLabel('Ligg kvar i systemfältet när fönstret stängs', { exact: true }).click()
+  // The real watcher would react to whatever uses this machine's microphone;
+  // the call banner is exercised with a simulated call further down instead.
+  await page.getByLabel('Fråga när ett möte börjar', { exact: true }).click()
   await page.waitForTimeout(500)
   const closed = await app.evaluate(
     ({ BrowserWindow }) =>
@@ -546,6 +549,22 @@ async function main() {
   await page.waitForTimeout(1000)
   await shot('home-list')
   assert(await seen('Klar', 8000), 'meeting list shows the "Klar" status chip')
+
+  // A call in a meeting app: Home offers to record it, and "Inte nu" lets go.
+  await app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0].webContents.send('calls:detected', {
+      app: 'teams',
+      active: true
+    })
+  )
+  assert(await seen('Ett Teams-möte pågår', 5000), 'Home offers to record a call in Teams')
+  await shot('call-banner')
+  await page.getByRole('button', { name: 'Inte nu', exact: true }).click()
+  await page.waitForTimeout(300)
+  assert(
+    (await page.getByText('Ett Teams-möte pågår', { exact: true }).count()) === 0,
+    'the call offer can be turned down'
+  )
 
   // --- Projects: create one with its own default template, move the first
   // meeting into it, and record the second meeting there.

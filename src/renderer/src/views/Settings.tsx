@@ -159,6 +159,7 @@ function BackgroundSection({ settings }: { settings: AppSettings }): JSX.Element
   const save = async (patch: {
     runInBackground?: boolean
     openAtLogin?: boolean
+    detectCalls?: boolean
   }): Promise<void> => {
     patchSettings(patch)
     await window.api.saveGeneralSettings(patch)
@@ -172,6 +173,12 @@ function BackgroundSection({ settings }: { settings: AppSettings }): JSX.Element
         onChange={(v) => void save({ runInBackground: v })}
         label={b.runInBackground}
         description={b.runInBackgroundHint}
+      />
+      <Toggle
+        checked={settings.detectCalls}
+        onChange={(v) => void save({ detectCalls: v })}
+        label={b.detectCalls}
+        description={b.detectCallsHint}
       />
       <Toggle
         checked={settings.openAtLogin}

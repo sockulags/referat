@@ -57,6 +57,7 @@ interface StoredSettings {
   captureSystemAudio: boolean
   runInBackground: boolean
   openAtLogin: boolean
+  detectCalls: boolean
   userName: string
   theme: AppSettings['theme']
   onboardingCompleted: boolean
@@ -142,6 +143,7 @@ function defaults(): StoredSettings {
     captureSystemAudio: true,
     runInBackground: false,
     openAtLogin: false,
+    detectCalls: true,
     userName: '',
     theme: 'system',
     onboardingCompleted: false
@@ -178,6 +180,7 @@ function load(): StoredSettings {
         captureSystemAudio: parsed.captureSystemAudio ?? base.captureSystemAudio,
         runInBackground: parsed.runInBackground ?? base.runInBackground,
         openAtLogin: parsed.openAtLogin ?? base.openAtLogin,
+        detectCalls: parsed.detectCalls ?? base.detectCalls,
         userName: parsed.userName ?? base.userName,
         theme: parsed.theme ?? base.theme,
         onboardingCompleted: parsed.onboardingCompleted ?? base.onboardingCompleted
@@ -269,6 +272,7 @@ export function getSettings(): AppSettings {
     captureSystemAudio: s.captureSystemAudio,
     runInBackground: s.runInBackground,
     openAtLogin: s.openAtLogin,
+    detectCalls: s.detectCalls,
     userName: s.userName,
     theme: s.theme,
     onboardingCompleted: s.onboardingCompleted
@@ -349,6 +353,7 @@ export function saveGeneralSettings(payload: SaveGeneralSettings): void {
   if (payload.captureSystemAudio !== undefined) s.captureSystemAudio = payload.captureSystemAudio
   if (payload.runInBackground !== undefined) s.runInBackground = payload.runInBackground
   if (payload.openAtLogin !== undefined) s.openAtLogin = payload.openAtLogin
+  if (payload.detectCalls !== undefined) s.detectCalls = payload.detectCalls
   if (payload.userName !== undefined) s.userName = payload.userName.trim()
   if (payload.theme !== undefined) s.theme = payload.theme
   if (payload.onboardingCompleted !== undefined) s.onboardingCompleted = payload.onboardingCompleted

@@ -33,6 +33,17 @@ export const strings = {
   },
 
   home: {
+    call: {
+      ongoing: {
+        teams: 'Ett Teams-möte pågår',
+        zoom: 'Ett Zoom-möte pågår',
+        browser: 'Ett möte pågår i webbläsaren'
+      },
+      body: 'Vill du spela in det? Kom ihåg att berätta för deltagarna att mötet spelas in.',
+      record: 'Spela in mötet',
+      dismiss: 'Inte nu',
+      meetingTitle: { teams: 'Teams-möte', zoom: 'Zoom-möte', browser: 'Möte' }
+    },
     heroKicker: 'Redo när du är det',
     startRecording: 'Starta inspelning',
     titlePlaceholder: 'Ge mötet en titel (valfritt)',
@@ -334,6 +345,9 @@ export const strings = {
       runInBackground: 'Ligg kvar i systemfältet när fönstret stängs',
       runInBackgroundHint:
         'referat fortsätter i bakgrunden. Öppna det igen eller avsluta det från ikonen i systemfältet.',
+      detectCalls: 'Fråga när ett möte börjar',
+      detectCallsHint:
+        'När Teams, Zoom eller webbläsaren börjar använda mikrofonen frågar referat om mötet ska spelas in. Det märks här på datorn.',
       openAtLogin: 'Starta med Windows',
       openAtLoginHint: 'referat startar dolt i systemfältet när du loggar in.'
     },

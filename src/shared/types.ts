@@ -267,6 +267,8 @@ export interface AppSettings {
   runInBackground: boolean
   /** Start with Windows, hidden in the tray. Off by default. */
   openAtLogin: boolean
+  /** Offer to record when a call starts in Teams, Zoom or a browser. On by default. */
+  detectCalls: boolean
   theme: 'system' | 'light' | 'dark'
   onboardingCompleted: boolean
 }
@@ -333,6 +335,17 @@ export interface UpdateDownloadedEvent {
   version: string
 }
 
+// ---------- Calls ----------
+
+/** A meeting app whose calls referat notices. */
+export type CallApp = 'teams' | 'zoom' | 'browser'
+
+/** A call that started or ended in a meeting app. */
+export interface CallEvent {
+  app: CallApp
+  active: boolean
+}
+
 // ---------- Search ----------
 
 export interface SearchFilter {
@@ -364,6 +377,7 @@ export interface SaveGeneralSettings {
   captureSystemAudio?: boolean
   runInBackground?: boolean
   openAtLogin?: boolean
+  detectCalls?: boolean
   userName?: string
   theme?: AppSettings['theme']
   onboardingCompleted?: boolean
@@ -527,6 +541,8 @@ export interface RendererApi {
   /** Fires when a new version has been downloaded and is ready to install. */
   onUpdateDownloaded(cb: (e: UpdateDownloadedEvent) => void): () => void
   onLocalAiComponentProgress(cb: (e: LocalAiComponentStatus) => void): () => void
+  /** Fires when a call starts or ends in a meeting app. */
+  onCallDetected(cb: (e: CallEvent) => void): () => void
 
   // Updates
   /** Quit and install the downloaded update immediately (toast action). */
