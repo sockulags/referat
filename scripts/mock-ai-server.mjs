@@ -25,10 +25,6 @@ Mötet gick igenom kvartalets rekryteringar och planeringen inför introduktions
 
 - Introduktionsdagen flyttas till den 15:e.
 
-## Actionpunkter
-
-- Anna tar fram en ny annonsmall — deadline fredag.
-
 ## Öppna frågor
 
 - Policyn för distansarbete bordlades till nästa möte.`
