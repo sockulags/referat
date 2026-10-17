@@ -10,7 +10,6 @@ import {
   existsSync,
   readFileSync,
   writeFileSync,
-  renameSync,
   rmSync,
   readdirSync,
   createWriteStream
@@ -21,6 +20,7 @@ import type { LevelEnvelope } from '../shared/levels'
 import { dismissSuggestionInTranscript, renameSpeakerInTranscript } from './diarize'
 import { getDiarizationConfig } from './settings'
 import { upsertProfile } from './speakerProfiles'
+import { readJsonArray, writeJsonAtomic } from './jsonFile'
 
 function meetingsDir(): string {
   const dir = join(app.getPath('userData'), 'meetings')
@@ -118,12 +118,8 @@ export function readMeta(id: string): MeetingMeta | null {
 function writeMeta(meta: MeetingMeta): void {
   const dir = meetingDir(meta.id)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  // Atomic write: a crash mid-write must not truncate meta.json (which would
-  // make the meeting vanish from the index). Write a temp file then rename.
-  const target = metaPath(meta.id)
-  const tmp = `${target}.tmp`
-  writeFileSync(tmp, JSON.stringify(meta, null, 2), 'utf-8')
-  renameSync(tmp, target)
+  // A truncated meta.json would make the meeting vanish from the index.
+  writeJsonAtomic(metaPath(meta.id), meta)
   metaCache.set(meta.id, structuredClone(meta))
 }
 
@@ -221,7 +217,7 @@ export function readTranscript(id: string): Transcript | undefined {
 }
 
 export function writeTranscript(id: string, transcript: Transcript): void {
-  writeFileSync(transcriptPath(id), JSON.stringify(transcript, null, 2), 'utf-8')
+  writeJsonAtomic(transcriptPath(id), transcript)
 }
 
 export function hasTranscript(id: string): boolean {
@@ -246,7 +242,7 @@ export function readLevelEnvelope(id: string): LevelEnvelope | undefined {
 export function writeLevelEnvelope(id: string, envelope: LevelEnvelope): void {
   const dir = meetingDir(id)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  writeFileSync(levelsPath(id), JSON.stringify(envelope), 'utf-8')
+  writeJsonAtomic(levelsPath(id), envelope, true)
 }
 
 /**
@@ -317,24 +313,18 @@ function summaryFileName(id: string, templateName: string, focus: string): strin
   }
 }
 
+function isSummaryEntry(value: unknown): value is SummaryEntry {
+  const e = value as SummaryEntry
+  return !!e && typeof e.id === 'string' && typeof e.fileName === 'string'
+}
+
+/** A hand-edited or truncated index must not take the meeting down with it. */
 function readSummaryIndex(id: string): SummaryEntry[] {
-  try {
-    const parsed = JSON.parse(readFileSync(summaryIndexPath(id), 'utf-8')) as unknown
-    if (!Array.isArray(parsed)) return []
-    // A hand-edited or truncated index must not take the meeting down with it.
-    return parsed.filter(
-      (e): e is SummaryEntry =>
-        !!e &&
-        typeof (e as SummaryEntry).id === 'string' &&
-        typeof (e as SummaryEntry).fileName === 'string'
-    )
-  } catch {
-    return []
-  }
+  return readJsonArray(summaryIndexPath(id), isSummaryEntry)
 }
 
 function writeSummaryIndex(id: string, entries: SummaryEntry[]): void {
-  writeFileSync(summaryIndexPath(id), JSON.stringify(entries, null, 2), 'utf-8')
+  writeJsonAtomic(summaryIndexPath(id), entries)
 }
 
 function readSummaryFile(id: string, fileName: string): string | undefined {

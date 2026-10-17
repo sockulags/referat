@@ -9,7 +9,8 @@
 
 import { app } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { mkdirSync, rmSync } from 'fs'
+import { readJsonArray, writeJsonAtomic } from './jsonFile'
 import { randomUUID } from 'crypto'
 import type { MeetingMeta, ProjectSummary } from '../shared/types'
 
@@ -107,19 +108,12 @@ function isSummary(value: unknown): value is ProjectSummary {
 }
 
 export function listProjectSummaries(projectId: string): ProjectSummary[] {
-  try {
-    const path = file(projectId)
-    if (!existsSync(path)) return []
-    const parsed = JSON.parse(readFileSync(path, 'utf-8')) as unknown
-    return Array.isArray(parsed) ? parsed.filter(isSummary) : []
-  } catch {
-    return []
-  }
+  return readJsonArray(file(projectId), isSummary)
 }
 
 function save(projectId: string, summaries: ProjectSummary[]): void {
   mkdirSync(dir(), { recursive: true })
-  writeFileSync(file(projectId), JSON.stringify(summaries, null, 2), 'utf-8')
+  writeJsonAtomic(file(projectId), summaries)
 }
 
 export function addProjectSummary(

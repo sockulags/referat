@@ -5,9 +5,10 @@
 
 import { app } from 'electron'
 import { join } from 'path'
-import { readFileSync, writeFileSync, existsSync, rmSync } from 'fs'
+import { rmSync } from 'fs'
 import type { SpeakerProfile } from '../shared/types'
 import type { ProfileWithEmbedding } from './diarize'
+import { readJsonArray, writeJsonAtomic } from './jsonFile'
 
 /** On-disk shape: the IPC SpeakerProfile plus the embedding centroid. */
 interface StoredProfile extends SpeakerProfile {
@@ -26,32 +27,26 @@ function isValidEmbedding(value: unknown): value is number[] {
   )
 }
 
-/** Defensive read: a missing, corrupt or hand-edited file yields no profiles. */
+function isStoredProfile(value: unknown): value is StoredProfile {
+  const p = value as StoredProfile
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof p.id === 'string' &&
+    typeof p.name === 'string' &&
+    typeof p.updatedAt === 'string' &&
+    typeof p.sampleCount === 'number' &&
+    isValidEmbedding(p.embedding)
+  )
+}
+
 function loadProfiles(): StoredProfile[] {
-  try {
-    const path = profilesPath()
-    if (!existsSync(path)) return []
-    const parsed = JSON.parse(readFileSync(path, 'utf-8')) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (p): p is StoredProfile =>
-        typeof p === 'object' &&
-        p !== null &&
-        typeof (p as StoredProfile).id === 'string' &&
-        typeof (p as StoredProfile).name === 'string' &&
-        typeof (p as StoredProfile).updatedAt === 'string' &&
-        typeof (p as StoredProfile).sampleCount === 'number' &&
-        isValidEmbedding((p as StoredProfile).embedding)
-    )
-  } catch (err) {
-    console.error('Failed to read speaker-profiles.json, treating as empty', err)
-    return []
-  }
+  return readJsonArray(profilesPath(), isStoredProfile)
 }
 
 function persist(profiles: StoredProfile[]): void {
   try {
-    writeFileSync(profilesPath(), JSON.stringify(profiles, null, 2), 'utf-8')
+    writeJsonAtomic(profilesPath(), profiles)
   } catch (err) {
     console.error('Failed to write speaker-profiles.json', err)
   }

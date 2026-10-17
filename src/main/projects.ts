@@ -9,9 +9,9 @@
 
 import { app } from 'electron'
 import { join } from 'path'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { randomUUID } from 'crypto'
 import type { Project, ProjectPatch } from '../shared/types'
+import { readJsonArray, writeJsonAtomic } from './jsonFile'
 
 function projectsPath(): string {
   return join(app.getPath('userData'), 'projects.json')
@@ -29,25 +29,17 @@ function isProject(value: unknown): value is Project {
   )
 }
 
-/** Defensive read: a missing, corrupt or hand-edited file yields no projects. */
+/** Projects saved before templates and descriptions existed get empty ones. */
 function load(): Project[] {
-  try {
-    const path = projectsPath()
-    if (!existsSync(path)) return []
-    const parsed = JSON.parse(readFileSync(path, 'utf-8')) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(isProject).map((p) => ({
-      ...p,
-      defaultTemplateId: p.defaultTemplateId ?? '',
-      description: p.description ?? ''
-    }))
-  } catch {
-    return []
-  }
+  return readJsonArray(projectsPath(), isProject).map((p) => ({
+    ...p,
+    defaultTemplateId: p.defaultTemplateId ?? '',
+    description: p.description ?? ''
+  }))
 }
 
 function save(projects: Project[]): void {
-  writeFileSync(projectsPath(), JSON.stringify(projects, null, 2), 'utf-8')
+  writeJsonAtomic(projectsPath(), projects)
 }
 
 function cleanName(name: string): string {
