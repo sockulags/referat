@@ -1,6 +1,6 @@
 // Renderer state: the tiny router + app-wide settings/theme. No react-router.
 import { create } from 'zustand'
-import type { AppSettings } from '../../shared/types'
+import type { AppSettings, CallApp } from '../../shared/types'
 
 type View = 'home' | 'recording' | 'meeting' | 'settings' | 'onboarding' | 'search'
 
@@ -55,11 +55,14 @@ interface AppState {
   toasts: Toast[]
   /** Set by openMeetingAt, read once by the meeting view. */
   meetingFocus?: MeetingFocus
+  /** A call going on in a meeting app, which Home offers to record. */
+  call?: CallApp
 
   navigate: (view: View, meetingId?: string) => void
   /** Open a meeting at a tab and, in the transcript, at a moment. */
   openMeetingAt: (meetingId: string, focus: MeetingFocus) => void
   clearMeetingFocus: () => void
+  setCall: (call: CallApp | undefined) => void
   setPendingTitle: (title: string) => void
   setPendingTemplateId: (templateId: string) => void
   setPendingStart: (start: { templateId: string; projectId: string }) => void
@@ -85,6 +88,7 @@ export const useApp = create<AppState>((set) => ({
   openMeetingAt: (meetingId, meetingFocus): void =>
     set({ view: 'meeting', meetingId, meetingFocus }),
   clearMeetingFocus: (): void => set({ meetingFocus: undefined }),
+  setCall: (call): void => set({ call }),
   setPendingTitle: (pendingTitle): void => set({ pendingTitle }),
   setPendingTemplateId: (pendingTemplateId): void => set({ pendingTemplateId }),
   setPendingStart: (pendingStart): void => set({ pendingStart }),

@@ -44,6 +44,17 @@ function App(): JSX.Element {
   const settings = useApp((s) => s.settings)
   const setSettings = useApp((s) => s.setSettings)
   const navigate = useApp((s) => s.navigate)
+  const setCall = useApp((s) => s.setCall)
+
+  // A call in a meeting app: Home offers to record it until it ends.
+  useEffect(
+    () =>
+      window.api.onCallDetected((e) => {
+        if (e.active) setCall(e.app)
+        else if (useApp.getState().call === e.app) setCall(undefined)
+      }),
+    [setCall]
+  )
 
   // Load settings once, resolve theme and route to onboarding on first launch.
   useEffect(() => {

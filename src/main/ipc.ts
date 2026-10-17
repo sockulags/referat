@@ -79,11 +79,12 @@ export const IPC = {
   // Events (main -> renderer)
   pipelineProgress: 'pipeline:progress',
   updateDownloaded: 'updater:downloaded',
-  localAiComponentProgress: 'local-ai:progress'
+  localAiComponentProgress: 'local-ai:progress',
+  callDetected: 'calls:detected'
 } as const
 
 /** RendererApi methods that are requests to main, as opposed to event subscriptions. */
 export type InvokeName = Exclude<
   keyof RendererApi,
-  'onPipelineProgress' | 'onUpdateDownloaded' | 'onLocalAiComponentProgress'
+  'onPipelineProgress' | 'onUpdateDownloaded' | 'onLocalAiComponentProgress' | 'onCallDetected'
 >

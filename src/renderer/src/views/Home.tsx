@@ -1,6 +1,12 @@
 import type { JSX } from 'react'
 import { useCallback, useEffect, useState } from 'react'
-import type { MeetingMeta, Project, ProjectSummary, SummaryTemplate } from '../../../shared/types'
+import type {
+  CallApp,
+  MeetingMeta,
+  Project,
+  ProjectSummary,
+  SummaryTemplate
+} from '../../../shared/types'
 import { resolveStartTemplateId } from '../../../shared/projects'
 import { useApp, type ProjectFilter } from '../store'
 import { strings } from '../strings'
@@ -41,6 +47,8 @@ export function Home(): JSX.Element {
   const setPendingStart = useApp((s) => s.setPendingStart)
   const projectFilter = useApp((s) => s.projectFilter)
   const setProjectFilter = useApp((s) => s.setProjectFilter)
+  const call = useApp((s) => s.call)
+  const setCall = useApp((s) => s.setCall)
 
   const [title, setTitle] = useState('')
   const [meetings, setMeetings] = useState<MeetingMeta[]>([])
@@ -99,9 +107,10 @@ export function Home(): JSX.Element {
     lastUsed: settings?.summary.defaultTemplateId
   })
 
-  const start = (): void => {
-    setPendingTitle(title.trim())
+  const start = (meetingTitle: string = title): void => {
+    setPendingTitle(meetingTitle.trim())
     setPendingStart({ templateId, projectId: project?.id ?? '' })
+    setCall(undefined)
     navigate('recording')
   }
 
@@ -167,6 +176,14 @@ export function Home(): JSX.Element {
         onOverview={project ? () => setOverviewProject(project) : undefined}
       />
 
+      {call && (
+        <CallBanner
+          call={call}
+          onRecord={() => start(title.trim() || strings.home.call.meetingTitle[call])}
+          onDismiss={() => setCall(undefined)}
+        />
+      )}
+
       <Hero
         title={title}
         setTitle={setTitle}
@@ -174,7 +191,7 @@ export function Home(): JSX.Element {
         templateId={templateId}
         setTemplateId={setPendingTemplateId}
         projectName={project?.name}
-        onStart={start}
+        onStart={() => start()}
       />
 
       <section className="mt-12">
@@ -321,6 +338,37 @@ function ProjectBar({
         </IconButton>
       )}
     </nav>
+  )
+}
+
+/** A call going on in a meeting app, offered for recording. */
+function CallBanner({
+  call,
+  onRecord,
+  onDismiss
+}: {
+  call: CallApp
+  onRecord: () => void
+  onDismiss: () => void
+}): JSX.Element {
+  return (
+    <section
+      aria-label={strings.home.call.ongoing[call]}
+      className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-border-strong bg-surface px-5 py-4 shadow-float animate-fade-in"
+    >
+      <div className="min-w-0 flex-[1_1_280px]">
+        <p className="text-[15px] font-semibold text-fg">{strings.home.call.ongoing[call]}</p>
+        <p className="mt-1 text-sm leading-relaxed text-fg-muted">{strings.home.call.body}</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="ghost" onClick={onDismiss}>
+          {strings.home.call.dismiss}
+        </Button>
+        <Button variant="primary" onClick={onRecord} iconLeft={<IconMic size={18} />}>
+          {strings.home.call.record}
+        </Button>
+      </div>
+    </section>
   )
 }
 

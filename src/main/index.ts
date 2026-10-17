@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   Tray,
   Menu,
+  Notification,
   nativeImage,
   session,
   desktopCapturer,
@@ -19,6 +20,8 @@ import { recoverPipeline } from './pipeline'
 import { isRecordingActive } from './storage'
 import { getSettings } from './settings'
 import { startedHidden } from './background'
+import { watchCalls } from './callDetection'
+import type { CallApp } from '../shared/types'
 import { initAutoUpdater, installUpdateNow } from './updater'
 import { IPC } from './ipc'
 
@@ -52,6 +55,29 @@ function restoreWindow(): void {
   mainWindow.show()
   mainWindow.focus()
   tray?.setToolTip('referat')
+}
+
+const CALL_TITLES: Record<CallApp, string> = {
+  teams: 'Ett Teams-möte har börjat',
+  zoom: 'Ett Zoom-möte har börjat',
+  browser: 'Ett möte i webbläsaren har börjat'
+}
+
+/**
+ * Tell the app a call started, so Home can offer to record it, and show a
+ * notification when the window is not in front. Clicking it brings referat
+ * up with the offer.
+ */
+function announceCall(callApp: CallApp): void {
+  mainWindow?.webContents.send(IPC.callDetected, { app: callApp, active: true })
+  const inFront = mainWindow?.isVisible() && mainWindow.isFocused()
+  if (inFront || !Notification.isSupported()) return
+  const notification = new Notification({
+    title: CALL_TITLES[callApp],
+    body: 'Klicka för att spela in det med referat.'
+  })
+  notification.on('click', () => restoreWindow())
+  notification.show()
 }
 
 function ensureTray(): void {
@@ -156,7 +182,9 @@ function registerDisplayMediaHandler(): void {
 registerMediaScheme()
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('se.referat.app')
+  // Must match the installer's appId (electron-builder.yml): Windows only shows
+  // notifications for an id a Start menu shortcut registered.
+  electronApp.setAppUserModelId('se.lucasskog.referat')
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -175,6 +203,14 @@ app.whenReady().then(() => {
   ipcMain.handle(IPC.installUpdateNow, () => {
     isQuitting = true
     installUpdateNow()
+  })
+
+  watchCalls({
+    enabled: () => getSettings().detectCalls,
+    recording: isRecordingActive,
+    onStart: (callApp) => announceCall(callApp),
+    onEnd: (callApp) =>
+      mainWindow?.webContents.send(IPC.callDetected, { app: callApp, active: false })
   })
 
   // Background auto-updates. No-ops in dev / when not packaged.

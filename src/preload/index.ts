@@ -3,7 +3,8 @@ import type {
   RendererApi,
   PipelineProgressEvent,
   UpdateDownloadedEvent,
-  LocalAiComponentStatus
+  LocalAiComponentStatus,
+  CallEvent
 } from '../shared/types'
 import { IPC, type InvokeName } from '../main/ipc'
 
@@ -91,6 +92,7 @@ const api: RendererApi = {
   onPipelineProgress: listen<PipelineProgressEvent>(IPC.pipelineProgress),
   onUpdateDownloaded: listen<UpdateDownloadedEvent>(IPC.updateDownloaded),
   onLocalAiComponentProgress: listen<LocalAiComponentStatus>(IPC.localAiComponentProgress),
+  onCallDetected: listen<CallEvent>(IPC.callDetected),
 
   // Updates
   installUpdateNow: invoke('installUpdateNow'),
