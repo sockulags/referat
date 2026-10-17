@@ -3,7 +3,7 @@
 import { dialog, clipboard, BrowserWindow } from 'electron'
 import { writeFile } from 'fs/promises'
 import { Document, Packer, Paragraph, HeadingLevel, TextRun } from 'docx'
-import type { MeetingSummary } from '../shared/types'
+import type { MeetingDetail, MeetingSummary } from '../shared/types'
 import { getMeeting } from './storage'
 
 function sanitizeFilename(name: string): string {
@@ -77,8 +77,10 @@ async function buildDocx(title: string, dateLine: string, markdown: string): Pro
 }
 
 /** The summary to act on: the one asked for, else the meeting's first. */
-function pickSummary(id: string, summaryId?: string): MeetingSummary | undefined {
-  const meeting = getMeeting(id)
+function pickSummary(
+  meeting: MeetingDetail | null,
+  summaryId?: string
+): MeetingSummary | undefined {
   if (!meeting) return undefined
   return summaryId ? meeting.summaries.find((s) => s.id === summaryId) : meeting.summaries[0]
 }
@@ -89,7 +91,7 @@ export async function exportProtocol(
   summaryId?: string
 ): Promise<{ savedTo: string | null }> {
   const meeting = getMeeting(id)
-  const summary = pickSummary(id, summaryId)
+  const summary = pickSummary(meeting, summaryId)
   if (!meeting || !summary) {
     return { savedTo: null }
   }
@@ -127,5 +129,5 @@ export async function exportProtocol(
 }
 
 export function copyProtocol(id: string, summaryId?: string): void {
-  clipboard.writeText(pickSummary(id, summaryId)?.markdown ?? '')
+  clipboard.writeText(pickSummary(getMeeting(id), summaryId)?.markdown ?? '')
 }

@@ -7,6 +7,7 @@ import { join } from 'path'
 import { readFileSync, existsSync } from 'fs'
 import type {
   AppSettings,
+  DiarizationSettings,
   SaveTranscriptionSettings,
   SaveSummarySettings,
   SaveDiarizationSettings,
@@ -41,13 +42,7 @@ interface StoredSummary {
 }
 
 /** Local unauthenticated companion server — no API key to store. */
-interface StoredDiarization {
-  enabled: boolean
-  backend: 'built-in' | 'server'
-  baseUrl: string
-  /** Voice recognition across meetings (biometric data) — off by default. */
-  recognitionEnabled: boolean
-}
+type StoredDiarization = DiarizationSettings
 
 interface StoredSettings {
   transcription: StoredTranscription
@@ -357,7 +352,7 @@ export interface TranscriptionConfig {
 /** How to reach the model. Which prompt to send is decided per summary. */
 export interface SummaryConfig {
   backend: AppSettings['summary']['backend']
-  apiFlavor: 'openai-compatible' | 'anthropic'
+  apiFlavor: AppSettings['summary']['apiFlavor']
   baseUrl: string
   model: string
   apiKey: string
@@ -379,12 +374,7 @@ export function getTranscriptionConfig(): TranscriptionConfig {
   }
 }
 
-export interface DiarizationConfig {
-  enabled: boolean
-  backend: 'built-in' | 'server'
-  baseUrl: string
-  recognitionEnabled: boolean
-}
+export type DiarizationConfig = DiarizationSettings
 
 /** What to call the person at the microphone. Empty when never set. */
 export function getUserName(): string {

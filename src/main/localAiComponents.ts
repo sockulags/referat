@@ -8,6 +8,7 @@ import { pipeline } from 'stream/promises'
 import { Readable } from 'stream'
 import type { LocalAiComponent, LocalAiComponentStatus } from '../shared/types'
 import { IPC } from './ipc'
+import { trimBaseUrl } from './providers/shared'
 
 interface ComponentDefinition {
   asset: string
@@ -98,7 +99,7 @@ export function listLocalAiComponents(): LocalAiComponentStatus[] {
 }
 
 function releaseUrl(asset: string): string {
-  const override = process.env.REFERAT_COMPONENT_BASE_URL?.replace(/\/$/, '')
+  const override = trimBaseUrl(process.env.REFERAT_COMPONENT_BASE_URL ?? '')
   if (override) return `${override}/${asset}`
   return `https://github.com/sockulags/referat/releases/download/v${app.getVersion()}/${asset}`
 }
