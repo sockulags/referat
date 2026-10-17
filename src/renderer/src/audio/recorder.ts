@@ -42,6 +42,8 @@ const MIME = 'audio/webm;codecs=opus'
 const TIMESLICE_MS = 5000
 /** Rotate to a new segment every 10 minutes. */
 const SEGMENT_MS = 10 * 60 * 1000
+/** The length of a full segment, which older meetings' playback assumes. */
+export const SEGMENT_SEC = SEGMENT_MS / 1000
 /** How often the live window checks for a pause to cut at. */
 const LIVE_TICK_MS = 100
 

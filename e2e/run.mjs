@@ -374,6 +374,27 @@ async function main() {
       'transcript tab renders mock transcript segments'
     )
 
+    // Playback: the recording loads through the media protocol, and a
+    // transcript timestamp moves the player to that point.
+    const audioLoads = await page.evaluate(
+      (id) =>
+        new Promise((resolve) => {
+          const audio = new Audio(`referat-media://meeting/${id}/0`)
+          audio.onloadedmetadata = () => resolve(true)
+          audio.onerror = () => resolve(false)
+          setTimeout(() => resolve(false), 8000)
+        }),
+      meetingDirs[0]
+    )
+    assert(audioLoads, 'the recording loads through the referat-media protocol')
+    await page.getByRole('button', { name: 'Spela från 00:06' }).first().click()
+    assert(await seen('00:06 / 00:15', 5000), 'a transcript timestamp moves the player there')
+    await shot('audio-player')
+    await page
+      .getByRole('button', { name: 'Pausa' })
+      .click()
+      .catch(() => {})
+
     // Speaker labels from diarization (mock server: S1/S2 -> Talare 1/Talare 2).
     assert(await seen('Talare 1', 8000), 'transcript tab shows speaker label "Talare 1"')
     assert(await seen('Talare 2', 5000), 'transcript tab shows speaker label "Talare 2"')

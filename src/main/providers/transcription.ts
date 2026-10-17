@@ -106,11 +106,14 @@ interface VerboseJson {
   segments?: VerboseSegment[]
 }
 
+/** A transcript of one file, plus the file's length when the server reported it. */
+type FileTranscript = Transcript & { audioDurationSec?: number }
+
 function buildTranscript(
   data: VerboseJson | string,
   fallbackLanguage: string,
   durationSec: number
-): Transcript {
+): FileTranscript {
   // Plain text response (response_format=text or server that ignores verbose_json).
   if (typeof data === 'string') {
     const text = data.trim()
@@ -133,7 +136,14 @@ function buildTranscript(
       .map((s) => s.text)
       .join(' ')
       .trim()
-    return { language, segments, text: data.text?.trim() || text }
+    return {
+      language,
+      segments,
+      text: data.text?.trim() || text,
+      ...(typeof data.duration === 'number' && data.duration > 0
+        ? { audioDurationSec: data.duration }
+        : {})
+    }
   }
 
   // JSON without segments (plain json response_format): single segment.
@@ -164,7 +174,7 @@ async function transcribeFile(
   audioFilePath: string,
   config: TranscriptionConfig,
   durationSec: number
-): Promise<Transcript> {
+): Promise<FileTranscript> {
   const bytes = await readFile(audioFilePath)
   return transcribeBytes(bytes, basename(audioFilePath), config, durationSec, WORK_TIMEOUT_MS)
 }
@@ -175,7 +185,7 @@ async function transcribeBytes(
   config: TranscriptionConfig,
   durationSec: number,
   timeoutMs: number
-): Promise<Transcript> {
+): Promise<FileTranscript> {
   const file = new File([bytes], fileName, { type: 'audio/webm' })
 
   const form = new FormData()
@@ -227,11 +237,13 @@ export async function transcribe(
 
   const segments: TranscriptSegment[] = []
   const texts: string[] = []
+  const segmentStartsSec: number[] = []
   let language = ''
   let offset = 0
 
   for (const path of audioFilePaths) {
     await opts.beforeSegment?.()
+    segmentStartsSec.push(offset)
     const part = await transcribeFile(path, config, fallbackPerSegment)
     if (!language) language = part.language
     for (const seg of part.segments) {
@@ -242,16 +254,18 @@ export async function transcribe(
       })
     }
     if (part.text) texts.push(part.text)
-    // This segment's duration = its last endSec (server-provided), else the
-    // proportional fallback. Advances the offset for the next segment.
+    // Advance by the file's own length when the server reports it, so the
+    // timestamps line up with the audio for playback. Otherwise the end of the
+    // last speech, else the proportional fallback.
     const lastEnd = part.segments.length > 0 ? part.segments[part.segments.length - 1].endSec : 0
-    offset += lastEnd > 0 ? lastEnd : fallbackPerSegment
+    offset += part.audioDurationSec ?? (lastEnd > 0 ? lastEnd : fallbackPerSegment)
   }
 
   return {
     language: language || config.language || 'sv',
     segments,
-    text: texts.join(' ').trim()
+    text: texts.join(' ').trim(),
+    segmentStartsSec
   }
 }
 

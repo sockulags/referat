@@ -105,6 +105,22 @@ describe('transcribe', () => {
       { startSec: 17, endSec: 22, text: 'B2' }
     ])
     expect(t.text).toBe('A1 A2 B1 B2')
+    expect(t.segmentStartsSec).toEqual([0, 12])
+  })
+
+  it('offsets by the file length the server reports, so times match the audio', async () => {
+    const a = makeFile('a.webm')
+    const b = makeFile('b.webm')
+    // The first file's speech ends at 12 s but the file runs to 600 s.
+    queueFetch([
+      jsonResponse({ language: 'sv', duration: 600, segments: [{ start: 0, end: 12, text: 'A' }] }),
+      jsonResponse({ language: 'sv', duration: 30, segments: [{ start: 2, end: 8, text: 'B' }] })
+    ])
+
+    const t = await transcribe([a, b], config, 630)
+
+    expect(t.segments.map((s) => s.startSec)).toEqual([0, 602])
+    expect(t.segmentStartsSec).toEqual([0, 600])
   })
 
   it('falls back to a proportional offset when a segment yields no timings', async () => {
