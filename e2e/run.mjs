@@ -281,6 +281,12 @@ async function main() {
   assert(done, 'pipeline reaches done -> protocol tab appears')
   await page.waitForTimeout(1000)
   await shot('meeting-done')
+  assert(
+    await seen('Ta fram en ny annonsmall', 20000),
+    'the pipeline takes the action items out and the meeting view lists them'
+  )
+  await page.getByText('Ta fram en ny annonsmall', { exact: true }).scrollIntoViewIfNeeded()
+  await shot('action-items')
 
   // The recorder writes a level envelope alongside the audio, which is what
   // lets main tell the microphone apart from the system audio. The fake mic

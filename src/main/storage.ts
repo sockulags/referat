@@ -16,7 +16,13 @@ import {
 } from 'fs'
 import type { WriteStream } from 'fs'
 import { randomUUID } from 'crypto'
-import type { MeetingMeta, MeetingDetail, MeetingSummary, Transcript } from '../shared/types'
+import type {
+  ActionItem,
+  MeetingMeta,
+  MeetingDetail,
+  MeetingSummary,
+  Transcript
+} from '../shared/types'
 import type { LevelEnvelope } from '../shared/levels'
 import { dismissSuggestionInTranscript, renameSpeakerInTranscript } from './diarize'
 import { getDiarizationConfig } from './settings'
@@ -76,6 +82,10 @@ function transcriptPath(id: string): string {
 
 function levelsPath(id: string): string {
   return join(meetingDir(id), 'levels.json')
+}
+
+function actionItemsPath(id: string): string {
+  return join(meetingDir(id), 'action-items.json')
 }
 
 /** Where 0.5 and earlier wrote the one and only protocol. */
@@ -434,8 +444,32 @@ export function getMeeting(id: string): MeetingDetail | null {
   return {
     ...meta,
     transcript: readTranscript(id),
-    summaries: listSummaries(id)
+    summaries: listSummaries(id),
+    actionItems: readActionItems(id)
   }
+}
+
+function isActionItem(value: unknown): value is ActionItem {
+  const a = value as ActionItem
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof a.id === 'string' &&
+    typeof a.text === 'string' &&
+    typeof a.owner === 'string' &&
+    typeof a.due === 'string' &&
+    (a.atSec === undefined || (typeof a.atSec === 'number' && Number.isFinite(a.atSec)))
+  )
+}
+
+/** The meeting's action items; undefined until they have been extracted. */
+export function readActionItems(id: string): ActionItem[] | undefined {
+  const path = actionItemsPath(id)
+  return existsSync(path) ? readJsonArray(path, isActionItem) : undefined
+}
+
+export function writeActionItems(id: string, items: ActionItem[]): void {
+  writeJsonAtomic(actionItemsPath(id), items)
 }
 
 export function deleteMeeting(id: string): void {
