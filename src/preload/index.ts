@@ -32,6 +32,7 @@ const api: RendererApi = {
   generateSummary: invoke('generateSummary'),
   deleteSummary: invoke('deleteSummary'),
   extractActionItems: invoke('extractActionItems'),
+  updateActionItems: invoke('updateActionItems'),
 
   // Speakers
   renameSpeaker: invoke('renameSpeaker'),

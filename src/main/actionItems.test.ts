@@ -8,7 +8,8 @@ vi.mock('./settings', () => ({}))
 vi.mock('./glossary', () => ({}))
 vi.mock('./providers/summary', () => ({}))
 
-const { parseActionItems, timestampedTranscript, meetingDateText } = await import('./actionItems')
+const { parseActionItems, timestampedTranscript, meetingDateText, sanitizeActionItems } =
+  await import('./actionItems')
 
 describe('parseActionItems', () => {
   it('reads the list from an answer with text and code fences around it', () => {
@@ -73,6 +74,32 @@ describe('parseActionItems', () => {
   it('caps a runaway list', () => {
     const many = Array.from({ length: 80 }, (_, i) => ({ text: `punkt ${i}` }))
     expect(parseActionItems(JSON.stringify(many), 60)).toHaveLength(50)
+  })
+})
+
+describe('sanitizeActionItems', () => {
+  it('keeps what the user typed, including an item still without text', () => {
+    const items = [
+      { id: 'a1', text: 'Skicka kravlistan', owner: 'Anna', due: '2026-10-17', atSec: 790 },
+      { id: 'a2', text: '', owner: '', due: '' }
+    ]
+    expect(sanitizeActionItems(items)).toEqual(items)
+  })
+
+  it('cleans what it cannot trust and drops what is not an item', () => {
+    const [item, ...rest] = sanitizeActionItems([
+      { text: 'Boka workshop', owner: '  Jonas  ', due: '2026-02-30', atSec: -3 },
+      'inte en punkt',
+      null
+    ])
+    expect(rest).toEqual([])
+    expect(item).toMatchObject({ text: 'Boka workshop', owner: 'Jonas', due: '' })
+    expect(item.id).toEqual(expect.any(String))
+    expect(item.atSec).toBeUndefined()
+  })
+
+  it('is empty for anything that is not a list', () => {
+    expect(sanitizeActionItems({ text: 'x' })).toEqual([])
   })
 })
 

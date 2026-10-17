@@ -281,12 +281,33 @@ async function main() {
   assert(done, 'pipeline reaches done -> protocol tab appears')
   await page.waitForTimeout(1000)
   await shot('meeting-done')
-  assert(
-    await seen('Ta fram en ny annonsmall', 20000),
-    'the pipeline takes the action items out and the meeting view lists them'
-  )
-  await page.getByText('Ta fram en ny annonsmall', { exact: true }).scrollIntoViewIfNeeded()
+  const actionItem = page.getByLabel('Actionpunkt', { exact: true }).first()
+  const extracted = await actionItem
+    .waitFor({ state: 'visible', timeout: 20000 })
+    .then(async () => (await actionItem.inputValue()) === 'Ta fram en ny annonsmall')
+    .catch(() => false)
+  assert(extracted, 'the pipeline takes the action items out and the meeting view lists them')
+  await actionItem.scrollIntoViewIfNeeded()
   await shot('action-items')
+
+  // Editing: the change saves on its own and is still there after leaving
+  // the meeting and coming back.
+  await actionItem.fill('Ta fram en ny annonsmall och skicka den till HR')
+  await page.getByLabel('Ansvarig', { exact: true }).first().fill('Anna Berg')
+  await page.waitForTimeout(1000)
+  await page.getByRole('button', { name: 'Hem', exact: true }).click()
+  await page.waitForTimeout(600)
+  await page.getByRole('button', { name: 'Senaste mötet', exact: true }).click()
+  await page.waitForTimeout(1000)
+  assert(
+    (await page.getByLabel('Actionpunkt', { exact: true }).first().inputValue()) ===
+      'Ta fram en ny annonsmall och skicka den till HR',
+    'an edited action item is saved and still there after leaving the meeting'
+  )
+  assert(
+    (await page.getByLabel('Ansvarig', { exact: true }).first().inputValue()) === 'Anna Berg',
+    'an edited owner is saved'
+  )
 
   // The recorder writes a level envelope alongside the audio, which is what
   // lets main tell the microphone apart from the system audio. The fake mic

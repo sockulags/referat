@@ -14,6 +14,7 @@ export const IPC = {
   generateSummary: 'summaries:generate',
   deleteSummary: 'summaries:delete',
   extractActionItems: 'meetings:extract-action-items',
+  updateActionItems: 'meetings:update-action-items',
 
   // Speakers
   renameSpeaker: 'speakers:rename',

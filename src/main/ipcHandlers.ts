@@ -18,7 +18,7 @@ import {
   resummarize
 } from './pipeline'
 import { exportProtocol, copyProtocol } from './export'
-import { extractActionItems } from './actionItems'
+import { extractActionItems, saveActionItems } from './actionItems'
 import { testTranscriptionConnection, transcribeLiveWindow } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
 import { testDiarizationConnection } from './providers/diarization'
@@ -57,6 +57,7 @@ export function registerIpcHandlers(): void {
   )
   handle('deleteSummary', (meetingId, summaryId) => storage.deleteSummary(meetingId, summaryId))
   handle('extractActionItems', (meetingId) => extractActionItems(meetingId))
+  handle('updateActionItems', (meetingId, items) => saveActionItems(meetingId, items))
 
   // ---- Speakers ----
   handle('renameSpeaker', (meetingId, speakerId, name) =>
