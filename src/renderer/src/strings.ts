@@ -32,6 +32,14 @@ export const strings = {
     settings: 'Inställningar'
   },
 
+  consent: {
+    reminder: 'Kom ihåg att berätta för deltagarna att mötet spelas in.',
+    copy: 'Kopiera text till chatten',
+    copied: 'Text kopierad',
+    copyFailed: 'Texten kunde inte kopieras',
+    dismiss: 'Dölj påminnelsen'
+  },
+
   home: {
     call: {
       ongoing: {
@@ -336,7 +344,10 @@ export const strings = {
       /** A device the browser does not name yet (before mic permission). */
       unnamedMicrophone: (n: number) => `Mikrofon ${n}`,
       systemAudio: 'Spela in systemljud',
-      systemAudioHint: 'Fånga det som spelas upp i datorn, t.ex. andra i ett videomöte.'
+      systemAudioHint: 'Fånga det som spelas upp i datorn, t.ex. andra i ett videomöte.',
+      consentMessage: 'Text om inspelningen',
+      consentMessageHint:
+        'När en inspelning startar kan du kopiera texten och klistra in den i mötets chatt. Lämna tomt för att inte visa knappen.'
     },
     background: {
       title: 'I bakgrunden',

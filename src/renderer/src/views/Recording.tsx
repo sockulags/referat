@@ -7,10 +7,19 @@ import { MeetingRecorder, isMicPermissionError } from '../audio/recorder'
 import { LiveQueue, type LiveState } from '../audio/live'
 import { isLiveTranscriptionOn } from '../../../shared/live'
 import { LevelMeter } from '../components/LevelMeter'
-import { Button } from '../components/ui/Button'
+import { Button, IconButton } from '../components/ui/Button'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { ErrorDetail } from '../components/ErrorDetail'
-import { IconMic, IconWave, IconPause, IconPlay, IconStop, IconAlert } from '../components/icons'
+import {
+  IconMic,
+  IconWave,
+  IconPause,
+  IconPlay,
+  IconStop,
+  IconAlert,
+  IconX
+} from '../components/icons'
+import { ConsentButton } from '../components/ConsentButton'
 import { cn } from '../components/ui/cn'
 
 type Phase = 'starting' | 'recording' | 'paused' | 'mic-denied' | 'finishing'
@@ -23,6 +32,7 @@ export function Recording(): JSX.Element {
 
   const [phase, setPhase] = useState<Phase>('starting')
   const [elapsed, setElapsed] = useState(0)
+  const [showConsent, setShowConsent] = useState(true)
   const [levels, setLevels] = useState({ mic: 0, system: 0 })
   const [systemMissing, setSystemMissing] = useState(false)
   const [hasSystem, setHasSystem] = useState(false)
@@ -205,6 +215,25 @@ export function Recording(): JSX.Element {
       </div>
 
       <h1 className="text-xl font-semibold text-fg mb-2 max-w-sm truncate w-full">{title}</h1>
+
+      {showConsent && (
+        <div
+          role="note"
+          className="w-full mb-6 flex items-start gap-2 rounded-[10px] bg-accent-soft py-3 pl-4 pr-2 text-left text-sm text-accent-soft-fg animate-fade-in"
+        >
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+            <span className="min-w-0 flex-[1_1_200px]">{strings.consent.reminder}</span>
+            <ConsentButton />
+          </div>
+          <IconButton
+            size="sm"
+            label={strings.consent.dismiss}
+            onClick={() => setShowConsent(false)}
+          >
+            <IconX size={16} />
+          </IconButton>
+        </div>
+      )}
 
       {/* Timer */}
       <div

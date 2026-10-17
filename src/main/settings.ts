@@ -58,6 +58,7 @@ interface StoredSettings {
   runInBackground: boolean
   openAtLogin: boolean
   detectCalls: boolean
+  consentMessage: string
   userName: string
   theme: AppSettings['theme']
   onboardingCompleted: boolean
@@ -144,6 +145,8 @@ function defaults(): StoredSettings {
     runInBackground: false,
     openAtLogin: false,
     detectCalls: true,
+    consentMessage:
+      'Det här mötet spelas in med referat för att skriva protokoll. Ljudet stannar på min dator. Säg till om du inte vill bli inspelad.',
     userName: '',
     theme: 'system',
     onboardingCompleted: false
@@ -181,6 +184,7 @@ function load(): StoredSettings {
         runInBackground: parsed.runInBackground ?? base.runInBackground,
         openAtLogin: parsed.openAtLogin ?? base.openAtLogin,
         detectCalls: parsed.detectCalls ?? base.detectCalls,
+        consentMessage: parsed.consentMessage ?? base.consentMessage,
         userName: parsed.userName ?? base.userName,
         theme: parsed.theme ?? base.theme,
         onboardingCompleted: parsed.onboardingCompleted ?? base.onboardingCompleted
@@ -273,6 +277,7 @@ export function getSettings(): AppSettings {
     runInBackground: s.runInBackground,
     openAtLogin: s.openAtLogin,
     detectCalls: s.detectCalls,
+    consentMessage: s.consentMessage,
     userName: s.userName,
     theme: s.theme,
     onboardingCompleted: s.onboardingCompleted
@@ -354,6 +359,7 @@ export function saveGeneralSettings(payload: SaveGeneralSettings): void {
   if (payload.runInBackground !== undefined) s.runInBackground = payload.runInBackground
   if (payload.openAtLogin !== undefined) s.openAtLogin = payload.openAtLogin
   if (payload.detectCalls !== undefined) s.detectCalls = payload.detectCalls
+  if (payload.consentMessage !== undefined) s.consentMessage = payload.consentMessage.trim()
   if (payload.userName !== undefined) s.userName = payload.userName.trim()
   if (payload.theme !== undefined) s.theme = payload.theme
   if (payload.onboardingCompleted !== undefined) s.onboardingCompleted = payload.onboardingCompleted

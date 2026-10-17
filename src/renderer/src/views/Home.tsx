@@ -35,6 +35,7 @@ import {
   IconSettings
 } from '../components/icons'
 import { cn } from '../components/ui/cn'
+import { ConsentButton } from '../components/ConsentButton'
 
 export function Home(): JSX.Element {
   const navigate = useApp((s) => s.navigate)
@@ -364,6 +365,7 @@ function CallBanner({
         <Button variant="ghost" onClick={onDismiss}>
           {strings.home.call.dismiss}
         </Button>
+        <ConsentButton size="md" />
         <Button variant="primary" onClick={onRecord} iconLeft={<IconMic size={18} />}>
           {strings.home.call.record}
         </Button>

@@ -148,6 +148,14 @@ describe('summary backend settings', () => {
     expect(getSettings().summary.defaultTemplateId).toBe('protokoll')
   })
 
+  it('has a text about the recording until the user changes or clears it', () => {
+    expect(getSettings().consentMessage).toMatch(/spelas in med referat/)
+    saveGeneralSettings({ consentMessage: '  Vi spelar in.  ' })
+    expect(getSettings().consentMessage).toBe('Vi spelar in.')
+    saveGeneralSettings({ consentMessage: '' })
+    expect(getSettings().consentMessage).toBe('')
+  })
+
   it('keeps referat out of the background until the user turns it on', () => {
     expect(getSettings()).toMatchObject({ runInBackground: false, openAtLogin: false })
     saveGeneralSettings({ runInBackground: true, openAtLogin: true })
