@@ -9,10 +9,11 @@ import { Button, IconButton } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { StatusChip } from '../components/ui/StatusChip'
 import { Modal } from '../components/ui/Modal'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
+import { ErrorDetail } from '../components/ErrorDetail'
 import { Markdown } from '../components/Markdown'
 import { Spinner } from '../components/ui/Spinner'
 import { Input, Select, Textarea } from '../components/ui/Field'
-import { Tooltip } from '../components/ui/Tooltip'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import {
   IconMic,
@@ -221,11 +222,17 @@ export function Home(): JSX.Element {
           onSave={doRename}
         />
       )}
-      <DeleteModal
-        target={deleteTarget}
+      <ConfirmModal
+        open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={doDelete}
-      />
+        title={strings.home.deleteMeeting}
+        confirmLabel={strings.common.delete}
+        onConfirm={() => deleteTarget && doDelete(deleteTarget.id)}
+      >
+        Mötet{' '}
+        <strong className="text-fg">{deleteTarget?.title || strings.recording.untitled}</strong> och
+        dess ljud, transkript och protokoll tas bort permanent. Det går inte att ångra.
+      </ConfirmModal>
       {creatingProject && (
         <CreateProjectModal onClose={() => setCreatingProject(false)} onCreate={doCreateProject} />
       )}
@@ -309,11 +316,9 @@ function ProjectBar({
         </Button>
       )}
       {onSettings && (
-        <Tooltip label={strings.projects.settings}>
-          <IconButton label={strings.projects.settings} size="sm" onClick={onSettings}>
-            <IconSettings size={17} />
-          </IconButton>
-        </Tooltip>
+        <IconButton label={strings.projects.settings} size="sm" onClick={onSettings}>
+          <IconSettings size={17} />
+        </IconButton>
       )}
     </nav>
   )
@@ -461,33 +466,31 @@ function MeetingRow({
 
         <div className="flex items-center gap-0.5">
           {isError && (
-            <Tooltip label={strings.common.retry}>
-              <IconButton label={strings.common.retry} size="sm" onClick={onRetry}>
-                <IconRetry size={17} />
-              </IconButton>
-            </Tooltip>
+            <IconButton label={strings.common.retry} size="sm" onClick={onRetry}>
+              <IconRetry size={17} />
+            </IconButton>
           )}
           <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-            <Tooltip label={strings.common.rename}>
-              <IconButton label={strings.home.renameMeeting} size="sm" onClick={onRename}>
-                <IconPencil size={16} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip label={strings.home.moveMeeting}>
-              <IconButton label={strings.home.moveMeeting} size="sm" onClick={onMove}>
-                <IconFolder size={16} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip label={strings.common.delete}>
-              <IconButton
-                label={strings.home.deleteMeeting}
-                size="sm"
-                onClick={onDelete}
-                className="hover:text-danger"
-              >
-                <IconTrash size={16} />
-              </IconButton>
-            </Tooltip>
+            <IconButton
+              label={strings.home.renameMeeting}
+              tooltip={strings.common.rename}
+              size="sm"
+              onClick={onRename}
+            >
+              <IconPencil size={16} />
+            </IconButton>
+            <IconButton label={strings.home.moveMeeting} size="sm" onClick={onMove}>
+              <IconFolder size={16} />
+            </IconButton>
+            <IconButton
+              label={strings.home.deleteMeeting}
+              tooltip={strings.common.delete}
+              size="sm"
+              onClick={onDelete}
+              className="hover:text-danger"
+            >
+              <IconTrash size={16} />
+            </IconButton>
           </div>
           <IconChevronRight
             size={18}
@@ -585,39 +588,6 @@ function RenameModal({
   )
 }
 
-function DeleteModal({
-  target,
-  onClose,
-  onConfirm
-}: {
-  target: MeetingMeta | null
-  onClose: () => void
-  onConfirm: (id: string) => void
-}): JSX.Element {
-  return (
-    <Modal
-      open={!!target}
-      onClose={onClose}
-      title={strings.home.deleteMeeting}
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            {strings.common.cancel}
-          </Button>
-          <Button variant="danger" onClick={() => target && onConfirm(target.id)}>
-            {strings.common.delete}
-          </Button>
-        </>
-      }
-    >
-      <p className="text-sm text-fg-muted leading-relaxed">
-        Mötet <strong className="text-fg">{target?.title || strings.recording.untitled}</strong> och
-        dess ljud, transkript och protokoll tas bort permanent. Det går inte att ångra.
-      </p>
-    </Modal>
-  )
-}
-
 function CreateProjectModal({
   onClose,
   onCreate
@@ -687,26 +657,15 @@ function ProjectSettingsModal({
 
   if (confirmDelete) {
     return (
-      <Modal
+      <ConfirmModal
         open
         onClose={() => setConfirmDelete(false)}
         title={strings.projects.deleteTitle}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
-              {strings.common.cancel}
-            </Button>
-            <Button variant="danger" onClick={() => void onDelete(project.id)}>
-              {strings.projects.deleteConfirm}
-            </Button>
-          </>
-        }
+        confirmLabel={strings.projects.deleteConfirm}
+        onConfirm={() => void onDelete(project.id)}
       >
-        <p className="text-sm text-fg-muted leading-relaxed">
-          {strings.projects.deleteBody(project.name, meetingCount)}{' '}
-          {strings.projects.deleteTermsNote}
-        </p>
-      </Modal>
+        {strings.projects.deleteBody(project.name, meetingCount)} {strings.projects.deleteTermsNote}
+      </ConfirmModal>
     )
   }
 
@@ -980,6 +939,7 @@ function ProjectOverviewModal({
             <div className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
               <p className="font-medium">{strings.projects.overviewFailed}</p>
               <p className="mt-1">{error.message}</p>
+              {error.detail && <ErrorDetail detail={error.detail} className="mt-2" />}
             </div>
           )}
         </div>

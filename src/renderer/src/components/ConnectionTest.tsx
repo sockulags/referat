@@ -4,6 +4,8 @@ import type { ConnectionTestResult } from '../../../shared/types'
 import { strings } from '../strings'
 import { Button } from './ui/Button'
 import { IconCheck, IconAlert } from './icons'
+import { ErrorDetail } from './ErrorDetail'
+import { failedTest } from '../connectionTest'
 
 type State = 'idle' | 'testing' | 'ok' | 'error'
 
@@ -17,17 +19,15 @@ interface Props {
 export function ConnectionTest({ run, label }: Props): JSX.Element {
   const [state, setState] = useState<State>('idle')
   const [result, setResult] = useState<ConnectionTestResult | null>(null)
-  const [showDetail, setShowDetail] = useState(false)
 
   const test = async (): Promise<void> => {
     setState('testing')
-    setShowDetail(false)
     try {
       const r = await run()
       setResult(r)
       setState(r.ok ? 'ok' : 'error')
     } catch (e) {
-      setResult({ ok: false, message: strings.errors.genericTitle, detail: String(e) })
+      setResult(failedTest(e))
       setState('error')
     }
   }
@@ -55,21 +55,7 @@ export function ConnectionTest({ run, label }: Props): JSX.Element {
             <IconAlert size={17} className="mt-0.5 shrink-0" />
             <span>{result.message}</span>
           </p>
-          {result.detail && (
-            <>
-              <button
-                onClick={() => setShowDetail((s) => !s)}
-                className="mt-1.5 ml-6 text-xs text-fg-subtle hover:text-fg-muted transition-colors"
-              >
-                {showDetail ? strings.common.hideDetails : strings.common.showDetails}
-              </button>
-              {showDetail && (
-                <pre className="mt-2 ml-6 whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-3 text-xs text-fg-muted font-mono">
-                  {result.detail}
-                </pre>
-              )}
-            </>
-          )}
+          {result.detail && <ErrorDetail detail={result.detail} className="mt-1.5 ml-6" />}
         </div>
       )}
     </div>

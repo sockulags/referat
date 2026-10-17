@@ -3,7 +3,6 @@ import { useApp } from '../store'
 import { strings } from '../strings'
 import { Wordmark, IconSettings, IconArrowLeft } from './icons'
 import { IconButton } from './ui/Button'
-import { Tooltip } from './ui/Tooltip'
 
 export function TopBar(): JSX.Element {
   const view = useApp((s) => s.view)
@@ -18,15 +17,14 @@ export function TopBar(): JSX.Element {
       <div className="mx-auto max-w-5xl h-full px-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {!onHome && !isRecording && !isOnboarding && (
-            <Tooltip label={strings.topbar.backHome} side="bottom">
-              <IconButton
-                label={strings.topbar.backHome}
-                size="sm"
-                onClick={() => navigate('home')}
-              >
-                <IconArrowLeft size={18} />
-              </IconButton>
-            </Tooltip>
+            <IconButton
+              label={strings.topbar.backHome}
+              tooltipSide="bottom"
+              size="sm"
+              onClick={() => navigate('home')}
+            >
+              <IconArrowLeft size={18} />
+            </IconButton>
           )}
           <button
             className="flex items-center gap-2 text-accent disabled:opacity-100"
@@ -42,15 +40,15 @@ export function TopBar(): JSX.Element {
         </div>
 
         {!isRecording && !isOnboarding && (
-          <Tooltip label={strings.topbar.settings} side="bottom">
-            <IconButton
-              label={strings.topbar.openSettings}
-              onClick={() => navigate('settings')}
-              className={view === 'settings' ? 'bg-surface-2 text-fg' : undefined}
-            >
-              <IconSettings size={20} />
-            </IconButton>
-          </Tooltip>
+          <IconButton
+            label={strings.topbar.openSettings}
+            tooltip={strings.topbar.settings}
+            tooltipSide="bottom"
+            onClick={() => navigate('settings')}
+            className={view === 'settings' ? 'bg-surface-2 text-fg' : undefined}
+          >
+            <IconSettings size={20} />
+          </IconButton>
         )}
       </div>
     </header>
