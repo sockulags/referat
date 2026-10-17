@@ -1,6 +1,8 @@
 // Central registry of IPC channel names (kebab-case) to avoid typos.
 // Both the handler registration (main) and the preload bridge import these.
 
+import type { RendererApi } from '../shared/types'
+
 export const IPC = {
   // Meetings
   listMeetings: 'meetings:list',
@@ -74,3 +76,9 @@ export const IPC = {
   updateDownloaded: 'updater:downloaded',
   localAiComponentProgress: 'local-ai:progress'
 } as const
+
+/** RendererApi methods that are requests to main, as opposed to event subscriptions. */
+export type InvokeName = Exclude<
+  keyof RendererApi,
+  'onPipelineProgress' | 'onUpdateDownloaded' | 'onLocalAiComponentProgress'
+>

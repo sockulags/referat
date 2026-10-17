@@ -1,180 +1,106 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   RendererApi,
-  MeetingMeta,
-  MeetingDetail,
-  RecordingHandle,
-  AppSettings,
-  SaveTranscriptionSettings,
-  SaveSummarySettings,
-  SaveDiarizationSettings,
-  ConnectionTestResult,
   PipelineProgressEvent,
   UpdateDownloadedEvent,
-  SpeakerProfile,
-  GlossaryTerm,
-  LocalAiComponent,
-  LocalAiComponentStatus,
-  Project,
-  ProjectOverviewResult,
-  ProjectSummary
+  LocalAiComponentStatus
 } from '../shared/types'
-import type { LevelEnvelope } from '../shared/levels'
-import { IPC } from '../main/ipc'
+import { IPC, type InvokeName } from '../main/ipc'
+
+/** The RendererApi method that sends its arguments to the main-process handler. */
+function invoke<K extends InvokeName>(name: K): RendererApi[K] {
+  return ((...args: unknown[]) => ipcRenderer.invoke(IPC[name], ...args)) as RendererApi[K]
+}
+
+/** Subscribe to a main -> renderer event; the result unsubscribes. */
+function listen<T>(channel: string): (cb: (e: T) => void) => () => void {
+  return (cb) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: T): void => cb(data)
+    ipcRenderer.on(channel, listener)
+    return () => ipcRenderer.removeListener(channel, listener)
+  }
+}
 
 const api: RendererApi = {
   // Meetings
-  listMeetings: (): Promise<MeetingMeta[]> => ipcRenderer.invoke(IPC.listMeetings),
-  getMeeting: (id: string): Promise<MeetingDetail | null> => ipcRenderer.invoke(IPC.getMeeting, id),
-  deleteMeeting: (id: string): Promise<void> => ipcRenderer.invoke(IPC.deleteMeeting, id),
-  renameMeeting: (id: string, title: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.renameMeeting, id, title),
-  retryPipeline: (id: string): Promise<void> => ipcRenderer.invoke(IPC.retryPipeline, id),
-  resummarize: (id: string): Promise<void> => ipcRenderer.invoke(IPC.resummarize, id),
-  generateSummary: (meetingId: string, templateId: string, focus: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.generateSummary, meetingId, templateId, focus),
-  deleteSummary: (meetingId: string, summaryId: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.deleteSummary, meetingId, summaryId),
+  listMeetings: invoke('listMeetings'),
+  getMeeting: invoke('getMeeting'),
+  deleteMeeting: invoke('deleteMeeting'),
+  renameMeeting: invoke('renameMeeting'),
+  retryPipeline: invoke('retryPipeline'),
+  resummarize: invoke('resummarize'),
+  generateSummary: invoke('generateSummary'),
+  deleteSummary: invoke('deleteSummary'),
 
   // Speakers
-  renameSpeaker: (meetingId: string, speakerId: string, name: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.renameSpeaker, meetingId, speakerId, name),
-  dismissSpeakerSuggestion: (meetingId: string, speakerId: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.dismissSpeakerSuggestion, meetingId, speakerId),
-  listSpeakerProfiles: (): Promise<SpeakerProfile[]> => ipcRenderer.invoke(IPC.listSpeakerProfiles),
-  deleteSpeakerProfile: (id: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.deleteSpeakerProfile, id),
-  deleteAllSpeakerProfiles: (): Promise<void> => ipcRenderer.invoke(IPC.deleteAllSpeakerProfiles),
+  renameSpeaker: invoke('renameSpeaker'),
+  dismissSpeakerSuggestion: invoke('dismissSpeakerSuggestion'),
+  listSpeakerProfiles: invoke('listSpeakerProfiles'),
+  deleteSpeakerProfile: invoke('deleteSpeakerProfile'),
+  deleteAllSpeakerProfiles: invoke('deleteAllSpeakerProfiles'),
 
   // Glossary
-  listGlossaryTerms: (): Promise<GlossaryTerm[]> => ipcRenderer.invoke(IPC.listGlossaryTerms),
-  addGlossaryEntry: (
-    canonical: string,
-    variant: string,
-    projectId?: string
-  ): Promise<GlossaryTerm> =>
-    ipcRenderer.invoke(IPC.addGlossaryEntry, canonical, variant, projectId),
-  updateGlossaryTerm: (
-    id: string,
-    patch: { canonical?: string; variants?: string[]; projectId?: string | null }
-  ): Promise<GlossaryTerm | null> => ipcRenderer.invoke(IPC.updateGlossaryTerm, id, patch),
-  deleteGlossaryTerm: (id: string): Promise<void> => ipcRenderer.invoke(IPC.deleteGlossaryTerm, id),
-  applyGlossary: (meetingId: string): Promise<number | null> =>
-    ipcRenderer.invoke(IPC.applyGlossary, meetingId),
+  listGlossaryTerms: invoke('listGlossaryTerms'),
+  addGlossaryEntry: invoke('addGlossaryEntry'),
+  updateGlossaryTerm: invoke('updateGlossaryTerm'),
+  deleteGlossaryTerm: invoke('deleteGlossaryTerm'),
+  applyGlossary: invoke('applyGlossary'),
 
   // Projects
-  listProjects: (): Promise<Project[]> => ipcRenderer.invoke(IPC.listProjects),
-  createProject: (name: string): Promise<Project> => ipcRenderer.invoke(IPC.createProject, name),
-  updateProject: (
-    id: string,
-    patch: { name?: string; defaultTemplateId?: string; description?: string }
-  ): Promise<Project | null> => ipcRenderer.invoke(IPC.updateProject, id, patch),
-  deleteProject: (id: string): Promise<void> => ipcRenderer.invoke(IPC.deleteProject, id),
-  setMeetingProject: (meetingId: string, projectId: string | null): Promise<void> =>
-    ipcRenderer.invoke(IPC.setMeetingProject, meetingId, projectId),
-  listProjectSummaries: (projectId: string): Promise<ProjectSummary[]> =>
-    ipcRenderer.invoke(IPC.listProjectSummaries, projectId),
-  generateProjectSummary: (projectId: string, focus: string): Promise<ProjectOverviewResult> =>
-    ipcRenderer.invoke(IPC.generateProjectSummary, projectId, focus),
-  deleteProjectSummary: (projectId: string, summaryId: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.deleteProjectSummary, projectId, summaryId),
-  copyProjectSummary: (projectId: string, summaryId: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.copyProjectSummary, projectId, summaryId),
+  listProjects: invoke('listProjects'),
+  createProject: invoke('createProject'),
+  updateProject: invoke('updateProject'),
+  deleteProject: invoke('deleteProject'),
+  setMeetingProject: invoke('setMeetingProject'),
+  listProjectSummaries: invoke('listProjectSummaries'),
+  generateProjectSummary: invoke('generateProjectSummary'),
+  deleteProjectSummary: invoke('deleteProjectSummary'),
+  copyProjectSummary: invoke('copyProjectSummary'),
 
   // Recording
-  startRecording: (
-    title: string,
-    templateId?: string,
-    projectId?: string
-  ): Promise<RecordingHandle> =>
-    ipcRenderer.invoke(IPC.startRecording, title, templateId, projectId),
-  appendAudioChunk: (meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void> =>
-    ipcRenderer.invoke(IPC.appendAudioChunk, meetingId, chunk, segmentIndex),
-  saveLevelEnvelope: (meetingId: string, envelope: LevelEnvelope): Promise<void> =>
-    ipcRenderer.invoke(IPC.saveLevelEnvelope, meetingId, envelope),
-  finishRecording: (meetingId: string, durationSec: number): Promise<void> =>
-    ipcRenderer.invoke(IPC.finishRecording, meetingId, durationSec),
-  cancelRecording: (meetingId: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.cancelRecording, meetingId),
-  transcribeLive: (audio: ArrayBuffer, meetingId?: string): Promise<string> =>
-    ipcRenderer.invoke(IPC.transcribeLive, audio, meetingId),
+  startRecording: invoke('startRecording'),
+  appendAudioChunk: invoke('appendAudioChunk'),
+  saveLevelEnvelope: invoke('saveLevelEnvelope'),
+  finishRecording: invoke('finishRecording'),
+  cancelRecording: invoke('cancelRecording'),
+  transcribeLive: invoke('transcribeLive'),
 
   // Settings
-  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.getSettings),
-  saveTranscriptionSettings: (s: SaveTranscriptionSettings): Promise<void> =>
-    ipcRenderer.invoke(IPC.saveTranscriptionSettings, s),
-  saveSummarySettings: (s: SaveSummarySettings): Promise<void> =>
-    ipcRenderer.invoke(IPC.saveSummarySettings, s),
-  saveDiarizationSettings: (s: SaveDiarizationSettings): Promise<void> =>
-    ipcRenderer.invoke(IPC.saveDiarizationSettings, s),
-  saveGeneralSettings: (s: {
-    microphoneId?: string
-    captureSystemAudio?: boolean
-    userName?: string
-    theme?: AppSettings['theme']
-    onboardingCompleted?: boolean
-  }): Promise<void> => ipcRenderer.invoke(IPC.saveGeneralSettings, s),
-  testTranscriptionConnection: (): Promise<ConnectionTestResult> =>
-    ipcRenderer.invoke(IPC.testTranscriptionConnection),
-  testSummaryConnection: (): Promise<ConnectionTestResult> =>
-    ipcRenderer.invoke(IPC.testSummaryConnection),
-  testDiarizationConnection: (): Promise<ConnectionTestResult> =>
-    ipcRenderer.invoke(IPC.testDiarizationConnection),
-  listLocalAiComponents: (): Promise<LocalAiComponentStatus[]> =>
-    ipcRenderer.invoke(IPC.listLocalAiComponents),
-  installLocalAiComponent: (component: LocalAiComponent): Promise<LocalAiComponentStatus> =>
-    ipcRenderer.invoke(IPC.installLocalAiComponent, component),
-  removeLocalAiComponent: (component: LocalAiComponent): Promise<void> =>
-    ipcRenderer.invoke(IPC.removeLocalAiComponent, component),
+  getSettings: invoke('getSettings'),
+  saveTranscriptionSettings: invoke('saveTranscriptionSettings'),
+  saveSummarySettings: invoke('saveSummarySettings'),
+  saveDiarizationSettings: invoke('saveDiarizationSettings'),
+  saveGeneralSettings: invoke('saveGeneralSettings'),
+  testTranscriptionConnection: invoke('testTranscriptionConnection'),
+  testSummaryConnection: invoke('testSummaryConnection'),
+  testDiarizationConnection: invoke('testDiarizationConnection'),
+  listLocalAiComponents: invoke('listLocalAiComponents'),
+  installLocalAiComponent: invoke('installLocalAiComponent'),
+  removeLocalAiComponent: invoke('removeLocalAiComponent'),
 
   // Export
-  exportProtocol: (
-    id: string,
-    format: 'md' | 'docx',
-    summaryId?: string
-  ): Promise<{ savedTo: string | null }> =>
-    ipcRenderer.invoke(IPC.exportProtocol, id, format, summaryId),
-  copyProtocol: (id: string, summaryId?: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.copyProtocol, id, summaryId),
+  exportProtocol: invoke('exportProtocol'),
+  copyProtocol: invoke('copyProtocol'),
 
   // Events
-  onPipelineProgress: (cb: (e: PipelineProgressEvent) => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: PipelineProgressEvent): void =>
-      cb(data)
-    ipcRenderer.on(IPC.pipelineProgress, listener)
-    return () => ipcRenderer.removeListener(IPC.pipelineProgress, listener)
-  },
-  onUpdateDownloaded: (cb: (e: UpdateDownloadedEvent) => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: UpdateDownloadedEvent): void =>
-      cb(data)
-    ipcRenderer.on(IPC.updateDownloaded, listener)
-    return () => ipcRenderer.removeListener(IPC.updateDownloaded, listener)
-  },
-  onLocalAiComponentProgress: (cb: (e: LocalAiComponentStatus) => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: LocalAiComponentStatus): void =>
-      cb(data)
-    ipcRenderer.on(IPC.localAiComponentProgress, listener)
-    return () => ipcRenderer.removeListener(IPC.localAiComponentProgress, listener)
-  },
+  onPipelineProgress: listen<PipelineProgressEvent>(IPC.pipelineProgress),
+  onUpdateDownloaded: listen<UpdateDownloadedEvent>(IPC.updateDownloaded),
+  onLocalAiComponentProgress: listen<LocalAiComponentStatus>(IPC.localAiComponentProgress),
 
   // Updates
-  installUpdateNow: (): Promise<void> => ipcRenderer.invoke(IPC.installUpdateNow),
+  installUpdateNow: invoke('installUpdateNow'),
 
   // Misc
-  openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.openExternal, url),
-  getAppVersion: (): Promise<string> => ipcRenderer.invoke(IPC.getAppVersion)
+  openExternal: invoke('openExternal'),
+  getAppVersion: invoke('getAppVersion')
 }
 
 // Under sandbox:true a preload can only require('electron') + polyfilled node
-// builtins — it must NOT require external npm modules (e.g. @electron-toolkit/
-// preload), or the whole preload fails to load and window.api never appears.
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error(error)
-  }
-} else {
-  // @ts-ignore (define in dts)
-  window.api = api
+// builtins — it must NOT require external npm modules, or the whole preload
+// fails to load and window.api never appears. The window always runs with
+// contextIsolation, so the bridge is the only way in.
+try {
+  contextBridge.exposeInMainWorld('api', api)
+} catch (error) {
+  console.error(error)
 }

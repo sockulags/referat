@@ -15,7 +15,12 @@ import { app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { randomUUID } from 'crypto'
-import type { GlossaryTerm, Transcript, TranscriptSegment } from '../shared/types'
+import type {
+  GlossaryTerm,
+  GlossaryTermPatch,
+  Transcript,
+  TranscriptSegment
+} from '../shared/types'
 
 function glossaryPath(): string {
   return join(app.getPath('userData'), 'glossary.json')
@@ -130,10 +135,7 @@ export function addGlossaryEntry(
 }
 
 /** Replace a term wholesale — the Settings editor saves through this. */
-export function updateGlossaryTerm(
-  id: string,
-  patch: { canonical?: string; variants?: string[]; projectId?: string | null }
-): GlossaryTerm | null {
+export function updateGlossaryTerm(id: string, patch: GlossaryTermPatch): GlossaryTerm | null {
   const terms = loadTerms()
   const term = terms.find((t) => t.id === id)
   if (!term) return null
