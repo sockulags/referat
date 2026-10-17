@@ -175,7 +175,7 @@ async function main() {
   assert(await seen('Starta inspelning'), 'onboarding completes -> home shows "Starta inspelning"')
 
   // --- Settings: enable speaker identification against the mock server
-  await page.getByLabel('Öppna inställningar').click()
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click()
   await page.waitForTimeout(1000)
   await shot('settings')
   assert(await seen('Identifiera talare'), 'settings shows the speaker section')
@@ -230,7 +230,7 @@ async function main() {
   await page.getByRole('button', { name: 'Spara', exact: true }).last().click()
   await page.waitForTimeout(1000)
   await shot('settings-diarization')
-  await page.getByLabel('Till startsidan').first().click()
+  await page.getByRole('button', { name: 'Hem', exact: true }).click()
   await page.waitForTimeout(1000)
   assert(await seen('Starta inspelning'), 'back home after enabling speaker identification')
 
@@ -440,7 +440,7 @@ async function main() {
   }
 
   // --- Back home: list shows the Klar chip
-  const back = page.getByLabel('Till startsidan')
+  const back = page.getByRole('button', { name: 'Hem', exact: true })
   if (await back.count()) await back.first().click()
   else await page.getByText('referat', { exact: true }).first().click()
   await page.waitForTimeout(1000)
@@ -600,7 +600,7 @@ async function main() {
   }
 
   // --- Settings: the saved voice is listed under "Sparade röster"
-  await page.getByLabel('Öppna inställningar').click()
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click()
   await page.waitForTimeout(1000)
   assert(await seen('Sparade röster', 8000), 'settings shows the saved voices list')
   assert(await seen('Anna', 5000), 'saved voice "Anna" is listed under "Sparade röster"')
@@ -628,7 +628,7 @@ async function main() {
 
   // --- Project overview: one summary across the project's two meetings
   {
-    const home = page.getByLabel('Till startsidan')
+    const home = page.getByRole('button', { name: 'Hem', exact: true })
     if (await home.count()) await home.first().click()
     else await page.getByText('referat', { exact: true }).first().click()
     await page.waitForTimeout(1000)
