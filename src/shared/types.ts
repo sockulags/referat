@@ -269,6 +269,8 @@ export interface AppSettings {
   openAtLogin: boolean
   /** Offer to record when a call starts in Teams, Zoom or a browser. On by default. */
   detectCalls: boolean
+  /** What to paste in the meeting's chat about the recording. '' = no copy button. */
+  consentMessage: string
   theme: 'system' | 'light' | 'dark'
   onboardingCompleted: boolean
 }
@@ -378,6 +380,7 @@ export interface SaveGeneralSettings {
   runInBackground?: boolean
   openAtLogin?: boolean
   detectCalls?: boolean
+  consentMessage?: string
   userName?: string
   theme?: AppSettings['theme']
   onboardingCompleted?: boolean

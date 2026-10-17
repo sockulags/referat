@@ -124,6 +124,15 @@ function AudioSection({ settings }: { settings: AppSettings }): JSX.Element {
     await window.api.saveGeneralSettings({ microphoneId: id })
   }
 
+  const [consentMessage, setConsentMessage] = useState(settings.consentMessage)
+  const saveConsent = async (): Promise<void> => {
+    const next = consentMessage.trim()
+    if (next === settings.consentMessage) return
+    patchSettings({ consentMessage: next })
+    await window.api.saveGeneralSettings({ consentMessage: next })
+    toast(strings.common.saved)
+  }
+
   const setSystemAudio = async (on: boolean): Promise<void> => {
     patchSettings({ captureSystemAudio: on })
     await window.api.saveGeneralSettings({ captureSystemAudio: on })
@@ -144,6 +153,14 @@ function AudioSection({ settings }: { settings: AppSettings }): JSX.Element {
         onChange={(v) => void setSystemAudio(v)}
         label={strings.settings.audio.systemAudio}
         description={strings.settings.audio.systemAudioHint}
+      />
+      <Textarea
+        label={strings.settings.audio.consentMessage}
+        hint={strings.settings.audio.consentMessageHint}
+        rows={3}
+        value={consentMessage}
+        onChange={(e) => setConsentMessage(e.target.value)}
+        onBlur={() => void saveConsent()}
       />
     </Section>
   )

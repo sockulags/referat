@@ -278,6 +278,10 @@ async function main() {
   await shot('recording')
   const stopVisible = await seen('Stoppa och spara')
   assert(stopVisible, 'recording view shows the "Stoppa och spara" control')
+  assert(
+    await seen('Kom ihåg att berätta för deltagarna att mötet spelas in.', 3000),
+    'the recording view reminds the user to tell participants'
+  )
   const timerText = await page
     .locator('.tabular-nums')
     .first()
@@ -559,6 +563,13 @@ async function main() {
   )
   assert(await seen('Ett Teams-möte pågår', 5000), 'Home offers to record a call in Teams')
   await shot('call-banner')
+  await page.getByRole('button', { name: 'Kopiera text till chatten', exact: true }).click()
+  await page.waitForTimeout(500)
+  const consentText = await app.evaluate(({ clipboard }) => clipboard.readText())
+  assert(
+    consentText.startsWith('Det här mötet spelas in med referat'),
+    `the call offer copies the text about the recording (got ${JSON.stringify(consentText)})`
+  )
   await page.getByRole('button', { name: 'Inte nu', exact: true }).click()
   await page.waitForTimeout(300)
   assert(
