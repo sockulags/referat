@@ -19,7 +19,9 @@ export const strings = {
     retry: 'Försök igen',
     showDetails: 'Visa detaljer',
     hideDetails: 'Dölj detaljer',
-    optional: 'valfritt'
+    optional: 'valfritt',
+    install: 'Installera',
+    installed: 'Installerad'
   },
 
   topbar: {
@@ -43,6 +45,10 @@ export const strings = {
     openMeeting: 'Öppna möte',
     renameMeeting: 'Byt namn',
     deleteMeeting: 'Ta bort möte',
+    /** Wraps the meeting's title: "Mötet <titel> och dess ljud …". */
+    deleteMeetingBefore: 'Mötet',
+    deleteMeetingAfter:
+      'och dess ljud, transkript och protokoll tas bort permanent. Det går inte att ångra.',
     moveMeeting: 'Flytta till projekt'
   },
 
@@ -190,6 +196,7 @@ export const strings = {
     glossaryHeard: 'Hördes som',
     glossaryCorrect: 'Ska vara',
     glossaryCorrectHint: 'Skrivs exakt så här i transkriptet och protokollet.',
+    glossaryCorrectPlaceholder: 't.ex. Kubernetes',
     glossaryPickExisting: 'Eller välj en term du redan har',
     glossaryPickNew: 'Ny term',
     glossaryScope: 'Gäller för',
@@ -235,6 +242,7 @@ export const strings = {
         body: 'Använd OpenAI eller Azure OpenAI. Du anger din API-nyckel.'
       },
       serverAddress: 'Serveradress',
+      serverAddressPlaceholder: 'https://ai.företaget.se/v1',
       serverAddressHint: 'Adressen du fått av IT, t.ex. https://ai.företaget.se/v1',
       apiKey: 'API-nyckel',
       apiKeyHint: 'Klistras in en gång och sparas krypterat på din dator.'
@@ -266,6 +274,9 @@ export const strings = {
       title: 'Ljud',
       description: 'Vilken mikrofon som används och om systemljudet spelas in.',
       microphone: 'Mikrofon',
+      systemDefault: 'Systemstandard',
+      /** A device the browser does not name yet (before mic permission). */
+      unnamedMicrophone: (n: number) => `Mikrofon ${n}`,
       systemAudio: 'Spela in systemljud',
       systemAudioHint: 'Fånga det som spelas upp i datorn, t.ex. andra i ett videomöte.'
     },
@@ -296,6 +307,7 @@ export const strings = {
       title: 'Sammanfattning',
       description: 'Tjänsten som skapar själva protokollet från transkriptet.',
       flavor: 'API-typ',
+      flavorOpenAiCompatible: 'OpenAI-kompatibel',
       codexTitle: 'Använder din befintliga Codex-inloggning',
       codexDescription:
         'Referat kör den Codex CLI som redan finns på datorn. Codex kräver ingen API-nyckel och varje protokoll körs utan beständig Codex-historik.',

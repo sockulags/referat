@@ -302,7 +302,7 @@ function ProviderStep({
             label={strings.onboarding.provider.serverAddress}
             value={serverAddress}
             onChange={(e) => setServerAddress(e.target.value)}
-            placeholder="https://ai.företaget.se/v1"
+            placeholder={strings.onboarding.provider.serverAddressPlaceholder}
             hint={strings.onboarding.provider.serverAddressHint}
           />
           <Input

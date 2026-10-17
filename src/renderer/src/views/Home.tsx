@@ -229,9 +229,9 @@ export function Home(): JSX.Element {
         confirmLabel={strings.common.delete}
         onConfirm={() => deleteTarget && doDelete(deleteTarget.id)}
       >
-        Mötet{' '}
-        <strong className="text-fg">{deleteTarget?.title || strings.recording.untitled}</strong> och
-        dess ljud, transkript och protokoll tas bort permanent. Det går inte att ångra.
+        {strings.home.deleteMeetingBefore}{' '}
+        <strong className="text-fg">{deleteTarget?.title || strings.recording.untitled}</strong>{' '}
+        {strings.home.deleteMeetingAfter}
       </ConfirmModal>
       {creatingProject && (
         <CreateProjectModal onClose={() => setCreatingProject(false)} onCreate={doCreateProject} />
