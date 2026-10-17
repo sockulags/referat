@@ -21,19 +21,38 @@ It exists to show the direction referat is heading.
 - **Live transcription** — text appears while the meeting is being recorded, as a preview;
   the full transcript is still made when you stop. On by default when the transcriber runs on
   your computer, opt-in otherwise — see [Configuration](Configuration#live-text-while-recording).
+- **Action items you correct and hand off** — the pipeline lists the meeting's action items
+  with owner, due date and the moment they were agreed. Edit them in the meeting view, then
+  copy them as a list or save them as CSV for Jira or Excel. The protocol carries the same,
+  corrected list.
+- **Listen to the meeting** — play the recording from any timestamp in the transcript or
+  from an action item.
 
 ## Planned
 
-- **English UI** — the interface is currently Swedish. The strings are already centralized to
-  prepare for localization, and English is the next language.
-- **Code signing** — sign the Windows installer so the SmartScreen warning on first run goes
-  away. See [Installation](Installation) for the current situation.
+The full plan, with one issue per step, is in the pinned
+[roadmap issue](https://github.com/sockulags/referat/issues/119).
 
-## Explicitly out of scope for now
+- **Recording that follows your meetings** — referat notices when a Teams, Zoom or Meet call
+  starts and offers to record it, with a reminder to tell participants. Connected to your
+  calendar, it fills in title, participants and agenda and can record chosen meetings on
+  its own. The calendar is only read on your computer.
+- **Ask your meetings** — search every transcript, then ask questions and get answers that
+  cite the meeting, the speaker and the moment, with playback from there.
+
+## Explicitly out of scope
+
+- **Task tracking.** referat hands action items off to the tools a team already uses; it has
+  no statuses, open-item lists or follow-up boards.
+
+## Parked for now
 
 These aren't planned in the near term, but the architecture is meant not to block them:
 
-- Calendar integration and team sharing.
+- Team sharing of minutes and company-managed settings.
+- English UI. The strings are already centralized to prepare for it.
+- Code signing with a CA certificate, so the SmartScreen warning on first run goes away. See
+  [Installation](Installation) for the current situation.
 - macOS and Linux builds.
 
 ## Have a request?
