@@ -12,12 +12,14 @@ import {
   dismissSpeakerSuggestion,
   listMeetings,
   listSummaries,
+  readActionItems,
   readMeta,
   readTranscript,
   renameSpeaker,
   setMeetingProject,
   updateMeta,
   updateSummaryMarkdown,
+  writeActionItems,
   writeTranscript
 } from './storage'
 import { saveDiarizationSettings } from './settings'
@@ -77,6 +79,26 @@ beforeEach(() => {
 
 afterAll(() => {
   rmSync(userData, { recursive: true, force: true })
+})
+
+describe('action items', () => {
+  it('tells "never extracted" apart from "none found"', () => {
+    expect(readActionItems(MEETING_ID)).toBeUndefined()
+    writeActionItems(MEETING_ID, [])
+    expect(readActionItems(MEETING_ID)).toEqual([])
+  })
+
+  it('reads back what was written and drops malformed entries', () => {
+    const item = { id: 'a1', text: 'Skicka kravlistan', owner: 'Anna', due: '', atSec: 790 }
+    writeActionItems(MEETING_ID, [item])
+    expect(readActionItems(MEETING_ID)).toEqual([item])
+
+    writeFileSync(
+      join(userData, 'meetings', MEETING_ID, 'action-items.json'),
+      JSON.stringify([item, { id: 'a2', text: 'utan ägare' }])
+    )
+    expect(readActionItems(MEETING_ID)).toEqual([item])
+  })
 })
 
 describe('renameSpeaker', () => {

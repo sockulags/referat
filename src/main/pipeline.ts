@@ -50,6 +50,7 @@ import { classifyError, UserFacingError } from './providers/shared'
 import type { ProjectOverviewResult, Transcript } from '../shared/types'
 import { liveTranscriptionDefault } from '../shared/live'
 import { addProjectSummary, buildProjectInput, PROJECT_OVERVIEW_PROMPT } from './projectSummary'
+import { extractActionItems, needsActionItems } from './actionItems'
 
 /**
  * 'diarize' = re-run diarization on the existing transcript, then summarize.
@@ -361,6 +362,26 @@ async function runAddSummary(meetingId: string, request: SummaryRequest): Promis
   emit({ meetingId, status: 'done' })
 }
 
+/**
+ * Take the action items from a new transcript. Later runs (a re-summarize, a
+ * re-diarization) keep the ones there are, because the user edits them by
+ * hand. A failure is a warning: the protocol is there, and the meeting view
+ * offers to try again.
+ */
+async function runActionItems(meetingId: string, mode: JobMode): Promise<void> {
+  if (mode !== 'full' && !needsActionItems(meetingId)) return
+  try {
+    await extractActionItems(meetingId)
+  } catch (err) {
+    // An earlier warning (diarization) says more about the meeting; keep it.
+    if (readMeta(meetingId)?.warning) return
+    const { message, detail } = classifyError(err)
+    updateMeta(meetingId, {
+      warning: { message: `Actionpunkterna kunde inte tas fram: ${message}`, detail }
+    })
+  }
+}
+
 async function runJob(job: Job): Promise<void> {
   const { meetingId, mode } = job
   if (!readMeta(meetingId)) return // deleted meanwhile
@@ -420,6 +441,8 @@ async function runJob(job: Job): Promise<void> {
     fail(meetingId, 'summarize', err)
     return
   }
+
+  await runActionItems(meetingId, mode)
 
   // Clear any previous error and mark done.
   updateMeta(meetingId, { status: 'done', error: undefined })

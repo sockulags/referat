@@ -51,8 +51,18 @@ const diarization = {
   }
 }
 
-/** The last chat prompt, so the E2E run can check what reached the model. */
+// What the model answers when asked for action items (see src/main/actionItems.ts).
+const actionItems = [{ text: 'Ta fram en ny annonsmall', owner: 'Anna', due: '', at: '0:06' }]
+
+/** Whether a chat prompt asks for action items rather than a summary. */
+function asksForActionItems(prompt) {
+  return prompt.includes('Svara endast med en JSON-lista')
+}
+
+/** The last summary prompt, so the E2E run can check what reached the model. */
 let lastPrompt = ''
+/** The last chat prompt of any kind. */
+let lastChatPrompt = ''
 
 const server = http.createServer((req, res) => {
   if (req.url === '/__last-prompt') {
@@ -75,10 +85,11 @@ const server = http.createServer((req, res) => {
     if (req.url?.startsWith('/v1/chat/completions')) {
       try {
         const body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
-        lastPrompt = body.messages?.map((m) => m.content).join('\n') ?? ''
+        lastChatPrompt = body.messages?.map((m) => m.content).join('\n') ?? ''
       } catch {
-        lastPrompt = ''
+        lastChatPrompt = ''
       }
+      if (!asksForActionItems(lastChatPrompt)) lastPrompt = lastChatPrompt
     }
     setTimeout(() => {
       res.setHeader('content-type', 'application/json')
@@ -90,7 +101,18 @@ const server = http.createServer((req, res) => {
         res.end(
           JSON.stringify({
             id: 'mock',
-            choices: [{ index: 0, message: { role: 'assistant', content: protocol }, finish_reason: 'stop' }]
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: 'assistant',
+                  content: asksForActionItems(lastChatPrompt)
+                    ? JSON.stringify(actionItems)
+                    : protocol
+                },
+                finish_reason: 'stop'
+              }
+            ]
           })
         )
       } else if (req.url?.startsWith('/health')) {
