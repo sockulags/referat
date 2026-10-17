@@ -24,10 +24,11 @@ export const strings = {
     installed: 'Installerad'
   },
 
-  topbar: {
-    settings: 'Inställningar',
-    openSettings: 'Öppna inställningar',
-    backHome: 'Till startsidan'
+  nav: {
+    label: 'Huvudmeny',
+    home: 'Hem',
+    latestMeeting: 'Senaste mötet',
+    settings: 'Inställningar'
   },
 
   home: {
