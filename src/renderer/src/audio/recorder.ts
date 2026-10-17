@@ -57,6 +57,18 @@ interface OpenLiveWindow {
   quietMs: number
 }
 
+/** RMS amplitude of one buffer of samples, 0..1. */
+export function rmsOf(samples: Float32Array): number {
+  let sum = 0
+  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i]
+  return Math.sqrt(sum / samples.length)
+}
+
+/** What a level meter shows for an RMS amplitude: boosted so quiet speech still moves it. */
+export function meterLevel(rms: number): number {
+  return Math.min(1, rms * 3.2)
+}
+
 interface SourceMeter {
   analyser: AnalyserNode
   buffer: Float32Array<ArrayBuffer>
@@ -270,14 +282,11 @@ export class MeetingRecorder {
   private rawRms(meter: SourceMeter | null): number {
     if (!meter) return 0
     meter.analyser.getFloatTimeDomainData(meter.buffer)
-    let sum = 0
-    for (let i = 0; i < meter.buffer.length; i++) sum += meter.buffer[i] * meter.buffer[i]
-    return Math.sqrt(sum / meter.buffer.length)
+    return rmsOf(meter.buffer)
   }
 
   private rms(meter: SourceMeter | null): number {
-    // Perceptual boost so quiet speech still moves the meter; clamp to 0..1.
-    return Math.min(1, this.rawRms(meter) * 3.2)
+    return meterLevel(this.rawRms(meter))
   }
 
   /** Instantaneous levels (0..1) for mic and system sources. */

@@ -8,7 +8,8 @@ import { LiveQueue, type LiveState } from '../audio/live'
 import { isLiveTranscriptionOn } from '../../../shared/live'
 import { LevelMeter } from '../components/LevelMeter'
 import { Button } from '../components/ui/Button'
-import { Modal } from '../components/ui/Modal'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
+import { ErrorDetail } from '../components/ErrorDetail'
 import { IconMic, IconWave, IconPause, IconPlay, IconStop, IconAlert } from '../components/icons'
 import { cn } from '../components/ui/cn'
 
@@ -274,23 +275,16 @@ export function Recording(): JSX.Element {
         {strings.recording.cancel}
       </button>
 
-      <Modal
+      <ConfirmModal
         open={showCancel}
         onClose={() => setShowCancel(false)}
         title={strings.recording.cancelTitle}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setShowCancel(false)}>
-              {strings.recording.cancelKeep}
-            </Button>
-            <Button variant="danger" onClick={cancel}>
-              {strings.recording.cancelConfirm}
-            </Button>
-          </>
-        }
+        confirmLabel={strings.recording.cancelConfirm}
+        cancelLabel={strings.recording.cancelKeep}
+        onConfirm={cancel}
       >
-        <p className="text-sm text-fg-muted leading-relaxed">{strings.recording.cancelBody}</p>
-      </Modal>
+        {strings.recording.cancelBody}
+      </ConfirmModal>
     </div>
   )
 }
@@ -366,7 +360,6 @@ function MicDenied({
   onBack: () => void
   onRetry: () => void
 }): JSX.Element {
-  const [showDetail, setShowDetail] = useState(false)
   return (
     <div className="mx-auto max-w-md px-5 py-10 flex flex-col items-center text-center min-h-full justify-center animate-fade-in">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-danger-soft text-danger mb-6">
@@ -386,21 +379,7 @@ function MicDenied({
         </Button>
       </div>
 
-      {detail && (
-        <div className="mt-6 w-full text-left">
-          <button
-            onClick={() => setShowDetail((s) => !s)}
-            className="text-xs text-fg-subtle hover:text-fg-muted transition-colors"
-          >
-            {showDetail ? strings.common.hideDetails : strings.common.showDetails}
-          </button>
-          {showDetail && (
-            <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-3 text-xs text-fg-muted font-mono">
-              {detail}
-            </pre>
-          )}
-        </div>
-      )}
+      {detail && <ErrorDetail detail={detail} className="mt-6 w-full text-left" />}
     </div>
   )
 }

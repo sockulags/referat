@@ -15,6 +15,8 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Input, Select, Textarea } from '../components/ui/Field'
 import { Modal } from '../components/ui/Modal'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
+import { ErrorDetail } from '../components/ErrorDetail'
 import { Spinner } from '../components/ui/Spinner'
 import {
   IconCopy,
@@ -232,8 +234,6 @@ function WarningPanel({
 }: {
   warning: NonNullable<MeetingDetail['warning']>
 }): JSX.Element {
-  const [showDetail, setShowDetail] = useState(false)
-
   return (
     <Card className="mt-6 px-6 py-5 animate-fade-in">
       <div className="flex items-start gap-4">
@@ -244,21 +244,7 @@ function WarningPanel({
           <h2 className="text-sm font-semibold text-fg">{strings.meeting.warningTitle}</h2>
           <p className="mt-1 text-sm text-fg-muted leading-relaxed">{warning.message}</p>
 
-          {warning.detail && (
-            <>
-              <button
-                onClick={() => setShowDetail((s) => !s)}
-                className="mt-2 text-xs font-medium text-fg-subtle hover:text-fg-muted transition-colors rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                {showDetail ? strings.common.hideDetails : strings.common.showDetails}
-              </button>
-              {showDetail && (
-                <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-3 text-xs text-fg-muted font-mono">
-                  {warning.detail}
-                </pre>
-              )}
-            </>
-          )}
+          {warning.detail && <ErrorDetail detail={warning.detail} className="mt-2" />}
         </div>
       </div>
     </Card>
@@ -272,7 +258,6 @@ function ErrorPanel({
   meeting: MeetingDetail
   onRetried: () => void
 }): JSX.Element {
-  const [showDetail, setShowDetail] = useState(false)
   const [retrying, setRetrying] = useState(false)
 
   const retry = async (): Promise<void> => {
@@ -307,18 +292,9 @@ function ErrorPanel({
             >
               {strings.common.retry}
             </Button>
-            {meeting.error?.detail && (
-              <Button variant="ghost" size="sm" onClick={() => setShowDetail((s) => !s)}>
-                {showDetail ? strings.common.hideDetails : strings.common.showDetails}
-              </Button>
-            )}
           </div>
 
-          {showDetail && meeting.error?.detail && (
-            <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-3 text-xs text-fg-muted font-mono">
-              {meeting.error.detail}
-            </pre>
-          )}
+          {meeting.error?.detail && <ErrorDetail detail={meeting.error.detail} className="mt-3" />}
         </div>
       </div>
     </Card>
@@ -469,25 +445,15 @@ function ProtocolTab({
       )}
 
       <NewSummaryModal open={creating} onClose={() => setCreating(false)} onCreate={create} />
-      <Modal
+      <ConfirmModal
         open={deleting}
         onClose={() => setDeleting(false)}
         title={strings.meeting.deleteSummaryTitle}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setDeleting(false)}>
-              {strings.common.cancel}
-            </Button>
-            <Button variant="danger" onClick={() => void remove()}>
-              {strings.common.delete}
-            </Button>
-          </>
-        }
+        confirmLabel={strings.common.delete}
+        onConfirm={() => void remove()}
       >
-        <p className="text-sm text-fg-muted leading-relaxed">
-          {strings.meeting.deleteSummaryBody(selected?.templateName ?? '')}
-        </p>
-      </Modal>
+        {strings.meeting.deleteSummaryBody(selected?.templateName ?? '')}
+      </ConfirmModal>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, JSX, ReactNode } from 'react'
 import { cn } from './cn'
 import { IconSpinner } from '../icons'
+import { Tooltip } from './Tooltip'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type Size = 'sm' | 'md' | 'lg'
@@ -58,30 +59,36 @@ export function Button({
   )
 }
 
-/** Square icon-only button. */
+/** Square icon-only button, with its label as accessible name and tooltip. */
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant
   size?: Size
   label: string
+  /** Shorter hover text when the label needs context, e.g. "Ta bort" for "Ta bort möte". */
+  tooltip?: string
+  tooltipSide?: 'top' | 'bottom'
 }
 
 export function IconButton({
   variant = 'ghost',
   size = 'md',
   label,
+  tooltip,
+  tooltipSide,
   className,
   children,
   ...props
 }: IconButtonProps): JSX.Element {
   const dims = size === 'sm' ? 'h-8 w-8' : size === 'lg' ? 'h-12 w-12' : 'h-10 w-10'
   return (
-    <button
-      aria-label={label}
-      title={label}
-      className={cn(base, variants[variant], dims, 'px-0', className)}
-      {...props}
-    >
-      {children}
-    </button>
+    <Tooltip label={tooltip ?? label} side={tooltipSide}>
+      <button
+        aria-label={label}
+        className={cn(base, variants[variant], dims, 'px-0', className)}
+        {...props}
+      >
+        {children}
+      </button>
+    </Tooltip>
   )
 }

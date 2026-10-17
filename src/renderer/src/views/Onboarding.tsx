@@ -19,6 +19,12 @@ import {
 } from '../components/icons'
 import { Spinner } from '../components/ui/Spinner'
 import { cn } from '../components/ui/cn'
+import { ErrorDetail } from '../components/ErrorDetail'
+import { MicrophoneOptions } from '../components/MicrophoneOptions'
+import { failedTest } from '../connectionTest'
+import { meterLevel, rmsOf } from '../audio/recorder'
+import { ComponentInstallCard } from '../components/LocalAiComponents'
+import { useLocalAiComponents } from '../components/useLocalAiComponents'
 
 type Choice = 'local' | 'server' | 'cloud'
 const STEPS = 4
@@ -62,63 +68,31 @@ export function Onboarding(): JSX.Element {
     // Onboarding only picks a provider; the templates stay as they are.
     const templates = settings?.summary.templates ?? []
     const defaultTemplateId = settings?.summary.defaultTemplateId ?? ''
-    if (choice === 'local') {
-      const dt = transcriptionDefaults('built-in')
-      const ds = summaryDefaults('local')
-      await window.api.saveTranscriptionSettings({
-        preset: 'built-in',
-        baseUrl: dt.baseUrl,
-        model: dt.model,
-        language: 'sv'
-      })
-      await window.api.saveSummarySettings({
-        preset: 'local',
-        backend: 'http',
-        apiFlavor: 'openai-compatible',
-        baseUrl: ds.baseUrl,
-        model: ds.model,
-        templates,
-        defaultTemplateId
-      })
-    } else if (choice === 'server') {
-      await window.api.saveTranscriptionSettings({
-        preset: 'custom',
-        baseUrl: serverAddress,
-        model: '',
-        language: 'sv',
-        apiKey: apiKey || undefined
-      })
-      await window.api.saveSummarySettings({
-        preset: 'custom',
-        backend: 'http',
-        apiFlavor: 'openai-compatible',
-        baseUrl: serverAddress,
-        model: '',
-        templates,
-        defaultTemplateId,
-        apiKey: apiKey || undefined
-      })
-    } else {
-      const dt = transcriptionDefaults('openai')
-      const ds = summaryDefaults('openai')
-      await window.api.saveTranscriptionSettings({
-        preset: 'openai',
-        baseUrl: dt.baseUrl,
-        model: dt.model,
-        language: 'sv',
-        apiKey: apiKey || undefined
-      })
-      await window.api.saveSummarySettings({
-        preset: 'openai',
-        backend: 'http',
-        apiFlavor: 'openai-compatible',
-        baseUrl: ds.baseUrl,
-        model: ds.model,
-        templates,
-        defaultTemplateId,
-        apiKey: apiKey || undefined
-      })
-    }
+    const transcriptionPreset =
+      choice === 'local' ? 'built-in' : choice === 'server' ? 'custom' : 'openai'
+    const summaryPreset = choice === 'local' ? 'local' : choice === 'server' ? 'custom' : 'openai'
+    // An own server serves both steps at one address and picks its own models.
+    const server = { baseUrl: serverAddress, model: '' }
+    const transcription = choice === 'server' ? server : transcriptionDefaults(transcriptionPreset)
+    const summary = choice === 'server' ? server : summaryDefaults(summaryPreset)
+    const key = choice === 'local' ? undefined : apiKey || undefined
+    await window.api.saveTranscriptionSettings({
+      preset: transcriptionPreset,
+      baseUrl: transcription.baseUrl,
+      model: transcription.model,
+      language: 'sv',
+      apiKey: key
+    })
+    await window.api.saveSummarySettings({
+      preset: summaryPreset,
+      backend: 'http',
+      apiFlavor: 'openai-compatible',
+      baseUrl: summary.baseUrl,
+      model: summary.model,
+      templates,
+      defaultTemplateId,
+      apiKey: key
+    })
   }
 
   const next = async (): Promise<void> => {
@@ -358,46 +332,17 @@ function ProviderStep({
 }
 
 function OnboardingTranscriptionInstall(): JSX.Element {
-  const [status, setStatus] = useState<
-    Awaited<ReturnType<typeof window.api.listLocalAiComponents>>[number] | undefined
-  >()
-
-  useEffect(() => {
-    void window.api
-      .listLocalAiComponents()
-      .then((items) => setStatus(items.find((item) => item.component === 'transcription-cpu')))
-    return window.api.onLocalAiComponentProgress((next) => {
-      if (next.component === 'transcription-cpu') setStatus(next)
-    })
-  }, [])
-
-  const installed = status?.state === 'installed' || status?.state === 'running'
-  const busy = status?.state === 'downloading' || status?.state === 'installing'
+  const manager = useLocalAiComponents()
   return (
-    <div className="w-full rounded-xl border border-border bg-surface-2 p-3.5">
-      <p className="text-sm font-medium text-fg">{strings.settings.transcription.builtInTitle}</p>
-      <p className="mt-0.5 text-xs leading-relaxed text-fg-muted">
-        {strings.settings.transcription.builtInSize}
-      </p>
-      <div className="mt-3 flex items-center gap-3">
-        <Button
-          size="sm"
-          variant="secondary"
-          loading={busy}
-          disabled={installed}
-          onClick={() =>
-            void window.api.installLocalAiComponent('transcription-cpu').then(setStatus)
-          }
-        >
-          {installed ? 'Installerad' : 'Installera transkribering'}
-        </Button>
-        {status?.state === 'error' && (
-          <span className="text-xs text-danger">{status.detail || status.message}</span>
-        )}
-      </div>
-      <p className="mt-3 text-xs leading-relaxed text-fg-subtle">
-        {strings.onboarding.provider.localGpuHint}
-      </p>
+    <div className="w-full">
+      <ComponentInstallCard
+        component="transcription-cpu"
+        title={strings.settings.transcription.builtInTitle}
+        description={strings.settings.transcription.builtInSize}
+        detail={strings.onboarding.provider.localGpuHint}
+        manager={manager}
+        removable={false}
+      />
     </div>
   )
 }
@@ -412,16 +357,8 @@ function TestStep({ onResult }: { onResult: (failed: boolean) => void }): JSX.El
     setTesting(true)
     setDone(false)
     const [t, s] = await Promise.all([
-      window.api.testTranscriptionConnection().catch((e) => ({
-        ok: false,
-        message: strings.errors.genericTitle,
-        detail: String(e)
-      })),
-      window.api.testSummaryConnection().catch((e) => ({
-        ok: false,
-        message: strings.errors.genericTitle,
-        detail: String(e)
-      }))
+      window.api.testTranscriptionConnection().catch(failedTest),
+      window.api.testSummaryConnection().catch(failedTest)
     ])
     setTr(t)
     setSr(s)
@@ -486,7 +423,6 @@ function TestRow({
   label: string
   result: ConnectionTestResult | null
 }): JSX.Element {
-  const [showDetail, setShowDetail] = useState(false)
   if (!result) return <></>
   return (
     <div className="rounded-xl border border-border p-3.5">
@@ -504,21 +440,7 @@ function TestRow({
           <span className="block text-xs text-fg-muted">{result.message}</span>
         </div>
       </div>
-      {!result.ok && result.detail && (
-        <>
-          <button
-            onClick={() => setShowDetail((s) => !s)}
-            className="mt-2 ml-9 text-xs text-fg-subtle hover:text-fg-muted transition-colors"
-          >
-            {showDetail ? strings.common.hideDetails : strings.common.showDetails}
-          </button>
-          {showDetail && (
-            <pre className="mt-2 ml-9 whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-2.5 text-xs text-fg-muted font-mono">
-              {result.detail}
-            </pre>
-          )}
-        </>
-      )}
+      {!result.ok && result.detail && <ErrorDetail detail={result.detail} className="mt-2 ml-9" />}
     </div>
   )
 }
@@ -560,9 +482,7 @@ function MicStep(): JSX.Element {
 
       const loop = (): void => {
         analyser.getFloatTimeDomainData(buf)
-        let sum = 0
-        for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]
-        setLevel(Math.min(1, Math.sqrt(sum / buf.length) * 3.2))
+        setLevel(meterLevel(rmsOf(buf)))
         rafRef.current = requestAnimationFrame(loop)
       }
       loop()
@@ -599,12 +519,7 @@ function MicStep(): JSX.Element {
         value={deviceId}
         onChange={(e) => onDevice(e.target.value)}
       >
-        <option value="">Systemstandard</option>
-        {devices.map((d, i) => (
-          <option key={d.deviceId || i} value={d.deviceId}>
-            {d.label || `Mikrofon ${i + 1}`}
-          </option>
-        ))}
+        <MicrophoneOptions devices={devices} />
       </Select>
 
       <div className="mt-5">

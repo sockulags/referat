@@ -4,8 +4,6 @@ import type {
   AppSettings,
   GlossaryTerm,
   Project,
-  LocalAiComponent,
-  LocalAiComponentStatus,
   SpeakerProfile,
   SummaryPreset,
   SummaryTemplate,
@@ -25,8 +23,11 @@ import { Button } from '../components/ui/Button'
 import { Input, Select, Textarea, Field } from '../components/ui/Field'
 import { Toggle } from '../components/ui/Toggle'
 import { isLiveTranscriptionOn, liveTranscriptionDefault } from '../../../shared/live'
-import { Modal } from '../components/ui/Modal'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { ConnectionTest } from '../components/ConnectionTest'
+import { MicrophoneOptions } from '../components/MicrophoneOptions'
+import { ComponentInstallCard } from '../components/LocalAiComponents'
+import { useLocalAiComponents } from '../components/useLocalAiComponents'
 import { IconSun, IconMoon, IconMonitor, IconChevronDown, IconFolder } from '../components/icons'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import { cn } from '../components/ui/cn'
@@ -135,12 +136,7 @@ function AudioSection({ settings }: { settings: AppSettings }): JSX.Element {
         value={settings.microphoneId}
         onChange={(e) => void setMic(e.target.value)}
       >
-        <option value="">Systemstandard</option>
-        {devices.map((d, i) => (
-          <option key={d.deviceId || i} value={d.deviceId}>
-            {d.label || `Mikrofon ${i + 1}`}
-          </option>
-        ))}
+        <MicrophoneOptions devices={devices} />
       </Select>
       <Toggle
         checked={settings.captureSystemAudio}
@@ -644,103 +640,6 @@ function DiarizationSection({ settings }: { settings: AppSettings }): JSX.Elemen
   )
 }
 
-interface LocalAiManager {
-  statuses: LocalAiComponentStatus[]
-  install(component: LocalAiComponent): Promise<void>
-  remove(component: LocalAiComponent): Promise<void>
-}
-
-function useLocalAiComponents(): LocalAiManager {
-  const [statuses, setStatuses] = useState<LocalAiComponentStatus[]>([])
-
-  useEffect(() => {
-    let active = true
-    void window.api.listLocalAiComponents().then((items) => active && setStatuses(items))
-    const unsubscribe = window.api.onLocalAiComponentProgress((next) => {
-      setStatuses((current) => [
-        ...current.filter((item) => item.component !== next.component),
-        next
-      ])
-    })
-    return () => {
-      active = false
-      unsubscribe()
-    }
-  }, [])
-
-  return {
-    statuses,
-    install: async (component) => {
-      const status = await window.api.installLocalAiComponent(component)
-      setStatuses((current) => [...current.filter((item) => item.component !== component), status])
-    },
-    remove: async (component) => {
-      await window.api.removeLocalAiComponent(component)
-      setStatuses((current) => [
-        ...current.filter((item) => item.component !== component),
-        { component, state: 'not-installed' }
-      ])
-    }
-  }
-}
-
-function ComponentInstallCard({
-  component,
-  title,
-  description,
-  detail,
-  manager,
-  disabled = false
-}: {
-  component: LocalAiComponent
-  title: string
-  description: string
-  detail?: string
-  manager: LocalAiManager
-  disabled?: boolean
-}): JSX.Element {
-  const status = manager.statuses.find((item) => item.component === component)
-  const busy = status?.state === 'downloading' || status?.state === 'installing'
-  const installed = status?.state === 'installed' || status?.state === 'running'
-
-  return (
-    <div className="rounded-xl border border-border-strong bg-surface px-4 py-3.5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-fg">{title}</p>
-          <p className="mt-0.5 text-sm leading-relaxed text-fg-muted">{description}</p>
-          {detail && <p className="mt-1 text-xs text-fg-subtle">{detail}</p>}
-          {status?.message && <p className="mt-1 text-xs text-accent">{status.message}</p>}
-          {status?.detail && <p className="mt-1 text-xs text-danger">{status.detail}</p>}
-        </div>
-        {installed ? (
-          <Button variant="ghost" size="sm" onClick={() => void manager.remove(component)}>
-            {strings.common.delete}
-          </Button>
-        ) : (
-          <Button
-            variant="secondary"
-            size="sm"
-            loading={busy}
-            disabled={disabled || busy}
-            onClick={() => void manager.install(component)}
-          >
-            Installera
-          </Button>
-        )}
-      </div>
-      {busy && status?.progress !== undefined && (
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-3">
-          <div
-            className="h-full rounded-full bg-accent transition-[width]"
-            style={{ width: `${Math.round(status.progress * 100)}%` }}
-          />
-        </div>
-      )}
-    </div>
-  )
-}
-
 /** List of locally saved voice profiles, with per-profile and bulk removal. */
 function SpeakerProfilesBlock(): JSX.Element {
   const r = strings.settings.diarization.recognition
@@ -810,23 +709,15 @@ function SpeakerProfilesBlock(): JSX.Element {
           </div>
         </>
       )}
-      <Modal
+      <ConfirmModal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         title={r.forgetAllConfirmTitle}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-              {strings.common.cancel}
-            </Button>
-            <Button variant="danger" onClick={() => void forgetAll()}>
-              {r.forgetAllConfirm}
-            </Button>
-          </>
-        }
+        confirmLabel={r.forgetAllConfirm}
+        onConfirm={() => void forgetAll()}
       >
-        <p className="text-sm text-fg-muted leading-relaxed">{r.forgetAllConfirmBody}</p>
-      </Modal>
+        {r.forgetAllConfirmBody}
+      </ConfirmModal>
     </div>
   )
 }
@@ -926,23 +817,15 @@ function GlossarySection(): JSX.Element {
         </ul>
       )}
 
-      <Modal
+      <ConfirmModal
         open={confirmId !== null}
         onClose={() => setConfirmId(null)}
         title={g.deleteConfirmTitle}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmId(null)}>
-              {strings.common.cancel}
-            </Button>
-            <Button variant="danger" onClick={() => void (confirmId && remove(confirmId))}>
-              {g.deleteConfirm}
-            </Button>
-          </>
-        }
+        confirmLabel={g.deleteConfirm}
+        onConfirm={() => void (confirmId && remove(confirmId))}
       >
-        <p className="text-sm text-fg-muted leading-relaxed">{g.deleteConfirmBody}</p>
-      </Modal>
+        {g.deleteConfirmBody}
+      </ConfirmModal>
     </Section>
   )
 }
