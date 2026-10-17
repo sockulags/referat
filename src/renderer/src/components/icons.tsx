@@ -221,6 +221,20 @@ export const IconFolder = (p: IconProps): JSX.Element => (
   </Base>
 )
 
+export const IconHome = (p: IconProps): JSX.Element => (
+  <Base {...p}>
+    <path d="M3.5 11 12 4l8.5 7" />
+    <path d="M5.5 9.5V20h13V9.5" />
+  </Base>
+)
+
+export const IconDocument = (p: IconProps): JSX.Element => (
+  <Base {...p}>
+    <path d="M6.5 3h8l4 4v13a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M14.5 3v4h4M9 12.5h6M9 16h4.5" />
+  </Base>
+)
+
 export const IconPlus = (p: IconProps): JSX.Element => (
   <Base {...p}>
     <path d="M12 5v14M5 12h14" />

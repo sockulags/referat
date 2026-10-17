@@ -2,7 +2,7 @@ import type { JSX } from 'react'
 import { useEffect, useState } from 'react'
 import { useApp, applyTheme } from './store'
 import { strings } from './strings'
-import { TopBar } from './components/TopBar'
+import { SideMenu } from './components/SideMenu'
 import { Toasts } from './components/Toasts'
 import { Home } from './views/Home'
 import { Recording } from './views/Recording'
@@ -86,9 +86,9 @@ function App(): JSX.Element {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <TopBar />
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+    <div className="h-full flex flex-col overflow-hidden md:flex-row">
+      {view !== 'recording' && <SideMenu />}
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
         {view === 'home' && <Home />}
         {view === 'recording' && <Recording />}
         {view === 'meeting' && <Meeting />}
