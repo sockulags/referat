@@ -3,8 +3,7 @@
 
 export const strings = {
   app: {
-    name: 'referat',
-    tagline: 'Mötesanteckningar som stannar hos dig.'
+    name: 'referat'
   },
 
   common: {
@@ -14,17 +13,13 @@ export const strings = {
     close: 'Stäng',
     delete: 'Ta bort',
     rename: 'Byt namn',
-    open: 'Öppna',
     back: 'Tillbaka',
     next: 'Nästa',
     skip: 'Hoppa över',
-    done: 'Klart',
     retry: 'Försök igen',
     showDetails: 'Visa detaljer',
     hideDetails: 'Dölj detaljer',
-    optional: 'valfritt',
-    loading: 'Laddar…',
-    settings: 'Inställningar'
+    optional: 'valfritt'
   },
 
   topbar: {
@@ -137,7 +132,6 @@ export const strings = {
     micDeniedBody:
       'referat behöver tillgång till mikrofonen för att spela in. Tillåt mikrofon i Windows sekretessinställningar och försök igen.',
     starting: 'Startar inspelning…',
-    elapsed: 'Inspelad tid',
     liveTitle: 'Live-text',
     liveNote: 'Förhandsvisning — hela transkriptet skapas när du stoppar.',
     liveWaiting: 'Texten dyker upp här efter en stund.',

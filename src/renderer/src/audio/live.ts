@@ -23,8 +23,8 @@ export const LIVE_QUIET_LEVEL = 0.01
 export const LIVE_SPEECH_LEVEL = 0.02
 
 /** Consecutive failures before the transcriber is left alone for a while. */
-export const LIVE_MAX_FAILURES = 3
-export const LIVE_COOLDOWN_MS = 60_000
+const LIVE_MAX_FAILURES = 3
+const LIVE_COOLDOWN_MS = 60_000
 
 export function shouldCutWindow(elapsedMs: number, quietMs: number): boolean {
   if (elapsedMs >= LIVE_MAX_WINDOW_MS) return true
@@ -38,7 +38,7 @@ export interface LiveWindow {
   endSec: number
 }
 
-export type LiveEntry =
+type LiveEntry =
   | { kind: 'text'; startSec: number; text: string }
   /** Audio that was never transcribed, because the transcriber fell behind or failed. */
   | { kind: 'gap'; startSec: number }
@@ -49,7 +49,7 @@ export type LiveEntry =
  * - `behind`: windows had to be skipped to catch up.
  * - `unavailable`: the transcriber keeps failing; retried after a cooldown.
  */
-export type LiveStatus = 'waiting' | 'working' | 'behind' | 'unavailable'
+type LiveStatus = 'waiting' | 'working' | 'behind' | 'unavailable'
 
 export interface LiveState {
   entries: LiveEntry[]

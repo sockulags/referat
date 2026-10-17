@@ -48,7 +48,7 @@ import {
 } from './sourceAttribution'
 import { classifyError, UserFacingError } from './providers/shared'
 import type { ProjectOverviewResult, Transcript } from '../shared/types'
-import { isLoopbackUrl } from '../shared/live'
+import { liveTranscriptionDefault } from '../shared/live'
 import { addProjectSummary, buildProjectInput, PROJECT_OVERVIEW_PROMPT } from './projectSummary'
 
 /**
@@ -127,7 +127,7 @@ async function runNext(): Promise<void> {
  * A remote server is not shared with this computer's live text in that way.
  */
 function yieldsToLiveTranscription(config: TranscriptionConfig): boolean {
-  return config.live && (config.preset === 'built-in' || isLoopbackUrl(config.baseUrl))
+  return config.live && liveTranscriptionDefault(config.preset, config.baseUrl)
 }
 
 function fail(meetingId: string, step: 'transcribe' | 'summarize', err: unknown): void {

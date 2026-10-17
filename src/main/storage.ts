@@ -45,10 +45,6 @@ function metaPath(id: string): string {
   return join(meetingDir(id), 'meta.json')
 }
 
-export function audioPath(id: string): string {
-  return join(meetingDir(id), 'audio.webm')
-}
-
 /** Segment index 0 -> audio.webm (backward compatible), N>0 -> audio-N.webm. */
 function segmentAudioPath(id: string, segmentIndex: number): string {
   const name = segmentIndex === 0 ? 'audio.webm' : `audio-${segmentIndex}.webm`
@@ -119,7 +115,7 @@ export function readMeta(id: string): MeetingMeta | null {
   }
 }
 
-export function writeMeta(meta: MeetingMeta): void {
+function writeMeta(meta: MeetingMeta): void {
   const dir = meetingDir(meta.id)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   // Atomic write: a crash mid-write must not truncate meta.json (which would
@@ -380,10 +376,6 @@ export function listSummaries(id: string): MeetingSummary[] {
     summaries.push({ ...entry, markdown })
   }
   return summaries
-}
-
-export function hasSummaries(id: string): boolean {
-  return listSummaries(id).length > 0
 }
 
 /** Append a new summary and return it, markdown included. */

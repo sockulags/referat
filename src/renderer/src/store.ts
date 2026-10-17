@@ -2,7 +2,7 @@
 import { create } from 'zustand'
 import type { AppSettings } from '../../shared/types'
 
-export type View = 'home' | 'recording' | 'meeting' | 'settings' | 'onboarding'
+type View = 'home' | 'recording' | 'meeting' | 'settings' | 'onboarding'
 
 /** Which meetings Home lists: all of them, those outside any project, or one project's id. */
 export type ProjectFilter = 'all' | 'none' | (string & {})
@@ -26,7 +26,7 @@ function writeFilter(filter: ProjectFilter): void {
   }
 }
 
-export interface Toast {
+interface Toast {
   id: number
   message: string
   tone: 'success' | 'error'
@@ -46,11 +46,9 @@ interface AppState {
   pendingStart: { templateId: string; projectId: string }
   projectFilter: ProjectFilter
   settings?: AppSettings
-  settingsLoaded: boolean
   toasts: Toast[]
 
   navigate: (view: View, meetingId?: string) => void
-  openMeeting: (meetingId: string) => void
   setPendingTitle: (title: string) => void
   setPendingTemplateId: (templateId: string) => void
   setPendingStart: (start: { templateId: string; projectId: string }) => void
@@ -58,7 +56,6 @@ interface AppState {
   setSettings: (settings: AppSettings) => void
   patchSettings: (partial: Partial<AppSettings>) => void
   toast: (message: string, tone?: Toast['tone']) => void
-  dismissToast: (id: number) => void
 }
 
 let toastSeq = 0
@@ -71,11 +68,9 @@ export const useApp = create<AppState>((set) => ({
   pendingStart: { templateId: '', projectId: '' },
   projectFilter: readFilter(),
   settings: undefined,
-  settingsLoaded: false,
   toasts: [],
 
   navigate: (view, meetingId): void => set({ view, meetingId }),
-  openMeeting: (meetingId): void => set({ view: 'meeting', meetingId }),
   setPendingTitle: (pendingTitle): void => set({ pendingTitle }),
   setPendingTemplateId: (pendingTemplateId): void => set({ pendingTemplateId }),
   setPendingStart: (pendingStart): void => set({ pendingStart }),
@@ -84,7 +79,7 @@ export const useApp = create<AppState>((set) => ({
     // A pick made for one project should not carry over to the next.
     set({ projectFilter, pendingTemplateId: '' })
   },
-  setSettings: (settings): void => set({ settings, settingsLoaded: true }),
+  setSettings: (settings): void => set({ settings }),
   patchSettings: (partial): void =>
     set((s) => (s.settings ? { settings: { ...s.settings, ...partial } } : {})),
   toast: (message, tone = 'success'): void => {
@@ -93,8 +88,7 @@ export const useApp = create<AppState>((set) => ({
     setTimeout(() => {
       set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
     }, 2600)
-  },
-  dismissToast: (id): void => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
+  }
 }))
 
 /** Resolve settings theme to a concrete 'light' | 'dark' and apply to <html>. */

@@ -36,7 +36,7 @@ describe('buildProjectInput', () => {
     expect(input.text).toBe(
       '### Första (2026-09-28)\n\n## Beslut\n- A\n\n### Tredje (2026-10-12)\n\n## Beslut\n- C'
     )
-    expect(input).toMatchObject({ included: 2, withoutSummary: 2, leftOut: 0 })
+    expect(input).toMatchObject({ included: 2, leftOut: 0 })
   })
 
   it('leaves the oldest meetings out when they do not all fit', () => {
@@ -62,7 +62,6 @@ describe('buildProjectInput', () => {
     expect(buildProjectInput([meeting('Pågår', '2026-01-01T00:00:00.000Z', undefined)])).toEqual({
       text: '',
       included: 0,
-      withoutSummary: 1,
       leftOut: 0
     })
   })

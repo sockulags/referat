@@ -610,7 +610,7 @@ function DeleteModal({
         </>
       }
     >
-      <p className={cn('text-sm text-fg-muted leading-relaxed')}>
+      <p className="text-sm text-fg-muted leading-relaxed">
         Mötet <strong className="text-fg">{target?.title || strings.recording.untitled}</strong> och
         dess ljud, transkript och protokoll tas bort permanent. Det går inte att ångra.
       </p>

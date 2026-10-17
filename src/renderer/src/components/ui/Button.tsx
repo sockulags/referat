@@ -10,7 +10,6 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: Size
   loading?: boolean
   iconLeft?: ReactNode
-  iconRight?: ReactNode
 }
 
 const base =
@@ -38,7 +37,6 @@ export function Button({
   size = 'md',
   loading = false,
   iconLeft,
-  iconRight,
   className,
   children,
   disabled,
@@ -56,7 +54,6 @@ export function Button({
         iconLeft
       )}
       {children}
-      {!loading && iconRight}
     </button>
   )
 }

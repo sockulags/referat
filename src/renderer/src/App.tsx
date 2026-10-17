@@ -40,7 +40,6 @@ function UpdateReadyToast(): JSX.Element | null {
 
 function App(): JSX.Element {
   const view = useApp((s) => s.view)
-  const settingsLoaded = useApp((s) => s.settingsLoaded)
   const settings = useApp((s) => s.settings)
   const setSettings = useApp((s) => s.setSettings)
   const navigate = useApp((s) => s.navigate)
@@ -68,7 +67,7 @@ function App(): JSX.Element {
     return () => mq.removeEventListener('change', onChange)
   }, [settings?.theme])
 
-  if (!settingsLoaded) {
+  if (!settings) {
     return (
       <div className="h-full flex items-center justify-center">
         <Spinner size={28} />

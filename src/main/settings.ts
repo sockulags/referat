@@ -293,11 +293,6 @@ export function saveSummarySettings(payload: SaveSummarySettings): void {
   persist(s)
 }
 
-/** Every available template, built-ins first. Never empty. */
-export function getSummaryTemplates(): SummaryTemplate[] {
-  return load().summary.templates
-}
-
 /**
  * The template with this id, falling back to the meeting-independent default
  * when the id is unknown (a template the user has since deleted).
@@ -307,7 +302,7 @@ export function getSummaryTemplate(id: string | undefined): SummaryTemplate {
   return s.templates.find((t) => t.id === id) ?? getDefaultSummaryTemplate()
 }
 
-export function getDefaultSummaryTemplate(): SummaryTemplate {
+function getDefaultSummaryTemplate(): SummaryTemplate {
   const s = load().summary
   return s.templates.find((t) => t.id === s.defaultTemplateId) ?? s.templates[0]
 }

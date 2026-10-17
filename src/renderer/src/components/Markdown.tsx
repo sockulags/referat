@@ -4,11 +4,9 @@ import type { JSX, ReactNode } from 'react'
 // dangerouslySetInnerHTML. Supports headings, bold, italic, inline code,
 // unordered/ordered lists, blockquotes and paragraphs. Enough for our
 // protocol format; unknown syntax degrades to plain text.
-
-let keySeq = 0
-function nextKey(): string {
-  return `md-${keySeq++}`
-}
+//
+// Keys are positions: the parsed blocks are rebuilt from the source on every
+// render and never reorder, so a position names the same element each time.
 
 /** Parse inline emphasis/code within a line into React nodes. */
 function parseInline(text: string): ReactNode[] {
@@ -20,13 +18,13 @@ function parseInline(text: string): ReactNode[] {
   while ((m = pattern.exec(text)) !== null) {
     if (m.index > last) nodes.push(text.slice(last, m.index))
     if (m[2] !== undefined) {
-      nodes.push(<strong key={nextKey()}>{parseInline(m[2])}</strong>)
+      nodes.push(<strong key={nodes.length}>{parseInline(m[2])}</strong>)
     } else if (m[4] !== undefined) {
-      nodes.push(<em key={nextKey()}>{parseInline(m[4])}</em>)
+      nodes.push(<em key={nodes.length}>{parseInline(m[4])}</em>)
     } else if (m[5] !== undefined) {
       nodes.push(
         <code
-          key={nextKey()}
+          key={nodes.length}
           className="px-1.5 py-0.5 rounded-md bg-surface-2 text-[0.85em] font-mono"
         >
           {m[5]}
@@ -43,6 +41,13 @@ interface Block {
   type: 'h1' | 'h2' | 'h3' | 'ul' | 'ol' | 'quote' | 'p'
   lines: string[]
 }
+
+/** Line-prefixed blocks: consecutive lines with the same marker form one block. */
+const PREFIXED: { type: Block['type']; marker: RegExp }[] = [
+  { type: 'ul', marker: /^[-*+]\s+/ },
+  { type: 'ol', marker: /^\d+[.)]\s+/ },
+  { type: 'quote', marker: /^>\s?/ }
+]
 
 function parseBlocks(source: string): Block[] {
   const rawLines = source.replace(/\r\n/g, '\n').split('\n')
@@ -69,28 +74,13 @@ function parseBlocks(source: string): Block[] {
       blocks.push({ type: `h${level}` as Block['type'], lines: [heading[2]] })
       continue
     }
-    if (/^[-*+]\s+/.test(trimmed)) {
+    const prefixed = PREFIXED.find(({ marker }) => marker.test(trimmed))
+    if (prefixed) {
       flushPara()
-      const item = trimmed.replace(/^[-*+]\s+/, '')
+      const item = trimmed.replace(prefixed.marker, '')
       const prev = blocks[blocks.length - 1]
-      if (prev && prev.type === 'ul') prev.lines.push(item)
-      else blocks.push({ type: 'ul', lines: [item] })
-      continue
-    }
-    if (/^\d+[.)]\s+/.test(trimmed)) {
-      flushPara()
-      const item = trimmed.replace(/^\d+[.)]\s+/, '')
-      const prev = blocks[blocks.length - 1]
-      if (prev && prev.type === 'ol') prev.lines.push(item)
-      else blocks.push({ type: 'ol', lines: [item] })
-      continue
-    }
-    if (/^>\s?/.test(trimmed)) {
-      flushPara()
-      const item = trimmed.replace(/^>\s?/, '')
-      const prev = blocks[blocks.length - 1]
-      if (prev && prev.type === 'quote') prev.lines.push(item)
-      else blocks.push({ type: 'quote', lines: [item] })
+      if (prev && prev.type === prefixed.type) prev.lines.push(item)
+      else blocks.push({ type: prefixed.type, lines: [item] })
       continue
     }
     para.push(trimmed)
@@ -102,22 +92,19 @@ function parseBlocks(source: string): Block[] {
 export function Markdown({ source }: { source: string }): JSX.Element {
   const blocks = parseBlocks(source)
   return (
-    <div className="referat-doc text-fg">
-      {blocks.map((b) => {
+    <div className="text-fg">
+      {blocks.map((b, i) => {
         switch (b.type) {
           case 'h1':
             return (
-              <h1
-                key={nextKey()}
-                className="text-2xl font-semibold mt-8 first:mt-0 mb-3 tracking-tight"
-              >
+              <h1 key={i} className="text-2xl font-semibold mt-8 first:mt-0 mb-3 tracking-tight">
                 {parseInline(b.lines[0])}
               </h1>
             )
           case 'h2':
             return (
               <h2
-                key={nextKey()}
+                key={i}
                 className="text-lg font-semibold mt-7 first:mt-0 mb-2.5 pb-1.5 border-b border-border tracking-tight"
               >
                 {parseInline(b.lines[0])}
@@ -125,15 +112,15 @@ export function Markdown({ source }: { source: string }): JSX.Element {
             )
           case 'h3':
             return (
-              <h3 key={nextKey()} className="text-base font-semibold mt-5 first:mt-0 mb-2">
+              <h3 key={i} className="text-base font-semibold mt-5 first:mt-0 mb-2">
                 {parseInline(b.lines[0])}
               </h3>
             )
           case 'ul':
             return (
-              <ul key={nextKey()} className="my-3 pl-1 space-y-1.5">
-                {b.lines.map((li) => (
-                  <li key={nextKey()} className="flex gap-2.5 leading-relaxed">
+              <ul key={i} className="my-3 pl-1 space-y-1.5">
+                {b.lines.map((li, j) => (
+                  <li key={j} className="flex gap-2.5 leading-relaxed">
                     <span className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                     <span>{parseInline(li)}</span>
                   </li>
@@ -142,9 +129,9 @@ export function Markdown({ source }: { source: string }): JSX.Element {
             )
           case 'ol':
             return (
-              <ol key={nextKey()} className="my-3 pl-1 space-y-1.5 counter-reset-list">
+              <ol key={i} className="my-3 pl-1 space-y-1.5">
                 {b.lines.map((li, idx) => (
-                  <li key={nextKey()} className="flex gap-2.5 leading-relaxed">
+                  <li key={idx} className="flex gap-2.5 leading-relaxed">
                     <span className="shrink-0 text-accent font-semibold tabular-nums">
                       {idx + 1}.
                     </span>
@@ -156,11 +143,11 @@ export function Markdown({ source }: { source: string }): JSX.Element {
           case 'quote':
             return (
               <blockquote
-                key={nextKey()}
+                key={i}
                 className="my-4 pl-4 border-l-2 border-accent text-fg-muted italic"
               >
-                {b.lines.map((q) => (
-                  <p key={nextKey()} className="leading-relaxed">
+                {b.lines.map((q, j) => (
+                  <p key={j} className="leading-relaxed">
                     {parseInline(q)}
                   </p>
                 ))}
@@ -168,7 +155,7 @@ export function Markdown({ source }: { source: string }): JSX.Element {
             )
           default:
             return (
-              <p key={nextKey()} className="my-3 leading-[1.75]">
+              <p key={i} className="my-3 leading-[1.75]">
                 {parseInline(b.lines[0])}
               </p>
             )
