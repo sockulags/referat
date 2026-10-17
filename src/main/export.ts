@@ -7,6 +7,7 @@ import { Document, Packer, Paragraph, HeadingLevel, TextRun } from 'docx'
 import type { ActionItem, MeetingDetail, MeetingSummary } from '../shared/types'
 import { formatDueDate } from '../shared/dates'
 import { getMeeting } from './storage'
+import { DEFAULT_TEMPLATE_ID } from './summaryTemplates'
 
 function sanitizeFilename(name: string): string {
   // Strip characters Windows disallows in filenames, collapse whitespace.
@@ -120,10 +121,10 @@ export async function exportProtocol(
   }
 
   if (format === 'md') {
-    await writeFile(result.filePath, summary.markdown, 'utf-8')
+    await writeFile(result.filePath, exportedMarkdown(meeting, summary), 'utf-8')
   } else {
     const dateLine = new Date(meeting.createdAt).toLocaleDateString('sv-SE')
-    const buffer = await buildDocx(meeting.title, dateLine, summary.markdown)
+    const buffer = await buildDocx(meeting.title, dateLine, exportedMarkdown(meeting, summary))
     await writeFile(result.filePath, buffer)
   }
 
@@ -140,6 +141,29 @@ export function actionItemsAsList(items: ActionItem[], now: Date = new Date()): 
       return `- ${item.text.trim()}${owner}${due ? ` (senast ${due})` : ''}`
     })
     .join('\n')
+}
+
+/**
+ * A protocol as it leaves the app. The protocol template no longer writes
+ * action items itself, so the corrected list is added under its own heading.
+ * A protocol that already has the heading (written before the list existed,
+ * or by an edited template) is left as it is, and other templates are never
+ * touched.
+ */
+export function exportedMarkdown(
+  meeting: MeetingDetail,
+  summary: MeetingSummary,
+  now: Date = new Date()
+): string {
+  const list = actionItemsAsList(meeting.actionItems ?? [], now)
+  if (
+    summary.templateId !== DEFAULT_TEMPLATE_ID ||
+    !list ||
+    /^#{1,3}\s+Actionpunkter\b/im.test(summary.markdown)
+  ) {
+    return summary.markdown
+  }
+  return `${summary.markdown.trimEnd()}\n\n## Actionpunkter\n\n${list}\n`
 }
 
 function csvField(value: string): string {
@@ -204,5 +228,7 @@ export async function exportActionItems(
 }
 
 export function copyProtocol(id: string, summaryId?: string): void {
-  clipboard.writeText(pickSummary(getMeeting(id), summaryId)?.markdown ?? '')
+  const meeting = getMeeting(id)
+  const summary = pickSummary(meeting, summaryId)
+  clipboard.writeText(meeting && summary ? exportedMarkdown(meeting, summary) : '')
 }

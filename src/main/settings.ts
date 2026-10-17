@@ -14,7 +14,12 @@ import type {
   SaveGeneralSettings,
   SummaryTemplate
 } from '../shared/types'
-import { builtInTemplates, DEFAULT_PROMPT_TEMPLATE, DEFAULT_TEMPLATE_ID } from './summaryTemplates'
+import {
+  builtInTemplates,
+  DEFAULT_PROMPT_TEMPLATE,
+  DEFAULT_TEMPLATE_ID,
+  SUPERSEDED_PROMPTS
+} from './summaryTemplates'
 import { isLiveTranscriptionOn } from '../shared/live'
 import { writeJsonAtomic } from './jsonFile'
 
@@ -90,7 +95,10 @@ function normalizeTemplates(stored: unknown, legacyPrompt?: string): SummaryTemp
   const byId = new Map(list.map((t) => [t.id, t]))
   const merged = builtIns.map((t) => {
     const s = byId.get(t.id)
-    return s ? { ...t, name: s.name, promptTemplate: s.promptTemplate } : t
+    if (!s) return t
+    // An earlier built-in text, unchanged, is not the user's: give it the current one.
+    const untouched = SUPERSEDED_PROMPTS[t.id]?.includes(s.promptTemplate)
+    return { ...t, name: s.name, promptTemplate: untouched ? t.promptTemplate : s.promptTemplate }
   })
   const builtInIds = new Set(builtIns.map((t) => t.id))
   const custom = list

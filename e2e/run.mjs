@@ -315,6 +315,16 @@ async function main() {
     copiedList === '- Ta fram en ny annonsmall och skicka den till HR — Anna Berg',
     `the action items copy as a list (got ${JSON.stringify(copiedList)})`
   )
+  // The protocol itself carries the corrected list, not a version of its own.
+  await page.getByRole('button', { name: 'Kopiera', exact: true }).click()
+  await page.waitForTimeout(800)
+  const copiedProtocol = await app.evaluate(({ clipboard }) => clipboard.readText())
+  assert(
+    copiedProtocol.includes(
+      '## Actionpunkter\n\n- Ta fram en ny annonsmall och skicka den till HR — Anna Berg'
+    ),
+    'the copied protocol carries the corrected action items'
+  )
 
   // The recorder writes a level envelope alongside the audio, which is what
   // lets main tell the microphone apart from the system audio. The fake mic

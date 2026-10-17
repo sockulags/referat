@@ -10,7 +10,8 @@ export const DEFAULT_TEMPLATE_ID = 'protokoll'
 
 /**
  * The 0.5 protocol prompt, unchanged. Settings compares against it to tell an
- * untouched legacy prompt from one the user hand-edited.
+ * untouched legacy prompt from one the user hand-edited, and to replace it
+ * with the current protocol prompt when the user never changed it.
  */
 export const DEFAULT_PROMPT_TEMPLATE = `Du är en erfaren mötessekreterare. Nedan följer en transkription av ett möte.
 Skriv ett tydligt och professionellt mötesprotokoll i Markdown med exakt dessa rubriker:
@@ -41,6 +42,45 @@ Regler:
 
 Transkription:
 {{transcript}}`
+
+/**
+ * The protocol. Action items are not in it: the meeting view lists them as
+ * data the user corrects, and copy and export add them to the protocol under
+ * their own heading, so there is only one version of them.
+ */
+const PROTOCOL = `Du är en erfaren mötessekreterare. Nedan följer en transkription av ett möte.
+Skriv ett tydligt och professionellt mötesprotokoll i Markdown med exakt dessa rubriker:
+
+## Sammanfattning
+5–10 meningar som fångar mötets syfte och viktigaste innehåll.
+
+## Beslut
+Punktlista med de beslut som fattades. Skriv "Inga beslut fattades." om inga beslut togs.
+
+## Öppna frågor
+Punktlista med frågor som lämnades olösta. Skriv "Inga öppna frågor." om inga finns.
+
+Regler:
+- Svara på samma språk som transkriptionen är skriven på.
+- Använd endast information som finns i transkriptionen. Hitta aldrig på namn, beslut eller siffror.
+- Var koncis och saklig.
+
+{{projekt}}
+
+{{ordlista}}
+
+{{fokus}}
+
+Transkription:
+{{transcript}}`
+
+/**
+ * Earlier texts of built-in templates. A stored template with one of these,
+ * word for word, was never edited and gets the current text.
+ */
+export const SUPERSEDED_PROMPTS: Record<string, string[]> = {
+  [DEFAULT_TEMPLATE_ID]: [DEFAULT_PROMPT_TEMPLATE]
+}
 
 const QUICK_SUMMARY = `Du sammanfattar ett möte för någon som inte var med och har två minuter på sig.
 Skriv löpande text i Markdown, 8–12 meningar, utan rubriker och utan punktlistor.
@@ -139,7 +179,7 @@ export function builtInTemplates(): SummaryTemplate[] {
     {
       id: DEFAULT_TEMPLATE_ID,
       name: 'Protokoll',
-      promptTemplate: DEFAULT_PROMPT_TEMPLATE,
+      promptTemplate: PROTOCOL,
       builtIn: true
     },
     { id: 'sammandrag', name: 'Snabbt sammandrag', promptTemplate: QUICK_SUMMARY, builtIn: true },

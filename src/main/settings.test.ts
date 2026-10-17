@@ -11,6 +11,7 @@ import {
   saveSummarySettings,
   saveTranscriptionSettings
 } from './settings'
+import { DEFAULT_PROMPT_TEMPLATE } from './summaryTemplates'
 
 vi.mock('electron', async () => {
   const { mkdtempSync } = await import('node:fs')
@@ -108,6 +109,29 @@ describe('summary backend settings', () => {
     expect(templates.filter((t) => t.builtIn).map((t) => t.id)).toContain('protokoll')
     expect(templates.at(-1)).toMatchObject(custom)
     expect(getSettings().summary.defaultTemplateId).toBe('egen-1')
+  })
+
+  it('gives an untouched old protocol prompt the current one, and keeps an edited one', () => {
+    const save = (promptTemplate: string): void =>
+      saveSummarySettings({
+        preset: 'codex',
+        backend: 'codex-cli',
+        apiFlavor: 'openai-compatible',
+        baseUrl: '',
+        model: '',
+        templates: [{ id: 'protokoll', name: 'Protokoll', promptTemplate, builtIn: true }],
+        defaultTemplateId: 'protokoll'
+      })
+    const protocol = (): string =>
+      getSettings().summary.templates.find((t) => t.id === 'protokoll')!.promptTemplate
+
+    save(DEFAULT_PROMPT_TEMPLATE)
+    expect(protocol()).not.toContain('## Actionpunkter')
+    expect(protocol()).toContain('## Öppna frågor')
+
+    const edited = DEFAULT_PROMPT_TEMPLATE.replace('5–10 meningar', '3 meningar')
+    save(edited)
+    expect(protocol()).toBe(edited)
   })
 
   it('falls back to the protocol template when the default id no longer exists', () => {
