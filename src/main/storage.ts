@@ -59,6 +59,16 @@ function segmentAudioPath(id: string, segmentIndex: number): string {
 }
 
 /**
+ * The file of one recorded segment, for playback; null when there is none.
+ * Throws for an invalid meeting id, like every other path helper here.
+ */
+export function audioSegmentFile(id: string, segmentIndex: number): string | null {
+  if (!Number.isInteger(segmentIndex) || segmentIndex < 0) return null
+  const path = segmentAudioPath(id, segmentIndex)
+  return existsSync(path) ? path : null
+}
+
+/**
  * Audio segment files for a meeting, in play order. Existing single-file
  * recordings return [audio.webm]; rotated recordings return
  * [audio.webm, audio-1.webm, ...] up to the first missing index.
@@ -445,7 +455,8 @@ export function getMeeting(id: string): MeetingDetail | null {
     ...meta,
     transcript: readTranscript(id),
     summaries: listSummaries(id),
-    actionItems: readActionItems(id)
+    actionItems: readActionItems(id),
+    audioSegments: audioSegmentPaths(id).length
   }
 }
 

@@ -31,6 +31,8 @@ import {
   IconX
 } from '../components/icons'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
+import { AudioPlayer } from '../components/AudioPlayer'
+import { useMeetingAudio } from '../audio/meetingAudio'
 import { cn } from '../components/ui/cn'
 
 type Tab = 'protocol' | 'transcript'
@@ -41,6 +43,8 @@ export function Meeting(): JSX.Element {
   const [meeting, setMeeting] = useState<MeetingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('protocol')
+  const audio = useMeetingAudio(meeting)
+  const playFrom = audio.available ? audio.playFrom : undefined
 
   const load = useCallback(async (): Promise<void> => {
     if (!meetingId) return
@@ -119,10 +123,12 @@ export function Meeting(): JSX.Element {
           </div>
 
           {tab === 'protocol' ? (
-            <ProtocolTab meeting={meeting} onChanged={load} />
+            <ProtocolTab meeting={meeting} onChanged={load} onPlayFrom={playFrom} />
           ) : (
-            <TranscriptTab meeting={meeting} onChanged={load} />
+            <TranscriptTab meeting={meeting} onChanged={load} onPlayFrom={playFrom} />
           )}
+
+          {audio.available && <AudioPlayer audio={audio} transcript={meeting.transcript} />}
         </>
       )}
     </div>
@@ -304,10 +310,13 @@ function ErrorPanel({
 
 function ProtocolTab({
   meeting,
-  onChanged
+  onChanged,
+  onPlayFrom
 }: {
   meeting: MeetingDetail
   onChanged: () => Promise<void>
+  /** Absent when the meeting has no recording to play. */
+  onPlayFrom?: (sec: number) => void
 }): JSX.Element {
   const toast = useApp((s) => s.toast)
   const [copied, setCopied] = useState(false)
@@ -445,7 +454,7 @@ function ProtocolTab({
         )
       )}
 
-      <ActionItems meeting={meeting} onChanged={onChanged} />
+      <ActionItems meeting={meeting} onChanged={onChanged} onPlayFrom={onPlayFrom} />
 
       <NewSummaryModal open={creating} onClose={() => setCreating(false)} onCreate={create} />
       <ConfirmModal
@@ -467,10 +476,12 @@ function ProtocolTab({
  */
 function ActionItems({
   meeting,
-  onChanged
+  onChanged,
+  onPlayFrom
 }: {
   meeting: MeetingDetail
   onChanged: () => Promise<void>
+  onPlayFrom?: (sec: number) => void
 }): JSX.Element | null {
   const toast = useApp((s) => s.toast)
   const [extracting, setExtracting] = useState(false)
@@ -508,7 +519,7 @@ function ActionItems({
         ) : (
           <ul className="flex flex-col divide-y divide-border">
             {items.map((item) => (
-              <ActionItemRow key={item.id} item={item} />
+              <ActionItemRow key={item.id} item={item} onPlayFrom={onPlayFrom} />
             ))}
           </ul>
         )}
@@ -517,7 +528,13 @@ function ActionItems({
   )
 }
 
-function ActionItemRow({ item }: { item: ActionItem }): JSX.Element {
+function ActionItemRow({
+  item,
+  onPlayFrom
+}: {
+  item: ActionItem
+  onPlayFrom?: (sec: number) => void
+}): JSX.Element {
   const due = formatDueDate(item.due)
   return (
     <li className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
@@ -525,11 +542,21 @@ function ActionItemRow({ item }: { item: ActionItem }): JSX.Element {
       <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-fg-muted">
         <span>{item.owner || strings.meeting.actionItemNoOwner}</span>
         {due && <span>{strings.meeting.actionItemDue(due)}</span>}
-        {item.atSec !== undefined && (
-          <span className="tabular-nums">
-            {strings.meeting.actionItemAt(formatTimestamp(item.atSec))}
-          </span>
-        )}
+        {item.atSec !== undefined &&
+          (onPlayFrom ? (
+            <button
+              type="button"
+              onClick={() => onPlayFrom(item.atSec ?? 0)}
+              aria-label={strings.meeting.playFrom(formatTimestamp(item.atSec))}
+              className="tabular-nums text-accent underline-offset-2 hover:underline rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              {strings.meeting.actionItemAt(formatTimestamp(item.atSec))}
+            </button>
+          ) : (
+            <span className="tabular-nums">
+              {strings.meeting.actionItemAt(formatTimestamp(item.atSec))}
+            </span>
+          ))}
       </span>
     </li>
   )
@@ -692,10 +719,12 @@ function useTranscriptSelection(
 
 function TranscriptTab({
   meeting,
-  onChanged
+  onChanged,
+  onPlayFrom
 }: {
   meeting: MeetingDetail
   onChanged: () => Promise<void>
+  onPlayFrom?: (sec: number) => void
 }): JSX.Element {
   const toast = useApp((s) => s.toast)
   const [query, setQuery] = useState('')
@@ -841,6 +870,7 @@ function TranscriptTab({
                   suggestedName={suggestedName}
                   onRenameSpeaker={renameSpeaker}
                   onDismissSuggestion={dismissSuggestion}
+                  onPlayFrom={onPlayFrom}
                 />
               )
             })}
@@ -985,7 +1015,8 @@ function SegmentRow({
   speakerName,
   suggestedName,
   onRenameSpeaker,
-  onDismissSuggestion
+  onDismissSuggestion,
+  onPlayFrom
 }: {
   segment: TranscriptSegment
   query: string
@@ -997,6 +1028,7 @@ function SegmentRow({
   suggestedName?: string
   onRenameSpeaker?: (speakerId: string, name: string) => Promise<void>
   onDismissSuggestion?: (speakerId: string) => Promise<void>
+  onPlayFrom?: (sec: number) => void
 }): JSX.Element {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState('')
@@ -1011,9 +1043,20 @@ function SegmentRow({
 
   return (
     <div className="flex gap-4 px-4 py-3">
-      <span className="shrink-0 pt-0.5 text-xs font-medium tabular-nums text-fg-subtle w-12">
-        {formatTimestamp(segment.startSec)}
-      </span>
+      {onPlayFrom ? (
+        <button
+          type="button"
+          onClick={() => onPlayFrom(segment.startSec)}
+          aria-label={strings.meeting.playFrom(formatTimestamp(segment.startSec))}
+          className="shrink-0 self-start pt-0.5 text-left text-xs font-medium tabular-nums text-fg-subtle w-12 rounded hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          {formatTimestamp(segment.startSec)}
+        </button>
+      ) : (
+        <span className="shrink-0 pt-0.5 text-xs font-medium tabular-nums text-fg-subtle w-12">
+          {formatTimestamp(segment.startSec)}
+        </span>
+      )}
       <div className="flex-1 min-w-0">
         {segment.speaker && speakerName && (
           <div className="mb-0.5">

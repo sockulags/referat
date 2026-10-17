@@ -59,6 +59,11 @@ export interface Transcript {
   speakerEmbeddings?: Record<string, number[]>
   /** Speaker id -> suggested display name from voice recognition ("Anna?"). */
   speakerSuggestions?: Record<string, string>
+  /**
+   * Where each recorded audio segment starts on the meeting's timeline, in
+   * seconds. Absent on transcripts made before playback existed.
+   */
+  segmentStartsSec?: number[]
   /** Uncorrected full text, kept only when the glossary rewrote something. */
   originalText?: string
   /** Number of glossary replacements in the last apply. Absent means none. */
@@ -148,6 +153,8 @@ export interface MeetingDetail extends MeetingMeta {
    * extracted; [] when the meeting had none.
    */
   actionItems?: ActionItem[]
+  /** How many recorded audio segment files the meeting has, for playback. */
+  audioSegments: number
 }
 
 // ---------- Projects ----------
