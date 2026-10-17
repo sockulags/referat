@@ -8,7 +8,11 @@ interface TooltipProps {
   side?: 'top' | 'bottom'
 }
 
-/** Lightweight hover/focus tooltip — no external primitives. */
+/**
+ * Lightweight hover/focus tooltip — no external primitives. Focus shows it only
+ * when the focus is visible, so a dialog moving focus to its close button
+ * after a click does not pop the tooltip up.
+ */
 export function Tooltip({ label, children, side = 'top' }: TooltipProps): JSX.Element {
   const [show, setShow] = useState(false)
   return (
@@ -16,7 +20,7 @@ export function Tooltip({ label, children, side = 'top' }: TooltipProps): JSX.El
       className="relative inline-flex"
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
-      onFocus={() => setShow(true)}
+      onFocus={(e) => setShow((e.target as Element).matches(':focus-visible'))}
       onBlur={() => setShow(false)}
     >
       {children}
