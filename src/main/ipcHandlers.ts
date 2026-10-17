@@ -1,25 +1,8 @@
 // Registers every IPC handler in the RendererApi contract.
 
 import { ipcMain, app, clipboard } from 'electron'
-import type {
-  MeetingMeta,
-  MeetingDetail,
-  RecordingHandle,
-  AppSettings,
-  SaveTranscriptionSettings,
-  SaveSummarySettings,
-  SaveDiarizationSettings,
-  ConnectionTestResult,
-  SpeakerProfile,
-  GlossaryTerm,
-  LocalAiComponent,
-  LocalAiComponentStatus,
-  Project,
-  ProjectOverviewResult,
-  ProjectSummary
-} from '../shared/types'
-import type { LevelEnvelope } from '../shared/levels'
-import { IPC } from './ipc'
+import type { RendererApi } from '../shared/types'
+import { IPC, type InvokeName } from './ipc'
 import * as storage from './storage'
 import * as settings from './settings'
 import * as speakerProfiles from './speakerProfiles'
@@ -45,95 +28,59 @@ import {
   removeLocalAiComponent
 } from './localAiComponents'
 
+type Handler<K extends InvokeName> = (
+  ...args: Parameters<RendererApi[K]>
+) => ReturnType<RendererApi[K]> | Awaited<ReturnType<RendererApi[K]>>
+
+/**
+ * Register the handler for one RendererApi method. Its arguments and result
+ * are checked against the contract the preload exposes. Handlers pass on
+ * the arguments they name, so a stray extra argument from the renderer never
+ * reaches a function with more optional parameters than the contract.
+ */
+function handle<K extends InvokeName>(name: K, fn: Handler<K>): void {
+  ipcMain.handle(IPC[name], (_e, ...args) => fn(...(args as Parameters<RendererApi[K]>)))
+}
+
 /** Called after app is ready. Registers all handlers exactly once. */
 export function registerIpcHandlers(): void {
   // ---- Meetings ----
-  ipcMain.handle(IPC.listMeetings, (): MeetingMeta[] => storage.listMeetings())
-
-  ipcMain.handle(IPC.getMeeting, (_e, id: string): MeetingDetail | null => storage.getMeeting(id))
-
-  ipcMain.handle(IPC.deleteMeeting, (_e, id: string): void => storage.deleteMeeting(id))
-
-  ipcMain.handle(IPC.renameMeeting, (_e, id: string, title: string): void =>
-    storage.renameMeeting(id, title)
+  handle('listMeetings', () => storage.listMeetings())
+  handle('getMeeting', (id) => storage.getMeeting(id))
+  handle('deleteMeeting', (id) => storage.deleteMeeting(id))
+  handle('renameMeeting', (id, title) => storage.renameMeeting(id, title))
+  handle('retryPipeline', (id) => retryPipeline(id))
+  handle('resummarize', (id) => resummarize(id))
+  handle('generateSummary', (meetingId, templateId, focus) =>
+    generateSummary(meetingId, templateId, focus)
   )
-
-  ipcMain.handle(IPC.retryPipeline, (_e, id: string): void => retryPipeline(id))
-
-  ipcMain.handle(IPC.resummarize, (_e, id: string): void => resummarize(id))
-
-  ipcMain.handle(
-    IPC.generateSummary,
-    (_e, meetingId: string, templateId: string, focus: string): void =>
-      generateSummary(meetingId, templateId, focus)
-  )
-
-  ipcMain.handle(IPC.deleteSummary, (_e, meetingId: string, summaryId: string): void =>
-    storage.deleteSummary(meetingId, summaryId)
-  )
+  handle('deleteSummary', (meetingId, summaryId) => storage.deleteSummary(meetingId, summaryId))
 
   // ---- Speakers ----
-  ipcMain.handle(
-    IPC.renameSpeaker,
-    (_e, meetingId: string, speakerId: string, name: string): void =>
-      storage.renameSpeaker(meetingId, speakerId, name)
+  handle('renameSpeaker', (meetingId, speakerId, name) =>
+    storage.renameSpeaker(meetingId, speakerId, name)
   )
-
-  ipcMain.handle(IPC.dismissSpeakerSuggestion, (_e, meetingId: string, speakerId: string): void =>
+  handle('dismissSpeakerSuggestion', (meetingId, speakerId) =>
     storage.dismissSpeakerSuggestion(meetingId, speakerId)
   )
-
-  ipcMain.handle(IPC.listSpeakerProfiles, (): SpeakerProfile[] =>
-    speakerProfiles.listSpeakerProfiles()
-  )
-
-  ipcMain.handle(IPC.deleteSpeakerProfile, (_e, id: string): void =>
-    speakerProfiles.deleteSpeakerProfile(id)
-  )
-
-  ipcMain.handle(IPC.deleteAllSpeakerProfiles, (): void =>
-    speakerProfiles.deleteAllSpeakerProfiles()
-  )
+  handle('listSpeakerProfiles', () => speakerProfiles.listSpeakerProfiles())
+  handle('deleteSpeakerProfile', (id) => speakerProfiles.deleteSpeakerProfile(id))
+  handle('deleteAllSpeakerProfiles', () => speakerProfiles.deleteAllSpeakerProfiles())
 
   // ---- Glossary ----
-  ipcMain.handle(IPC.listGlossaryTerms, (): GlossaryTerm[] => glossary.listGlossaryTerms())
-
-  ipcMain.handle(
-    IPC.addGlossaryEntry,
-    (_e, canonical: string, variant: string, projectId?: string): GlossaryTerm =>
-      glossary.addGlossaryEntry(canonical, variant, projectId)
+  handle('listGlossaryTerms', () => glossary.listGlossaryTerms())
+  handle('addGlossaryEntry', (canonical, variant, projectId) =>
+    glossary.addGlossaryEntry(canonical, variant, projectId)
   )
-
-  ipcMain.handle(
-    IPC.updateGlossaryTerm,
-    (
-      _e,
-      id: string,
-      patch: { canonical?: string; variants?: string[]; projectId?: string | null }
-    ): GlossaryTerm | null => glossary.updateGlossaryTerm(id, patch)
-  )
-
-  ipcMain.handle(IPC.deleteGlossaryTerm, (_e, id: string): void => glossary.deleteGlossaryTerm(id))
-
-  ipcMain.handle(IPC.applyGlossary, (_e, meetingId: string): number | null =>
-    applyGlossaryToMeeting(meetingId)
-  )
+  handle('updateGlossaryTerm', (id, patch) => glossary.updateGlossaryTerm(id, patch))
+  handle('deleteGlossaryTerm', (id) => glossary.deleteGlossaryTerm(id))
+  handle('applyGlossary', (meetingId) => applyGlossaryToMeeting(meetingId))
 
   // ---- Projects ----
-  ipcMain.handle(IPC.listProjects, (): Project[] => projects.listProjects())
-
-  ipcMain.handle(IPC.createProject, (_e, name: string): Project => projects.createProject(name))
-
-  ipcMain.handle(
-    IPC.updateProject,
-    (
-      _e,
-      id: string,
-      patch: { name?: string; defaultTemplateId?: string; description?: string }
-    ): Project | null => projects.updateProject(id, patch)
-  )
-
-  ipcMain.handle(IPC.deleteProject, (_e, id: string): void => {
+  handle('listProjects', () => projects.listProjects())
+  handle('createProject', (name) => projects.createProject(name))
+  handle('updateProject', (id, patch) => projects.updateProject(id, patch))
+  handle('deleteProject', (id) => {
     // Meetings first: if this is interrupted, the project still exists and
     // the user can delete it again; the other way round would leave meetings
     // pointing at a project that is gone.
@@ -142,151 +89,76 @@ export function registerIpcHandlers(): void {
     projectSummary.deleteProjectSummaries(id)
     projects.deleteProject(id)
   })
-
-  ipcMain.handle(IPC.setMeetingProject, (_e, meetingId: string, projectId: string | null): void => {
+  handle('setMeetingProject', (meetingId, projectId) => {
     if (projectId && !projects.getProject(projectId)) throw new Error('Projektet finns inte')
     storage.setMeetingProject(meetingId, projectId)
   })
-
-  ipcMain.handle(IPC.listProjectSummaries, (_e, projectId: string): ProjectSummary[] =>
-    projectSummary.listProjectSummaries(projectId)
-  )
-
-  ipcMain.handle(
-    IPC.generateProjectSummary,
-    (_e, projectId: string, focus: string): Promise<ProjectOverviewResult> =>
-      generateProjectOverview(projectId, focus)
-  )
-
-  ipcMain.handle(IPC.deleteProjectSummary, (_e, projectId: string, summaryId: string): void =>
+  handle('listProjectSummaries', (projectId) => projectSummary.listProjectSummaries(projectId))
+  handle('generateProjectSummary', (projectId, focus) => generateProjectOverview(projectId, focus))
+  handle('deleteProjectSummary', (projectId, summaryId) =>
     projectSummary.deleteProjectSummary(projectId, summaryId)
   )
-
-  ipcMain.handle(IPC.copyProjectSummary, (_e, projectId: string, summaryId: string): void => {
+  handle('copyProjectSummary', (projectId, summaryId) => {
     const summary = projectSummary.listProjectSummaries(projectId).find((s) => s.id === summaryId)
     clipboard.writeText(summary?.markdown ?? '')
   })
 
   // ---- Recording ----
-  ipcMain.handle(
-    IPC.startRecording,
-    (_e, title: string, templateId?: string, projectId?: string): RecordingHandle => {
-      const project = projects.getProject(projectId)
-      // Outside a project the chosen template becomes the preselection for
-      // the next recording. A project keeps its own default instead, so one
-      // odd meeting does not change what the next one starts with.
-      if (templateId && !project) settings.setDefaultSummaryTemplate(templateId)
-      const meta = storage.createMeeting(title, templateId, project?.id)
-      return { meetingId: meta.id }
-    }
+  handle('startRecording', (title, templateId, projectId) => {
+    const project = projects.getProject(projectId)
+    // Outside a project the chosen template becomes the preselection for
+    // the next recording. A project keeps its own default instead, so one
+    // odd meeting does not change what the next one starts with.
+    if (templateId && !project) settings.setDefaultSummaryTemplate(templateId)
+    const meta = storage.createMeeting(title, templateId, project?.id)
+    return { meetingId: meta.id }
+  })
+  handle('appendAudioChunk', (meetingId, chunk, segmentIndex) =>
+    storage.appendAudioChunk(meetingId, chunk, segmentIndex)
   )
-
-  ipcMain.handle(
-    IPC.appendAudioChunk,
-    (_e, meetingId: string, chunk: ArrayBuffer, segmentIndex?: number): Promise<void> =>
-      storage.appendAudioChunk(meetingId, chunk, segmentIndex)
-  )
-
-  ipcMain.handle(
-    IPC.finishRecording,
-    async (_e, meetingId: string, durationSec: number): Promise<void> => {
-      await storage.finishRecording(meetingId, durationSec)
-      enqueue(meetingId, 'full')
-    }
-  )
-
-  ipcMain.handle(IPC.saveLevelEnvelope, (_e, meetingId: string, envelope: LevelEnvelope): void =>
+  handle('finishRecording', async (meetingId, durationSec) => {
+    await storage.finishRecording(meetingId, durationSec)
+    enqueue(meetingId, 'full')
+  })
+  handle('saveLevelEnvelope', (meetingId, envelope) =>
     storage.writeLevelEnvelope(meetingId, envelope)
   )
-
-  ipcMain.handle(IPC.cancelRecording, (_e, meetingId: string): Promise<void> =>
-    storage.cancelRecording(meetingId)
-  )
-
-  ipcMain.handle(
-    IPC.transcribeLive,
-    async (_e, audio: ArrayBuffer, meetingId?: string): Promise<string> => {
-      const config = settings.getTranscriptionConfig()
-      // Checked here, not only in the renderer: this is what decides whether
-      // audio leaves the computer while the meeting is still going on.
-      if (!config.live) throw new Error('Live-transkribering är avstängd')
-      const text = await transcribeLiveWindow(audio, config)
-      const { transcript } = glossary.applyGlossary(
-        { language: config.language, segments: [], text },
-        glossary.termsForProject(meetingId ? storage.readMeta(meetingId)?.projectId : undefined)
-      )
-      return transcript.text
-    }
-  )
+  handle('cancelRecording', (meetingId) => storage.cancelRecording(meetingId))
+  handle('transcribeLive', async (audio, meetingId) => {
+    const config = settings.getTranscriptionConfig()
+    // Checked here, not only in the renderer: this is what decides whether
+    // audio leaves the computer while the meeting is still going on.
+    if (!config.live) throw new Error('Live-transkribering är avstängd')
+    const text = await transcribeLiveWindow(audio, config)
+    const { transcript } = glossary.applyGlossary(
+      { language: config.language, segments: [], text },
+      glossary.termsForProject(meetingId ? storage.readMeta(meetingId)?.projectId : undefined)
+    )
+    return transcript.text
+  })
 
   // ---- Settings ----
-  ipcMain.handle(IPC.getSettings, (): AppSettings => settings.getSettings())
-
-  ipcMain.handle(IPC.saveTranscriptionSettings, (_e, s: SaveTranscriptionSettings): void =>
-    settings.saveTranscriptionSettings(s)
-  )
-
-  ipcMain.handle(IPC.saveSummarySettings, (_e, s: SaveSummarySettings): void =>
-    settings.saveSummarySettings(s)
-  )
-
-  ipcMain.handle(IPC.saveDiarizationSettings, (_e, s: SaveDiarizationSettings): void =>
-    settings.saveDiarizationSettings(s)
-  )
-
-  ipcMain.handle(
-    IPC.saveGeneralSettings,
-    (
-      _e,
-      s: {
-        microphoneId?: string
-        captureSystemAudio?: boolean
-        userName?: string
-        theme?: AppSettings['theme']
-        onboardingCompleted?: boolean
-      }
-    ): void => settings.saveGeneralSettings(s)
-  )
-
-  ipcMain.handle(IPC.testTranscriptionConnection, (): Promise<ConnectionTestResult> =>
+  handle('getSettings', () => settings.getSettings())
+  handle('saveTranscriptionSettings', (s) => settings.saveTranscriptionSettings(s))
+  handle('saveSummarySettings', (s) => settings.saveSummarySettings(s))
+  handle('saveDiarizationSettings', (s) => settings.saveDiarizationSettings(s))
+  handle('saveGeneralSettings', (s) => settings.saveGeneralSettings(s))
+  handle('testTranscriptionConnection', () =>
     testTranscriptionConnection(settings.getTranscriptionConfig())
   )
-
-  ipcMain.handle(IPC.testSummaryConnection, (): Promise<ConnectionTestResult> =>
-    testSummaryConnection(settings.getSummaryConfig())
-  )
-
-  ipcMain.handle(IPC.testDiarizationConnection, (): Promise<ConnectionTestResult> =>
+  handle('testSummaryConnection', () => testSummaryConnection(settings.getSummaryConfig()))
+  handle('testDiarizationConnection', () =>
     testDiarizationConnection(settings.getDiarizationConfig())
   )
-
-  ipcMain.handle(IPC.listLocalAiComponents, (): LocalAiComponentStatus[] => listLocalAiComponents())
-  ipcMain.handle(
-    IPC.installLocalAiComponent,
-    (_e, component: LocalAiComponent): Promise<LocalAiComponentStatus> =>
-      installLocalAiComponent(component)
-  )
-  ipcMain.handle(IPC.removeLocalAiComponent, (_e, component: LocalAiComponent): Promise<void> =>
-    removeLocalAiComponent(component)
-  )
+  handle('listLocalAiComponents', () => listLocalAiComponents())
+  handle('installLocalAiComponent', (component) => installLocalAiComponent(component))
+  handle('removeLocalAiComponent', (component) => removeLocalAiComponent(component))
 
   // ---- Export ----
-  ipcMain.handle(
-    IPC.exportProtocol,
-    (
-      _e,
-      id: string,
-      format: 'md' | 'docx',
-      summaryId?: string
-    ): Promise<{ savedTo: string | null }> => exportProtocol(id, format, summaryId)
-  )
-
-  ipcMain.handle(IPC.copyProtocol, (_e, id: string, summaryId?: string): void =>
-    copyProtocol(id, summaryId)
-  )
+  handle('exportProtocol', (id, format, summaryId) => exportProtocol(id, format, summaryId))
+  handle('copyProtocol', (id, summaryId) => copyProtocol(id, summaryId))
 
   // ---- Misc ----
-  ipcMain.handle(IPC.openExternal, (_e, url: string): Promise<void> => openExternalSafe(url))
-
-  ipcMain.handle(IPC.getAppVersion, (): string => app.getVersion())
+  handle('openExternal', (url) => openExternalSafe(url))
+  handle('getAppVersion', () => app.getVersion())
 }

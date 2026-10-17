@@ -11,7 +11,7 @@ import { app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { randomUUID } from 'crypto'
-import type { Project } from '../shared/types'
+import type { Project, ProjectPatch } from '../shared/types'
 
 function projectsPath(): string {
   return join(app.getPath('userData'), 'projects.json')
@@ -80,10 +80,7 @@ export function createProject(name: string): Project {
   return created
 }
 
-export function updateProject(
-  id: string,
-  patch: { name?: string; defaultTemplateId?: string; description?: string }
-): Project | null {
+export function updateProject(id: string, patch: ProjectPatch): Project | null {
   const projects = load()
   const project = projects.find((p) => p.id === id)
   if (!project) return null

@@ -10,6 +10,7 @@ import type {
   SaveTranscriptionSettings,
   SaveSummarySettings,
   SaveDiarizationSettings,
+  SaveGeneralSettings,
   SummaryTemplate
 } from '../shared/types'
 import { builtInTemplates, DEFAULT_PROMPT_TEMPLATE, DEFAULT_TEMPLATE_ID } from './summaryTemplates'
@@ -330,13 +331,7 @@ export function saveDiarizationSettings(payload: SaveDiarizationSettings): void 
   persist(s)
 }
 
-export function saveGeneralSettings(payload: {
-  microphoneId?: string
-  captureSystemAudio?: boolean
-  userName?: string
-  theme?: AppSettings['theme']
-  onboardingCompleted?: boolean
-}): void {
+export function saveGeneralSettings(payload: SaveGeneralSettings): void {
   const s = load()
   if (payload.microphoneId !== undefined) s.microphoneId = payload.microphoneId
   if (payload.captureSystemAudio !== undefined) s.captureSystemAudio = payload.captureSystemAudio

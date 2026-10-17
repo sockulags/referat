@@ -304,6 +304,27 @@ export interface UpdateDownloadedEvent {
 
 // ---------- The preload API surface ----------
 
+export interface SaveGeneralSettings {
+  microphoneId?: string
+  captureSystemAudio?: boolean
+  userName?: string
+  theme?: AppSettings['theme']
+  onboardingCompleted?: boolean
+}
+
+/** `projectId: null` makes the term apply to every meeting again. */
+export interface GlossaryTermPatch {
+  canonical?: string
+  variants?: string[]
+  projectId?: string | null
+}
+
+export interface ProjectPatch {
+  name?: string
+  defaultTemplateId?: string
+  description?: string
+}
+
 export interface RendererApi {
   // Meetings
   listMeetings(): Promise<MeetingMeta[]>
@@ -349,11 +370,7 @@ export interface RendererApi {
    * project; omitted = every meeting.
    */
   addGlossaryEntry(canonical: string, variant: string, projectId?: string): Promise<GlossaryTerm>
-  /** `projectId: null` makes the term apply to every meeting again. */
-  updateGlossaryTerm(
-    id: string,
-    patch: { canonical?: string; variants?: string[]; projectId?: string | null }
-  ): Promise<GlossaryTerm | null>
+  updateGlossaryTerm(id: string, patch: GlossaryTermPatch): Promise<GlossaryTerm | null>
   deleteGlossaryTerm(id: string): Promise<void>
   /**
    * Re-correct one meeting's transcript from the current glossary. Returns the
@@ -366,10 +383,7 @@ export interface RendererApi {
   listProjects(): Promise<Project[]>
   /** Rejects when the name is blank. */
   createProject(name: string): Promise<Project>
-  updateProject(
-    id: string,
-    patch: { name?: string; defaultTemplateId?: string; description?: string }
-  ): Promise<Project | null>
+  updateProject(id: string, patch: ProjectPatch): Promise<Project | null>
   /** Deletes the project; its meetings stay and move to "Utan projekt". */
   deleteProject(id: string): Promise<void>
   /** Move a meeting into a project, or out of any project with null. */
@@ -413,13 +427,7 @@ export interface RendererApi {
   saveTranscriptionSettings(s: SaveTranscriptionSettings): Promise<void>
   saveSummarySettings(s: SaveSummarySettings): Promise<void>
   saveDiarizationSettings(s: SaveDiarizationSettings): Promise<void>
-  saveGeneralSettings(s: {
-    microphoneId?: string
-    captureSystemAudio?: boolean
-    userName?: string
-    theme?: AppSettings['theme']
-    onboardingCompleted?: boolean
-  }): Promise<void>
+  saveGeneralSettings(s: SaveGeneralSettings): Promise<void>
   testTranscriptionConnection(): Promise<ConnectionTestResult>
   testSummaryConnection(): Promise<ConnectionTestResult>
   testDiarizationConnection(): Promise<ConnectionTestResult>
