@@ -383,6 +383,11 @@ export interface RendererApi {
   extractActionItems(meetingId: string): Promise<ActionItem[]>
   /** Store the action items as the user edited them. */
   updateActionItems(meetingId: string, items: ActionItem[]): Promise<void>
+  /**
+   * Hand the action items to another tool: 'list' copies them, 'csv' asks
+   * where to save a file. savedTo is null for the list or a cancelled save.
+   */
+  exportActionItems(meetingId: string, format: 'list' | 'csv'): Promise<{ savedTo: string | null }>
 
   // Speakers
   /**

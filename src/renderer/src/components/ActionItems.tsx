@@ -6,7 +6,7 @@ import { strings } from '../strings'
 import { formatTimestamp } from '../format'
 import { Button, IconButton } from './ui/Button'
 import { Card } from './ui/Card'
-import { IconPlus, IconTrash } from './icons'
+import { IconCopy, IconDownload, IconPlus, IconTrash } from './icons'
 
 /** How long typing may pause before the list is saved. */
 const SAVE_DELAY_MS = 400
@@ -39,20 +39,25 @@ export function ActionItems({
   const pending = useRef<{ timer: ReturnType<typeof setTimeout>; items: ActionItem[] } | null>(null)
   const meetingId = meeting.id
 
-  const flush = useRef((): void => {})
+  /** Save what is waiting, now. Resolves false when saving failed. */
+  const flush = useRef(async (): Promise<boolean> => true)
   useEffect(() => {
-    flush.current = (): void => {
+    flush.current = async (): Promise<boolean> => {
       const job = pending.current
-      if (!job) return
+      if (!job) return true
       clearTimeout(job.timer)
       pending.current = null
-      window.api.updateActionItems(meetingId, job.items).catch(() => {
+      try {
+        await window.api.updateActionItems(meetingId, job.items)
+        return true
+      } catch {
         toast(strings.meeting.actionItemsSaveFailed, 'error')
-      })
+        return false
+      }
     }
   }, [meetingId, toast])
   // Leaving the meeting must not drop the last few keystrokes.
-  useEffect(() => () => flush.current(), [])
+  useEffect(() => () => void flush.current(), [])
 
   const processing = meeting.status !== 'done' && meeting.status !== 'error'
   if (!draft && (processing || !meeting.transcript)) return null
@@ -60,7 +65,7 @@ export function ActionItems({
   const change = (next: ActionItem[]): void => {
     setDraft(next)
     if (pending.current) clearTimeout(pending.current.timer)
-    pending.current = { items: next, timer: setTimeout(() => flush.current(), SAVE_DELAY_MS) }
+    pending.current = { items: next, timer: setTimeout(() => void flush.current(), SAVE_DELAY_MS) }
   }
   const update = (id: string, patch: Partial<ActionItem>): void =>
     change((draft ?? []).map((item) => (item.id === id ? { ...item, ...patch } : item)))
@@ -70,6 +75,19 @@ export function ActionItems({
     setFocusId(item.id)
     change([...(draft ?? []), item])
   }
+
+  // Exports read the stored list, so what is still waiting to be saved goes first.
+  const exportItems = async (format: 'list' | 'csv'): Promise<void> => {
+    if (!(await flush.current())) return
+    try {
+      const { savedTo } = await window.api.exportActionItems(meetingId, format)
+      if (format === 'list') toast(strings.meeting.actionItemsCopied)
+      else if (savedTo) toast(strings.meeting.actionItemsSaved)
+    } catch {
+      toast(strings.meeting.actionItemsExportFailed, 'error')
+    }
+  }
+  const hasText = (draft ?? []).some((item) => item.text.trim())
 
   const extract = async (): Promise<void> => {
     setExtracting(true)
@@ -89,9 +107,31 @@ export function ActionItems({
 
   return (
     <section aria-labelledby="action-items-title" className="mt-6">
-      <h2 id="action-items-title" className="pb-3 text-base font-semibold text-fg">
-        {strings.meeting.actionItemsTitle}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+        <h2 id="action-items-title" className="text-base font-semibold text-fg">
+          {strings.meeting.actionItemsTitle}
+        </h2>
+        {hasText && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void exportItems('list')}
+              iconLeft={<IconCopy size={16} />}
+            >
+              {strings.meeting.actionItemsCopy}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void exportItems('csv')}
+              iconLeft={<IconDownload size={16} />}
+            >
+              {strings.meeting.actionItemsCsv}
+            </Button>
+          </div>
+        )}
+      </div>
       <Card className="px-6 py-5">
         {!draft ? (
           <div className="flex flex-wrap items-center justify-between gap-3">

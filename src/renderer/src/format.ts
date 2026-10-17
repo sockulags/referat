@@ -1,19 +1,6 @@
 // Swedish date/time and duration formatting helpers.
 
-const MONTHS = [
-  'jan',
-  'feb',
-  'mars',
-  'april',
-  'maj',
-  'juni',
-  'juli',
-  'aug',
-  'sep',
-  'okt',
-  'nov',
-  'dec'
-]
+import { MONTHS_SHORT as MONTHS } from '../../shared/dates'
 
 function pad(n: number): string {
   return n < 10 ? `0${n}` : String(n)
@@ -34,15 +21,6 @@ export function formatRelativeDate(iso: string, now: Date = new Date()): string 
 
   const day = `${d.getDate()} ${MONTHS[d.getMonth()]}`
   return d.getFullYear() === now.getFullYear() ? day : `${day} ${d.getFullYear()}`
-}
-
-/** "YYYY-MM-DD" → "17 okt", with the year when it is not this year. '' for anything else. */
-export function formatDueDate(date: string, now: Date = new Date()): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
-  if (!m) return ''
-  const year = Number(m[1])
-  const day = `${Number(m[3])} ${MONTHS[Number(m[2]) - 1] ?? ''}`.trim()
-  return year === now.getFullYear() ? day : `${day} ${year}`
 }
 
 /** Seconds → "mm:ss" or "h:mm:ss" with tabular alignment in mind. */

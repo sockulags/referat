@@ -1,9 +1,11 @@
-// Export a meeting's protocol to Markdown or Word (.docx), plus clipboard copy.
+// Export a meeting's protocol to Markdown or Word (.docx), plus clipboard copy,
+// and its action items as a list or a CSV file for other tools.
 
 import { dialog, clipboard, BrowserWindow } from 'electron'
 import { writeFile } from 'fs/promises'
 import { Document, Packer, Paragraph, HeadingLevel, TextRun } from 'docx'
-import type { MeetingDetail, MeetingSummary } from '../shared/types'
+import type { ActionItem, MeetingDetail, MeetingSummary } from '../shared/types'
+import { formatDueDate } from '../shared/dates'
 import { getMeeting } from './storage'
 
 function sanitizeFilename(name: string): string {
@@ -125,6 +127,79 @@ export async function exportProtocol(
     await writeFile(result.filePath, buffer)
   }
 
+  return { savedTo: result.filePath }
+}
+
+/** "- Skicka kravlistan — Anna (senast 17 okt)", one line per item with text. */
+export function actionItemsAsList(items: ActionItem[], now: Date = new Date()): string {
+  return items
+    .filter((item) => item.text.trim())
+    .map((item) => {
+      const due = formatDueDate(item.due, now)
+      const owner = item.owner.trim() ? ` — ${item.owner.trim()}` : ''
+      return `- ${item.text.trim()}${owner}${due ? ` (senast ${due})` : ''}`
+    })
+    .join('\n')
+}
+
+function csvField(value: string): string {
+  return /[;"\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+}
+
+function timestamp(sec: number): string {
+  const s = Math.max(0, Math.floor(sec))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+/**
+ * The action items as CSV for Jira's importer or a spreadsheet. Semicolons,
+ * because Swedish Excel reads a comma as a decimal separator, and a byte
+ * order mark, so Excel opens å, ä and ö as UTF-8. Dates stay YYYY-MM-DD,
+ * which every import tool reads.
+ */
+export function actionItemsAsCsv(items: ActionItem[], meeting: MeetingDetail): string {
+  const meetingDate = meeting.createdAt.slice(0, 10)
+  const rows = [
+    ['Uppgift', 'Ansvarig', 'Senast', 'Möte', 'Mötesdatum', 'Sades vid'],
+    ...items
+      .filter((item) => item.text.trim())
+      .map((item) => [
+        item.text.trim(),
+        item.owner.trim(),
+        item.due,
+        meeting.title,
+        meetingDate,
+        item.atSec !== undefined ? timestamp(item.atSec) : ''
+      ])
+  ]
+  return '\uFEFF' + rows.map((row) => row.map(csvField).join(';')).join('\r\n') + '\r\n'
+}
+
+/**
+ * Hand the meeting's action items to another tool: as a list on the
+ * clipboard, or as a CSV file the user picks a place for.
+ */
+export async function exportActionItems(
+  id: string,
+  format: 'list' | 'csv'
+): Promise<{ savedTo: string | null }> {
+  const meeting = getMeeting(id)
+  const items = meeting?.actionItems ?? []
+  if (!meeting || !items.some((item) => item.text.trim())) return { savedTo: null }
+  if (format === 'list') {
+    clipboard.writeText(actionItemsAsList(items))
+    return { savedTo: null }
+  }
+  const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null
+  const options = {
+    defaultPath: `${sanitizeFilename(`${meeting.title} - actionpunkter`)}.csv`,
+    filters: [{ name: 'CSV', extensions: ['csv'] }]
+  }
+  const result = win
+    ? await dialog.showSaveDialog(win, options)
+    : await dialog.showSaveDialog(options)
+  if (result.canceled || !result.filePath) return { savedTo: null }
+  await writeFile(result.filePath, actionItemsAsCsv(items, meeting), 'utf-8')
   return { savedTo: result.filePath }
 }
 

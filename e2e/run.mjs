@@ -308,6 +308,13 @@ async function main() {
     (await page.getByLabel('Ansvarig', { exact: true }).first().inputValue()) === 'Anna Berg',
     'an edited owner is saved'
   )
+  await page.getByRole('button', { name: 'Kopiera som lista', exact: true }).click()
+  await page.waitForTimeout(800)
+  const copiedList = await app.evaluate(({ clipboard }) => clipboard.readText())
+  assert(
+    copiedList === '- Ta fram en ny annonsmall och skicka den till HR — Anna Berg',
+    `the action items copy as a list (got ${JSON.stringify(copiedList)})`
+  )
 
   // The recorder writes a level envelope alongside the audio, which is what
   // lets main tell the microphone apart from the system audio. The fake mic
