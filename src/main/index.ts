@@ -17,6 +17,8 @@ import { stopAllLocalAiComponents } from './localAiComponents'
 import { openExternalSafe } from './security'
 import { recoverPipeline } from './pipeline'
 import { isRecordingActive } from './storage'
+import { getSettings } from './settings'
+import { startedHidden } from './background'
 import { initAutoUpdater, installUpdateNow } from './updater'
 import { IPC } from './ipc'
 
@@ -27,9 +29,19 @@ if (process.env['REFERAT_USER_DATA']) {
   app.setPath('userData', process.env['REFERAT_USER_DATA'])
 }
 
+// One referat at a time. A second start, say from the Start menu while referat
+// sits in the tray, shows the running one instead of starting another next to
+// it. The lock follows userData, so isolated E2E runs do not collide.
+if (!app.requestSingleInstanceLock()) {
+  app.exit(0)
+}
+app.on('second-instance', () => restoreWindow())
+
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
+/** True until the first window has decided whether to show itself. */
+let hiddenStart = startedHidden()
 
 function restoreWindow(): void {
   if (!mainWindow || mainWindow.isDestroyed()) {
@@ -79,16 +91,21 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow?.show()
+    // Started by the login item: stay in the tray until the user opens it.
+    if (!hiddenStart) mainWindow?.show()
+    hiddenStart = false
   })
 
-  // While a recording is active, closing hides to tray instead of quitting.
+  // While a recording is active, or when the user wants referat in the
+  // background, closing hides to the tray instead of quitting.
   mainWindow.on('close', (event) => {
-    if (!isQuitting && isRecordingActive()) {
+    if (isQuitting) return
+    const recording = isRecordingActive()
+    if (recording || getSettings().runInBackground) {
       event.preventDefault()
       mainWindow?.hide()
       ensureTray()
-      tray?.setToolTip('referat – inspelning pågår')
+      tray?.setToolTip(recording ? 'referat – inspelning pågår' : 'referat körs i bakgrunden')
     }
   })
 

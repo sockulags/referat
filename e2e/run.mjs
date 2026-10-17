@@ -180,6 +180,29 @@ async function main() {
   await shot('settings')
   assert(await seen('Identifiera talare'), 'settings shows the speaker section')
 
+  // In the background: with the setting on, closing the window hides it to
+  // the tray instead of quitting, and it can be shown again.
+  await page.getByLabel('Ligg kvar i systemfältet när fönstret stängs', { exact: true }).click()
+  await page.waitForTimeout(500)
+  const closed = await app.evaluate(
+    ({ BrowserWindow }) =>
+      new Promise((resolve) => {
+        const win = BrowserWindow.getAllWindows()[0]
+        win.close()
+        setTimeout(
+          () =>
+            resolve({ windows: BrowserWindow.getAllWindows().length, visible: win.isVisible() }),
+          500
+        )
+      })
+  )
+  assert(
+    closed.windows === 1 && closed.visible === false,
+    `closing the window keeps referat running in the tray (got ${JSON.stringify(closed)})`
+  )
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show())
+  await page.waitForTimeout(500)
+
   const transcriptionCard = page
     .getByRole('heading', { name: 'Transkribering', exact: true })
     .locator('../..')

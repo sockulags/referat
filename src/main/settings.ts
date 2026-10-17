@@ -55,6 +55,8 @@ interface StoredSettings {
   diarization: StoredDiarization
   microphoneId: string
   captureSystemAudio: boolean
+  runInBackground: boolean
+  openAtLogin: boolean
   userName: string
   theme: AppSettings['theme']
   onboardingCompleted: boolean
@@ -138,6 +140,8 @@ function defaults(): StoredSettings {
     },
     microphoneId: '',
     captureSystemAudio: true,
+    runInBackground: false,
+    openAtLogin: false,
     userName: '',
     theme: 'system',
     onboardingCompleted: false
@@ -172,6 +176,8 @@ function load(): StoredSettings {
         diarization: { ...base.diarization, ...parsed.diarization },
         microphoneId: parsed.microphoneId ?? base.microphoneId,
         captureSystemAudio: parsed.captureSystemAudio ?? base.captureSystemAudio,
+        runInBackground: parsed.runInBackground ?? base.runInBackground,
+        openAtLogin: parsed.openAtLogin ?? base.openAtLogin,
         userName: parsed.userName ?? base.userName,
         theme: parsed.theme ?? base.theme,
         onboardingCompleted: parsed.onboardingCompleted ?? base.onboardingCompleted
@@ -261,6 +267,8 @@ export function getSettings(): AppSettings {
     },
     microphoneId: s.microphoneId,
     captureSystemAudio: s.captureSystemAudio,
+    runInBackground: s.runInBackground,
+    openAtLogin: s.openAtLogin,
     userName: s.userName,
     theme: s.theme,
     onboardingCompleted: s.onboardingCompleted
@@ -339,6 +347,8 @@ export function saveGeneralSettings(payload: SaveGeneralSettings): void {
   const s = load()
   if (payload.microphoneId !== undefined) s.microphoneId = payload.microphoneId
   if (payload.captureSystemAudio !== undefined) s.captureSystemAudio = payload.captureSystemAudio
+  if (payload.runInBackground !== undefined) s.runInBackground = payload.runInBackground
+  if (payload.openAtLogin !== undefined) s.openAtLogin = payload.openAtLogin
   if (payload.userName !== undefined) s.userName = payload.userName.trim()
   if (payload.theme !== undefined) s.theme = payload.theme
   if (payload.onboardingCompleted !== undefined) s.onboardingCompleted = payload.onboardingCompleted

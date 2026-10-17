@@ -327,6 +327,16 @@ export const strings = {
       systemAudio: 'Spela in systemljud',
       systemAudioHint: 'Fånga det som spelas upp i datorn, t.ex. andra i ett videomöte.'
     },
+    background: {
+      title: 'I bakgrunden',
+      description:
+        'Låt referat vara igång när fönstret är stängt, så att det kan märka när ett möte börjar.',
+      runInBackground: 'Ligg kvar i systemfältet när fönstret stängs',
+      runInBackgroundHint:
+        'referat fortsätter i bakgrunden. Öppna det igen eller avsluta det från ikonen i systemfältet.',
+      openAtLogin: 'Starta med Windows',
+      openAtLoginHint: 'referat startar dolt i systemfältet när du loggar in.'
+    },
     transcription: {
       title: 'Transkribering',
       description: 'Tjänsten som skriver ut vad som sagts under mötet.',

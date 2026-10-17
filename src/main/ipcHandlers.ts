@@ -20,6 +20,7 @@ import {
 import { exportProtocol, copyProtocol, exportActionItems, openFollowUpEmail } from './export'
 import { extractActionItems, saveActionItems } from './actionItems'
 import { searchMeetings } from './search'
+import { applyOpenAtLogin } from './background'
 import { testTranscriptionConnection, transcribeLiveWindow } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
 import { testDiarizationConnection } from './providers/diarization'
@@ -148,7 +149,10 @@ export function registerIpcHandlers(): void {
   handle('saveTranscriptionSettings', (s) => settings.saveTranscriptionSettings(s))
   handle('saveSummarySettings', (s) => settings.saveSummarySettings(s))
   handle('saveDiarizationSettings', (s) => settings.saveDiarizationSettings(s))
-  handle('saveGeneralSettings', (s) => settings.saveGeneralSettings(s))
+  handle('saveGeneralSettings', (s) => {
+    settings.saveGeneralSettings(s)
+    if (s.openAtLogin !== undefined) applyOpenAtLogin(s.openAtLogin)
+  })
   handle('testTranscriptionConnection', () =>
     testTranscriptionConnection(settings.getTranscriptionConfig())
   )
