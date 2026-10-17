@@ -44,12 +44,37 @@ Wizarden går att hoppa över och nås igen från inställningar.
    Appen kan minimeras till systray; diskret indikator på att inspelning pågår.
 3. Stopp → pipeline kör automatiskt: Transkriberar… → Sammanfattar… → Klart.
    Tydliga statussteg med progress. Går att stänga appen; jobbet återupptas.
-4. Mötesvy: **Protokoll**-flik (sammanfattning, beslut, actionpunkter med ägare) och
-   **Transkript**-flik (fulltext, sökbar). Protokollfliken listar mötets alla
-   sammanfattningar sida vid sida och kan skapa fler. Export: Markdown, Word (.docx),
-   kopiera.
+4. Mötesvy: **Protokoll**-flik (sammanfattning, beslut, öppna frågor) med mötets
+   actionpunkter under, och **Transkript**-flik (fulltext, sökbar). Protokollfliken
+   listar mötets alla sammanfattningar sida vid sida och kan skapa fler. Export:
+   Markdown, Word (.docx), kopiera. En spelare spelar upp inspelningen, och en
+   tidsstämpel i transkriptet spelar från just det stället.
 5. Startsidan listar tidigare möten med statuschip: Inspelad / Transkriberad / Klar /
    Fel (med "försök igen").
+
+### Actionpunkter: rätta och lämna över
+
+referat är ett protokollverktyg, inte ett ärendesystem. Pipelinen tar fram mötets
+actionpunkter som en lista: vad som ska göras, vem, när och var i mötet det bestämdes.
+Användaren rättar listan i mötesvyn (text, ansvarig, datum, ta bort, lägg till) och
+lämnar över den: som lista att klistra in i Teams, mejl eller To Do, eller som CSV för
+Jira och Excel. Protokollet visar samma punkter; vid kopiering och export läggs den
+rättade listan in under rubriken Actionpunkter.
+
+Det finns medvetet ingen status, inga bockar och ingen uppföljning mellan möten. Den som
+vill följa upp gör det i verktygen teamet redan använder.
+
+### Synkat med dina möten
+
+Inspelningen ska börja utan att användaren behöver komma ihåg det. referat känner igen
+när ett samtal i Teams, Zoom eller Google Meet börjar och frågar om det ska spelas in,
+med en påminnelse om att berätta för deltagarna. Kopplat till kalendern hämtar referat
+titel, deltagare och dagordning, sätter projekt och mall utifrån mötesserien och kan
+spela in valda möten automatiskt. Deltagarna blir förslag på talarnamn, aldrig tysta
+beslut, och dagordningen blir underlag för sammanfattningen.
+
+Kalendern läses bara här på datorn. Ingenting om mötet lämnar datorn för att referat
+har läst kalendern.
 
 ### Ordlista för felhörda termer
 
@@ -142,9 +167,11 @@ Röstavtryck är biometriska personuppgifter (GDPR art. 9): allt lagras lokalt,
 avtryck kan raderas enskilt eller alla på en gång, och inställningstexten uppmanar
 till att informera deltagarna. Wikin dokumenterar ansvaret för IT/DPO.
 
-## Utanför scope (MVP)
+## Utanför scope
 
-Kalenderintegration, team-delning, macOS/Linux, engelska UI. Arkitekturen ska inte blockera dessa senare.
+Ärendehantering och uppföljning av actionpunkter (se ovan). Parkerat tills vidare:
+team-delning av protokoll, förkonfiguration via företagspolicy, engelskt gränssnitt,
+CA-signerad installer och macOS/Linux. Arkitekturen ska inte blockera dessa senare.
 
 ## Distribution
 
