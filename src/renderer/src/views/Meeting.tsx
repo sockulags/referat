@@ -27,8 +27,10 @@ import {
   IconRetry,
   IconClock,
   IconTrash,
-  IconX
+  IconX,
+  IconExternal
 } from '../components/icons'
+import { FOLLOW_UP_TEMPLATE_ID } from '../../../shared/templates'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import { AudioPlayer } from '../components/AudioPlayer'
 import { ActionItems } from '../components/ActionItems'
@@ -345,6 +347,16 @@ function ProtocolTab({
     setTimeout(() => setCopied(false), 1800)
   }
 
+  const openEmail = async (): Promise<void> => {
+    if (!selected) return
+    try {
+      const { copied } = await window.api.openFollowUpEmail(meeting.id, selected.id)
+      if (copied) toast(strings.meeting.emailCopied)
+    } catch {
+      toast(strings.meeting.emailFailed, 'error')
+    }
+  }
+
   const save = async (format: 'md' | 'docx'): Promise<void> => {
     if (!selected) return
     const res = await window.api.exportProtocol(meeting.id, format, selected.id)
@@ -423,6 +435,16 @@ function ProtocolTab({
             >
               {strings.meeting.saveWord}
             </Button>
+            {selected.templateId === FOLLOW_UP_TEMPLATE_ID && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void openEmail()}
+                iconLeft={<IconExternal size={16} />}
+              >
+                {strings.meeting.openAsEmail}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

@@ -4,6 +4,7 @@
 // can be edited but never deleted, so there is always something to fall back to.
 
 import type { SummaryTemplate } from '../shared/types'
+import { FOLLOW_UP_TEMPLATE_ID } from '../shared/templates'
 
 /** The template a meeting uses when nothing else has been chosen. */
 export const DEFAULT_TEMPLATE_ID = 'protokoll'
@@ -186,7 +187,7 @@ export function builtInTemplates(): SummaryTemplate[] {
     { id: 'actionpunkter', name: 'Actionpunkter', promptTemplate: ACTION_ITEMS, builtIn: true },
     { id: 'beslutslogg', name: 'Beslutslogg', promptTemplate: DECISION_LOG, builtIn: true },
     {
-      id: 'uppfoljningsmejl',
+      id: FOLLOW_UP_TEMPLATE_ID,
       name: 'Uppföljningsmejl',
       promptTemplate: FOLLOW_UP_EMAIL,
       builtIn: true

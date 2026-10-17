@@ -4,7 +4,13 @@ import type { ActionItem, MeetingDetail } from '../shared/types'
 vi.mock('electron', () => ({ dialog: {}, clipboard: {}, BrowserWindow: {} }))
 vi.mock('./storage', () => ({}))
 
-const { actionItemsAsList, actionItemsAsCsv, exportedMarkdown } = await import('./export')
+const {
+  actionItemsAsList,
+  actionItemsAsCsv,
+  exportedMarkdown,
+  followUpEmail,
+  markdownToPlainText
+} = await import('./export')
 
 const items: ActionItem[] = [
   { id: 'a1', text: 'Skicka kravlistan', owner: 'Anna', due: '2026-10-17', atSec: 790 },
@@ -56,6 +62,44 @@ describe('exportedMarkdown', () => {
       summary.markdown
     )
     expect(exportedMarkdown({ ...meeting, actionItems: [] }, summary, now)).toBe(summary.markdown)
+  })
+})
+
+describe('followUpEmail', () => {
+  const now = new Date(2026, 9, 17)
+  const mail = {
+    id: 's2',
+    fileName: 'protocol-uppfoljningsmejl.md',
+    templateId: 'uppfoljningsmejl',
+    templateName: 'Uppföljningsmejl',
+    focus: '',
+    createdAt: '',
+    markdown: '**Ämne:** Kravlista och nästa steg\n\nHej!\n\nVi kom **överens** om avropet.'
+  }
+
+  it('takes the subject from the template and the action items after the text', () => {
+    expect(followUpEmail({ ...meeting, actionItems: items }, mail, now)).toEqual({
+      subject: 'Kravlista och nästa steg',
+      body:
+        'Hej!\n\nVi kom överens om avropet.\n\nActionpunkter:\n' +
+        '- Skicka kravlistan — Anna (senast 17 okt)\n- Boka workshop; navigation'
+    })
+  })
+
+  it('falls back to the meeting title and leaves out an empty list', () => {
+    const plain = { ...mail, markdown: 'Hej!' }
+    expect(followUpEmail({ ...meeting, actionItems: [] }, plain, now)).toEqual({
+      subject: meeting.title,
+      body: 'Hej!'
+    })
+  })
+})
+
+describe('markdownToPlainText', () => {
+  it('drops heading marks, bold and code ticks but keeps lists', () => {
+    expect(markdownToPlainText('## Rubrik\n\n- **Fet** och `kod`\n\n\n\nSlut')).toBe(
+      'Rubrik\n\n- Fet och kod\n\nSlut'
+    )
   })
 })
 

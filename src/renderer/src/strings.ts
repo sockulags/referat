@@ -157,6 +157,9 @@ export const strings = {
     deleteSummaryTitle: 'Ta bort sammanfattningen?',
     deleteSummaryBody: (name: string): string =>
       `Sammanfattningen "${name}" och dess fil tas bort. Transkriptet och mötets övriga sammanfattningar påverkas inte. Det går inte att ångra.`,
+    openAsEmail: 'Öppna som mejlutkast',
+    emailCopied: 'Mejlet är för långt för en länk. Texten är kopierad, klistra in den i utkastet.',
+    emailFailed: 'Mejlutkastet kunde inte öppnas',
     actionItemsTitle: 'Actionpunkter',
     actionItemsNone: 'Inga actionpunkter hittades i mötet.',
     actionItemsMissing: 'Actionpunkterna har inte tagits fram för det här mötet än.',

@@ -17,7 +17,7 @@ import {
   retryPipeline,
   resummarize
 } from './pipeline'
-import { exportProtocol, copyProtocol, exportActionItems } from './export'
+import { exportProtocol, copyProtocol, exportActionItems, openFollowUpEmail } from './export'
 import { extractActionItems, saveActionItems } from './actionItems'
 import { testTranscriptionConnection, transcribeLiveWindow } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
@@ -161,6 +161,7 @@ export function registerIpcHandlers(): void {
   // ---- Export ----
   handle('exportProtocol', (id, format, summaryId) => exportProtocol(id, format, summaryId))
   handle('copyProtocol', (id, summaryId) => copyProtocol(id, summaryId))
+  handle('openFollowUpEmail', (meetingId, summaryId) => openFollowUpEmail(meetingId, summaryId))
 
   // ---- Misc ----
   handle('openExternal', (url) => openExternalSafe(url))

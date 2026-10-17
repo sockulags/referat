@@ -481,6 +481,11 @@ export interface RendererApi {
     summaryId?: string
   ): Promise<{ savedTo: string | null }>
   copyProtocol(id: string, summaryId?: string): Promise<void>
+  /**
+   * Open a follow-up email summary as a draft in the mail program. copied is
+   * true when the text was too long for that and went to the clipboard.
+   */
+  openFollowUpEmail(meetingId: string, summaryId: string): Promise<{ copied: boolean }>
 
   // Events
   onPipelineProgress(cb: (e: PipelineProgressEvent) => void): () => void
