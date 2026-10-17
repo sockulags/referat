@@ -2,7 +2,13 @@
 import { create } from 'zustand'
 import type { AppSettings } from '../../shared/types'
 
-type View = 'home' | 'recording' | 'meeting' | 'settings' | 'onboarding'
+type View = 'home' | 'recording' | 'meeting' | 'settings' | 'onboarding' | 'search'
+
+/** Where a meeting opens: a tab, and in the transcript a moment to go to. */
+export interface MeetingFocus {
+  tab: 'protocol' | 'transcript'
+  atSec?: number
+}
 
 /** Which meetings Home lists: all of them, those outside any project, or one project's id. */
 export type ProjectFilter = 'all' | 'none' | (string & {})
@@ -47,8 +53,13 @@ interface AppState {
   projectFilter: ProjectFilter
   settings?: AppSettings
   toasts: Toast[]
+  /** Set by openMeetingAt, read once by the meeting view. */
+  meetingFocus?: MeetingFocus
 
   navigate: (view: View, meetingId?: string) => void
+  /** Open a meeting at a tab and, in the transcript, at a moment. */
+  openMeetingAt: (meetingId: string, focus: MeetingFocus) => void
+  clearMeetingFocus: () => void
   setPendingTitle: (title: string) => void
   setPendingTemplateId: (templateId: string) => void
   setPendingStart: (start: { templateId: string; projectId: string }) => void
@@ -70,7 +81,10 @@ export const useApp = create<AppState>((set) => ({
   settings: undefined,
   toasts: [],
 
-  navigate: (view, meetingId): void => set({ view, meetingId }),
+  navigate: (view, meetingId): void => set({ view, meetingId, meetingFocus: undefined }),
+  openMeetingAt: (meetingId, meetingFocus): void =>
+    set({ view: 'meeting', meetingId, meetingFocus }),
+  clearMeetingFocus: (): void => set({ meetingFocus: undefined }),
   setPendingTitle: (pendingTitle): void => set({ pendingTitle }),
   setPendingTemplateId: (pendingTemplateId): void => set({ pendingTemplateId }),
   setPendingStart: (pendingStart): void => set({ pendingStart }),

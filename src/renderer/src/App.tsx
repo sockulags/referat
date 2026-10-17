@@ -8,6 +8,7 @@ import { Home } from './views/Home'
 import { Recording } from './views/Recording'
 import { Meeting } from './views/Meeting'
 import { Settings } from './views/Settings'
+import { Search } from './views/Search'
 import { Onboarding } from './views/Onboarding'
 import { Spinner } from './components/ui/Spinner'
 
@@ -93,6 +94,7 @@ function App(): JSX.Element {
         {view === 'recording' && <Recording />}
         {view === 'meeting' && <Meeting />}
         {view === 'settings' && <Settings />}
+        {view === 'search' && <Search />}
       </main>
       <Toasts />
       <UpdateReadyToast />

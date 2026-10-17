@@ -28,6 +28,7 @@ export const strings = {
     label: 'Huvudmeny',
     home: 'Hem',
     latestMeeting: 'Senaste mötet',
+    search: 'Sök i möten',
     settings: 'Inställningar'
   },
 
@@ -293,6 +294,25 @@ export const strings = {
       looksGood: 'Mikrofonen fungerar',
       finish: 'Klar — sätt igång'
     }
+  },
+
+  search: {
+    title: 'Sök i möten',
+    intro: 'Sök i alla transkript och protokoll. Sökningen sker här på datorn.',
+    label: 'Sök efter',
+    placeholder: 'Ord eller fras',
+    project: 'Projekt',
+    allProjects: 'Alla möten',
+    noProject: 'Utan projekt',
+    time: 'Tid',
+    allTime: 'Alla tider',
+    last30: 'Senaste 30 dagarna',
+    last90: 'Senaste tre månaderna',
+    last365: 'Senaste året',
+    count: (n: number): string => (n === 1 ? '1 möte' : `${n} möten`),
+    none: 'Inga möten innehåller det du sökte.',
+    more: (n: number): string => `och ${n} ställen till`,
+    inProtocol: (name: string): string => `I ${name.toLowerCase()}`
   },
 
   settings: {

@@ -19,6 +19,7 @@ import {
 } from './pipeline'
 import { exportProtocol, copyProtocol, exportActionItems, openFollowUpEmail } from './export'
 import { extractActionItems, saveActionItems } from './actionItems'
+import { searchMeetings } from './search'
 import { testTranscriptionConnection, transcribeLiveWindow } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
 import { testDiarizationConnection } from './providers/diarization'
@@ -49,6 +50,7 @@ export function registerIpcHandlers(): void {
   handle('listMeetings', () => storage.listMeetings())
   handle('getMeeting', (id) => storage.getMeeting(id))
   handle('deleteMeeting', (id) => storage.deleteMeeting(id))
+  handle('searchMeetings', (query, filter) => searchMeetings(query, filter))
   handle('renameMeeting', (id, title) => storage.renameMeeting(id, title))
   handle('retryPipeline', (id) => retryPipeline(id))
   handle('resummarize', (id) => resummarize(id))

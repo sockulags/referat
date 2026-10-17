@@ -8,6 +8,7 @@ export const IPC = {
   listMeetings: 'meetings:list',
   getMeeting: 'meetings:get',
   deleteMeeting: 'meetings:delete',
+  searchMeetings: 'meetings:search',
   renameMeeting: 'meetings:rename',
   retryPipeline: 'pipeline:retry',
   resummarize: 'pipeline:resummarize',

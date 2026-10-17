@@ -26,6 +26,7 @@ const api: RendererApi = {
   listMeetings: invoke('listMeetings'),
   getMeeting: invoke('getMeeting'),
   deleteMeeting: invoke('deleteMeeting'),
+  searchMeetings: invoke('searchMeetings'),
   renameMeeting: invoke('renameMeeting'),
   retryPipeline: invoke('retryPipeline'),
   resummarize: invoke('resummarize'),
