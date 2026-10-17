@@ -65,6 +65,12 @@ const diarize = vi.fn()
 vi.mock('./providers/transcription', () => ({ transcribe: (...a: unknown[]) => transcribe(...a) }))
 vi.mock('./providers/diarization', () => ({ diarize: (...a: unknown[]) => diarize(...a) }))
 vi.mock('./providers/summary', () => ({ summarize: async () => '# Protokoll' }))
+const extractActionItems = vi.fn()
+let actionItemsStored = false
+vi.mock('./actionItems', () => ({
+  extractActionItems: (...a: unknown[]) => extractActionItems(...a),
+  needsActionItems: () => !actionItemsStored
+}))
 
 const { enqueue } = await import('./pipeline')
 
@@ -100,6 +106,9 @@ beforeEach(() => {
   diarizationConfig.enabled = true
   transcribe.mockReset()
   diarize.mockReset()
+  extractActionItems.mockReset()
+  extractActionItems.mockResolvedValue([])
+  actionItemsStored = false
 })
 
 describe('pipeline diarization', () => {
@@ -143,6 +152,37 @@ describe('pipeline diarization', () => {
     enqueue('m1')
     await vi.waitFor(() => expect(finalStatus()).toEqual({ status: 'done', error: undefined }))
     expect(metaUpdates.some((patch) => patch.warning)).toBe(true)
+  })
+
+  it('takes the action items from a new transcript', async () => {
+    diarizationConfig.enabled = false
+    transcribe.mockResolvedValue(fresh)
+
+    enqueue('m1')
+    await vi.waitFor(() => expect(finalStatus()).toEqual({ status: 'done', error: undefined }))
+    expect(extractActionItems).toHaveBeenCalledWith('m1')
+  })
+
+  it('keeps the action items there are when the summary is redone', async () => {
+    diarizationConfig.enabled = false
+    transcript = fresh
+    actionItemsStored = true
+
+    enqueue('m1', 'summarize')
+    await vi.waitFor(() => expect(finalStatus()).toEqual({ status: 'done', error: undefined }))
+    expect(extractActionItems).not.toHaveBeenCalled()
+  })
+
+  it('turns an action item failure into a warning and still finishes', async () => {
+    diarizationConfig.enabled = false
+    transcribe.mockResolvedValue(fresh)
+    extractActionItems.mockRejectedValue(new Error('model confused'))
+
+    enqueue('m1')
+    await vi.waitFor(() => expect(finalStatus()).toEqual({ status: 'done', error: undefined }))
+    expect(metaUpdates).toContainEqual({
+      warning: expect.objectContaining({ message: expect.stringContaining('Actionpunkterna') })
+    })
   })
 
   it('does not call the diarizer when diarization is off', async () => {

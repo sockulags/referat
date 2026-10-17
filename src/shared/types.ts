@@ -124,10 +124,30 @@ export interface MeetingSummary {
   markdown: string
 }
 
+/**
+ * Something someone took on during the meeting. referat hands these off to
+ * other tools and does not track them, so there is no status.
+ */
+export interface ActionItem {
+  id: string
+  text: string
+  /** Who does it, as named in the meeting. '' when it was not said. */
+  owner: string
+  /** Due date as YYYY-MM-DD. '' when none was mentioned. */
+  due: string
+  /** Where in the recording it was agreed, in seconds. */
+  atSec?: number
+}
+
 export interface MeetingDetail extends MeetingMeta {
   transcript?: Transcript
   /** Every summary generated for this meeting, oldest first. */
   summaries: MeetingSummary[]
+  /**
+   * Action items taken from the transcript. Absent until they have been
+   * extracted; [] when the meeting had none.
+   */
+  actionItems?: ActionItem[]
 }
 
 // ---------- Projects ----------
@@ -349,6 +369,11 @@ export interface RendererApi {
    * one can always be generated from the transcript.
    */
   deleteSummary(meetingId: string, summaryId: string): Promise<void>
+  /**
+   * Take the action items from the meeting's transcript, for meetings recorded
+   * before this ran in the pipeline. Takes as long as a model call.
+   */
+  extractActionItems(meetingId: string): Promise<ActionItem[]>
 
   // Speakers
   /**

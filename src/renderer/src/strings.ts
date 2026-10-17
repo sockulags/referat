@@ -156,6 +156,14 @@ export const strings = {
     deleteSummaryTitle: 'Ta bort sammanfattningen?',
     deleteSummaryBody: (name: string): string =>
       `Sammanfattningen "${name}" och dess fil tas bort. Transkriptet och mötets övriga sammanfattningar påverkas inte. Det går inte att ångra.`,
+    actionItemsTitle: 'Actionpunkter',
+    actionItemsNone: 'Inga actionpunkter hittades i mötet.',
+    actionItemsMissing: 'Actionpunkterna har inte tagits fram för det här mötet än.',
+    actionItemsExtract: 'Hämta actionpunkter',
+    actionItemsFailed: 'Actionpunkterna kunde inte tas fram',
+    actionItemNoOwner: 'Ingen ansvarig',
+    actionItemDue: (date: string): string => `senast ${date}`,
+    actionItemAt: (time: string): string => `vid ${time}`,
     newSummary: 'Ny sammanfattning',
     newSummaryTitle: 'Ny sammanfattning',
     newSummaryIntro:

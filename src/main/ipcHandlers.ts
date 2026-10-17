@@ -18,6 +18,7 @@ import {
   resummarize
 } from './pipeline'
 import { exportProtocol, copyProtocol } from './export'
+import { extractActionItems } from './actionItems'
 import { testTranscriptionConnection, transcribeLiveWindow } from './providers/transcription'
 import { testSummaryConnection } from './providers/summary'
 import { testDiarizationConnection } from './providers/diarization'
@@ -55,6 +56,7 @@ export function registerIpcHandlers(): void {
     generateSummary(meetingId, templateId, focus)
   )
   handle('deleteSummary', (meetingId, summaryId) => storage.deleteSummary(meetingId, summaryId))
+  handle('extractActionItems', (meetingId) => extractActionItems(meetingId))
 
   // ---- Speakers ----
   handle('renameSpeaker', (meetingId, speakerId, name) =>

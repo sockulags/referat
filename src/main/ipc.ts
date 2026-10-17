@@ -13,6 +13,7 @@ export const IPC = {
   resummarize: 'pipeline:resummarize',
   generateSummary: 'summaries:generate',
   deleteSummary: 'summaries:delete',
+  extractActionItems: 'meetings:extract-action-items',
 
   // Speakers
   renameSpeaker: 'speakers:rename',

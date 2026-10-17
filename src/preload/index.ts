@@ -31,6 +31,7 @@ const api: RendererApi = {
   resummarize: invoke('resummarize'),
   generateSummary: invoke('generateSummary'),
   deleteSummary: invoke('deleteSummary'),
+  extractActionItems: invoke('extractActionItems'),
 
   // Speakers
   renameSpeaker: invoke('renameSpeaker'),
