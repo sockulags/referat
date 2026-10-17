@@ -329,6 +329,30 @@ export interface UpdateDownloadedEvent {
   version: string
 }
 
+// ---------- Search ----------
+
+export interface SearchFilter {
+  /** 'all', 'none' (outside any project) or a project id. */
+  projectId: string
+  /** Only meetings from the last this many days; null for all of them. */
+  sinceDays: number | null
+}
+
+export type SearchHit =
+  | { kind: 'transcript'; startSec: number; speaker?: string; text: string }
+  | { kind: 'protocol'; summaryId: string; templateName: string; text: string }
+
+export interface SearchResult {
+  meetingId: string
+  title: string
+  createdAt: string
+  projectId?: string
+  /** The first few places the words were found. */
+  hits: SearchHit[]
+  /** How many places in all. */
+  total: number
+}
+
 // ---------- The preload API surface ----------
 
 export interface SaveGeneralSettings {
@@ -357,6 +381,11 @@ export interface RendererApi {
   listMeetings(): Promise<MeetingMeta[]>
   getMeeting(id: string): Promise<MeetingDetail | null>
   deleteMeeting(id: string): Promise<void>
+  /**
+   * Find meetings whose transcript or protocols contain every word of the
+   * query, newest first. Searches this computer only.
+   */
+  searchMeetings(query: string, filter: SearchFilter): Promise<SearchResult[]>
   renameMeeting(id: string, title: string): Promise<void>
   /** Re-run the pipeline after an error, from the failed step. */
   retryPipeline(id: string): Promise<void>

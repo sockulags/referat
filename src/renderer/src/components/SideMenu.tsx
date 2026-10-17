@@ -2,7 +2,7 @@ import type { JSX, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useApp } from '../store'
 import { strings } from '../strings'
-import { Wordmark, IconHome, IconDocument, IconSettings } from './icons'
+import { Wordmark, IconHome, IconDocument, IconSettings, IconSearch } from './icons'
 import { cn } from './ui/cn'
 
 /**
@@ -53,6 +53,13 @@ export function SideMenu(): JSX.Element {
           onClick={() => latestId && navigate('meeting', latestId)}
         >
           {strings.nav.latestMeeting}
+        </MenuItem>
+        <MenuItem
+          icon={<IconSearch size={18} />}
+          active={view === 'search'}
+          onClick={() => navigate('search')}
+        >
+          {strings.nav.search}
         </MenuItem>
         <div className="hidden flex-1 md:block" />
         <MenuItem

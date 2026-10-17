@@ -438,6 +438,19 @@ async function main() {
       .click()
       .catch(() => {})
 
+    // Search: a hit opens the meeting's transcript at that moment.
+    await page.getByRole('button', { name: 'Sök i möten', exact: true }).click()
+    await page.getByLabel('Sök efter', { exact: true }).fill('introduktionsdagen femtonde')
+    const searchHit = page.getByRole('button', { name: /00:12/ }).first()
+    const found = await searchHit
+      .waitFor({ state: 'visible', timeout: 8000 })
+      .then(() => true)
+      .catch(() => false)
+    assert(found, 'search finds the transcript line with every word of the query')
+    await shot('search')
+    if (found) await searchHit.click()
+    assert(await seen('00:12 / 00:15', 8000), 'a search hit opens the meeting at that moment')
+
     // Speaker labels from diarization (mock server: S1/S2 -> Talare 1/Talare 2).
     assert(await seen('Talare 1', 8000), 'transcript tab shows speaker label "Talare 1"')
     assert(await seen('Talare 2', 5000), 'transcript tab shows speaker label "Talare 2"')

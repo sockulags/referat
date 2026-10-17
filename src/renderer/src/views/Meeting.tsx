@@ -39,13 +39,31 @@ import { cn } from '../components/ui/cn'
 
 type Tab = 'protocol' | 'transcript'
 
+/** The DOM id of a transcript segment, so a search hit can scroll to it. */
+function segmentDomId(startSec: number): string {
+  return `segment-${Math.round(startSec * 1000)}`
+}
+
 export function Meeting(): JSX.Element {
   const meetingId = useApp((s) => s.meetingId)
   const toast = useApp((s) => s.toast)
   const [meeting, setMeeting] = useState<MeetingDetail | null>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<Tab>('protocol')
+  const focus = useApp((s) => s.meetingFocus)
+  const clearMeetingFocus = useApp((s) => s.clearMeetingFocus)
+  // Opened from a search hit: start on its tab.
+  const [tab, setTab] = useState<Tab>(focus?.tab ?? 'protocol')
   const audio = useMeetingAudio(meeting)
+  const focusAt = focus?.atSec
+  const seek = audio.available ? audio.seek : undefined
+
+  // Then, once the transcript is there, go to the moment the hit was found.
+  useEffect(() => {
+    if (!meeting || focusAt === undefined) return
+    seek?.(focusAt)
+    document.getElementById(segmentDomId(focusAt))?.scrollIntoView({ block: 'center' })
+    clearMeetingFocus()
+  }, [meeting, focusAt, seek, clearMeetingFocus])
   const playFrom = audio.available ? audio.playFrom : undefined
 
   const load = useCallback(async (): Promise<void> => {
@@ -977,7 +995,7 @@ function SegmentRow({
   }
 
   return (
-    <div className="flex gap-4 px-4 py-3">
+    <div id={segmentDomId(segment.startSec)} className="flex gap-4 px-4 py-3">
       {onPlayFrom ? (
         <button
           type="button"

@@ -12,6 +12,7 @@ import {
   writeFileSync,
   rmSync,
   readdirSync,
+  statSync,
   createWriteStream
 } from 'fs'
 import type { WriteStream } from 'fs'
@@ -361,6 +362,29 @@ function readSummaryFile(id: string, fileName: string): string | undefined {
  * templates existed has a bare protocol.md and no index; it shows up as a
  * summary called 'Protokoll' so nothing recorded earlier disappears.
  */
+/**
+ * Changes whenever the meeting's transcript or any of its summaries is
+ * written; lets a cache of meeting text tell what it has to read again.
+ */
+export function textStamp(id: string): string {
+  const dir = meetingDir(id)
+  const files = [
+    'transcript.json',
+    'summaries.json',
+    LEGACY_PROTOCOL_FILE,
+    ...readSummaryIndex(id).map((e) => e.fileName)
+  ]
+  return files
+    .map((file) => {
+      try {
+        return String(statSync(join(dir, file)).mtimeMs)
+      } catch {
+        return '-'
+      }
+    })
+    .join(':')
+}
+
 export function listSummaries(id: string): MeetingSummary[] {
   const entries = readSummaryIndex(id)
   const summaries: MeetingSummary[] = []
