@@ -345,9 +345,9 @@ export interface RendererApi {
   listGlossaryTerms(): Promise<GlossaryTerm[]>
   /**
    * Add a misheard form to the term with this spelling, creating it when new.
-   * Rejects when either string is blank.
+   * Rejects when either string is blank. `projectId` limits a new term to that
+   * project; omitted = every meeting.
    */
-  /** `projectId` limits a new term to that project; omitted = every meeting. */
   addGlossaryEntry(canonical: string, variant: string, projectId?: string): Promise<GlossaryTerm>
   /** `projectId: null` makes the term apply to every meeting again. */
   updateGlossaryTerm(

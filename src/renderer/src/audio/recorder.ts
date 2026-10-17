@@ -8,7 +8,7 @@
 // For live transcription a second MediaRecorder on the same mixed stream is
 // cut into short, self-contained windows at pauses in the speech.
 
-export interface RecorderOptions {
+interface RecorderOptions {
   microphoneId: string
   captureSystemAudio: boolean
   /**

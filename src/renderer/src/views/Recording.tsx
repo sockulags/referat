@@ -16,7 +16,6 @@ type Phase = 'starting' | 'recording' | 'paused' | 'mic-denied' | 'finishing'
 
 export function Recording(): JSX.Element {
   const navigate = useApp((s) => s.navigate)
-  const openMeeting = useApp((s) => s.openMeeting)
   const settings = useApp((s) => s.settings)
   const pendingTitle = useApp((s) => s.pendingTitle)
   const pendingStart = useApp((s) => s.pendingStart)
@@ -154,7 +153,7 @@ export function Recording(): JSX.Element {
           await window.api.saveLevelEnvelope(id, envelope).catch(() => undefined)
         }
         await window.api.finishRecording(id, durationSec)
-        openMeeting(id)
+        navigate('meeting', id)
         return
       }
     } catch {

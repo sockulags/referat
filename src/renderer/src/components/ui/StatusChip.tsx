@@ -1,47 +1,38 @@
-import type { JSX } from 'react'
+import type { JSX, ReactNode } from 'react'
 import type { MeetingStatus } from '../../../../shared/types'
 import { strings } from '../../strings'
 import { cn } from './cn'
 import { IconCheck, IconAlert, IconMic, IconClock } from '../icons'
 
-type Tone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'rec'
+type Tone = 'neutral' | 'accent' | 'success' | 'danger' | 'rec'
 
-const config: Record<
-  MeetingStatus,
-  { label: string; tone: Tone; icon: 'dot' | 'check' | 'alert' | 'mic' | 'clock'; pulse?: boolean }
-> = {
-  recording: { label: strings.status.recording, tone: 'rec', icon: 'mic', pulse: true },
-  recorded: { label: strings.status.recorded, tone: 'neutral', icon: 'check' },
-  transcribing: { label: strings.status.transcribing, tone: 'accent', icon: 'clock', pulse: true },
-  diarizing: { label: strings.status.diarizing, tone: 'accent', icon: 'clock', pulse: true },
-  summarizing: { label: strings.status.summarizing, tone: 'accent', icon: 'clock', pulse: true },
-  done: { label: strings.status.done, tone: 'success', icon: 'check' },
-  error: { label: strings.status.error, tone: 'danger', icon: 'alert' }
+const ICON_SIZE = 13
+const working = <IconClock size={ICON_SIZE} className="animate-breathe" />
+
+const config: Record<MeetingStatus, { label: string; tone: Tone; icon: ReactNode }> = {
+  recording: { label: strings.status.recording, tone: 'rec', icon: <IconMic size={ICON_SIZE} /> },
+  recorded: {
+    label: strings.status.recorded,
+    tone: 'neutral',
+    icon: <IconCheck size={ICON_SIZE} />
+  },
+  transcribing: { label: strings.status.transcribing, tone: 'accent', icon: working },
+  diarizing: { label: strings.status.diarizing, tone: 'accent', icon: working },
+  summarizing: { label: strings.status.summarizing, tone: 'accent', icon: working },
+  done: { label: strings.status.done, tone: 'success', icon: <IconCheck size={ICON_SIZE} /> },
+  error: { label: strings.status.error, tone: 'danger', icon: <IconAlert size={ICON_SIZE} /> }
 }
 
 const toneClasses: Record<Tone, string> = {
   neutral: 'bg-surface-2 text-fg-muted',
   accent: 'bg-accent-soft text-accent-soft-fg',
   success: 'bg-success-soft text-success',
-  warning: 'bg-warning-soft text-warning',
   danger: 'bg-danger-soft text-danger',
   rec: 'bg-rec-soft text-rec'
 }
 
 export function StatusChip({ status }: { status: MeetingStatus }): JSX.Element {
   const c = config[status]
-  const iconSize = 13
-  const icon =
-    c.icon === 'check' ? (
-      <IconCheck size={iconSize} />
-    ) : c.icon === 'alert' ? (
-      <IconAlert size={iconSize} />
-    ) : c.icon === 'mic' ? (
-      <IconMic size={iconSize} />
-    ) : c.icon === 'clock' ? (
-      <IconClock size={iconSize} className={c.pulse ? 'animate-breathe' : undefined} />
-    ) : null
-
   return (
     <span
       className={cn(
@@ -49,7 +40,7 @@ export function StatusChip({ status }: { status: MeetingStatus }): JSX.Element {
         toneClasses[c.tone]
       )}
     >
-      {icon}
+      {c.icon}
       {c.label}
     </span>
   )

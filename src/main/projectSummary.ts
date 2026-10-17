@@ -62,7 +62,6 @@ export interface MeetingInput {
 export function buildProjectInput(meetings: MeetingInput[]): {
   text: string
   included: number
-  withoutSummary: number
   leftOut: number
 } {
   const withSummary = meetings
@@ -81,7 +80,6 @@ export function buildProjectInput(meetings: MeetingInput[]): {
   return {
     text: kept.join('\n\n'),
     included: kept.length,
-    withoutSummary: meetings.length - withSummary.length,
     leftOut: blocks.length - kept.length
   }
 }
