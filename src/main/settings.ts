@@ -4,7 +4,7 @@
 
 import { app, safeStorage } from 'electron'
 import { join } from 'path'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import type {
   AppSettings,
   SaveTranscriptionSettings,
@@ -15,6 +15,7 @@ import type {
 } from '../shared/types'
 import { builtInTemplates, DEFAULT_PROMPT_TEMPLATE, DEFAULT_TEMPLATE_ID } from './summaryTemplates'
 import { isLiveTranscriptionOn } from '../shared/live'
+import { writeJsonAtomic } from './jsonFile'
 
 /** On-disk shape: like AppSettings but with encrypted key blobs instead of hasApiKey. */
 interface StoredTranscription {
@@ -184,7 +185,7 @@ function load(): StoredSettings {
 function persist(s: StoredSettings): void {
   cache = s
   try {
-    writeFileSync(settingsPath(), JSON.stringify(s, null, 2), 'utf-8')
+    writeJsonAtomic(settingsPath(), s)
   } catch (err) {
     console.error('Failed to write settings.json', err)
   }

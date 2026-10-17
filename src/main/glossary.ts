@@ -13,7 +13,6 @@
 
 import { app } from 'electron'
 import { join } from 'path'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { randomUUID } from 'crypto'
 import type {
   GlossaryTerm,
@@ -21,6 +20,7 @@ import type {
   Transcript,
   TranscriptSegment
 } from '../shared/types'
+import { readJsonArray, writeJsonAtomic } from './jsonFile'
 
 function glossaryPath(): string {
   return join(app.getPath('userData'), 'glossary.json')
@@ -41,21 +41,12 @@ function isTerm(value: unknown): value is GlossaryTerm {
   )
 }
 
-/** Defensive read: a missing, corrupt or hand-edited file yields no terms. */
 function loadTerms(): GlossaryTerm[] {
-  try {
-    const path = glossaryPath()
-    if (!existsSync(path)) return []
-    const parsed = JSON.parse(readFileSync(path, 'utf-8')) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(isTerm)
-  } catch {
-    return []
-  }
+  return readJsonArray(glossaryPath(), isTerm)
 }
 
 function saveTerms(terms: GlossaryTerm[]): void {
-  writeFileSync(glossaryPath(), JSON.stringify(terms, null, 2), 'utf-8')
+  writeJsonAtomic(glossaryPath(), terms)
 }
 
 /** Sorted for display: alphabetical by the correct spelling. */
