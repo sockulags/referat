@@ -376,7 +376,9 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
             value={flavor}
             onChange={(e) => setFlavor(e.target.value as typeof flavor)}
           >
-            <option value="openai-compatible">OpenAI-kompatibel</option>
+            <option value="openai-compatible">
+              {strings.settings.summary.flavorOpenAiCompatible}
+            </option>
             <option value="anthropic">Anthropic</option>
           </Select>
           <ApiKeyField hasApiKey={s.hasApiKey} value={apiKey} onChange={setApiKey} />

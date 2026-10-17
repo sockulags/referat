@@ -37,7 +37,7 @@ export function ComponentInstallCard({
         </div>
         {installed && !removable ? (
           <Button variant="secondary" size="sm" disabled>
-            Installerad
+            {strings.common.installed}
           </Button>
         ) : installed ? (
           <Button variant="ghost" size="sm" onClick={() => void manager.remove(component)}>
@@ -51,7 +51,7 @@ export function ComponentInstallCard({
             disabled={busy}
             onClick={() => void manager.install(component)}
           >
-            Installera
+            {strings.common.install}
           </Button>
         )}
       </div>

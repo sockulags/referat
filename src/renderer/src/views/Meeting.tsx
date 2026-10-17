@@ -861,7 +861,7 @@ function GlossaryModal({
           onKeyDown={(e) => {
             if (e.key === 'Enter') void save()
           }}
-          placeholder="t.ex. Kubernetes"
+          placeholder={strings.meeting.glossaryCorrectPlaceholder}
         />
         {terms.length > 0 && (
           <Select
