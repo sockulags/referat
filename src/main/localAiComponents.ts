@@ -13,7 +13,11 @@ import { trimBaseUrl } from './providers/shared'
 interface ComponentDefinition {
   asset: string
   executable: string
-  port: number
+  /**
+   * Where a server component listens. Absent for the dictation engine, which
+   * talks over stdin/stdout and is started by dictation.ts, not here.
+   */
+  port?: number
   args: string[]
   /** GitHub release assets must stay below 2 GiB. */
   parts?: number
@@ -44,6 +48,18 @@ const DEFINITIONS: Record<LocalAiComponent, ComponentDefinition> = {
     port: 8300,
     args: ['--host', '127.0.0.1', '--port', '8300', '--device', 'cuda'],
     parts: 2
+  },
+  // Viska's dictation engine (viska --engine), built from a pinned Viska
+  // commit by scripts/build-local-ai-components.ps1.
+  'dictation-cpu': {
+    asset: 'referat-dictation-cpu-win-x64.zip',
+    executable: 'viska-engine.exe',
+    args: []
+  },
+  'dictation-gpu': {
+    asset: 'referat-dictation-gpu-win-x64.zip',
+    executable: 'viska-engine.exe',
+    args: []
   }
 }
 
@@ -61,7 +77,26 @@ function componentsRoot(): string {
  * described an externally hosted server.
  */
 export function localAiComponentBaseUrl(component: LocalAiComponent): string {
-  return `http://127.0.0.1:${DEFINITIONS[component].port}`
+  return `http://127.0.0.1:${serverPort(component)}`
+}
+
+function serverPort(component: LocalAiComponent): number {
+  const port = DEFINITIONS[component].port
+  if (port === undefined) throw new Error(`${component} är ingen server`)
+  return port
+}
+
+/** The program of an installed component, for components started elsewhere. */
+export function localAiComponentExecutable(component: LocalAiComponent): string {
+  return executablePath(component)
+}
+
+/**
+ * The shared model cache every component that downloads models uses, so a
+ * KB-Whisper model fetched once serves both transcription and dictation.
+ */
+export function localAiModelCache(): string {
+  return join(componentsRoot(), 'models')
 }
 
 function componentDir(component: LocalAiComponent): string {
@@ -309,6 +344,7 @@ export function ensureLocalAiComponentRunning(component: LocalAiComponent): Prom
 
 async function startComponent(component: LocalAiComponent): Promise<void> {
   const definition = DEFINITIONS[component]
+  const port = serverPort(component)
   if (!existsSync(executablePath(component))) {
     throw new Error(
       'Den lokala AI-komponenten är inte installerad. Installera den i Inställningar.'
@@ -319,7 +355,7 @@ async function startComponent(component: LocalAiComponent): Promise<void> {
 
   // CPU and GPU variants of a service share its port and must never run together.
   for (const other of Object.keys(DEFINITIONS) as LocalAiComponent[]) {
-    if (other !== component && DEFINITIONS[other].port === definition.port) stopComponent(other)
+    if (other !== component && DEFINITIONS[other].port === port) stopComponent(other)
   }
   emit({ component, state: 'starting', message: 'Startar komponenten…' })
   const child = spawn(executablePath(component), definition.args, {
@@ -335,7 +371,7 @@ async function startComponent(component: LocalAiComponent): Promise<void> {
       // shared cache it has already filled.
       ...(component.startsWith('diarization-')
         ? { HF_HOME: join(componentDir(component), 'models'), HF_HUB_OFFLINE: '1' }
-        : { HF_HOME: join(componentsRoot(), 'models') })
+        : { HF_HOME: localAiModelCache() })
     }
   })
   children.set(component, child)
@@ -358,7 +394,7 @@ async function startComponent(component: LocalAiComponent): Promise<void> {
     }
   })
   try {
-    await waitForHealth(definition.port, () => exitReason)
+    await waitForHealth(port, () => exitReason)
     emit({ component, state: 'running', message: 'Körs' })
   } catch (error) {
     stopComponent(component)
