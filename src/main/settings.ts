@@ -8,6 +8,7 @@ import { readFileSync, existsSync } from 'fs'
 import type {
   AppSettings,
   DiarizationSettings,
+  DictationSettings,
   SaveTranscriptionSettings,
   SaveSummarySettings,
   SaveDiarizationSettings,
@@ -53,6 +54,7 @@ interface StoredSettings {
   transcription: StoredTranscription
   summary: StoredSummary
   diarization: StoredDiarization
+  dictation: DictationSettings
   microphoneId: string
   captureSystemAudio: boolean
   runInBackground: boolean
@@ -140,6 +142,15 @@ function defaults(): StoredSettings {
       baseUrl: 'http://127.0.0.1:8300',
       recognitionEnabled: false
     },
+    dictation: {
+      enabled: false,
+      hotkey: 'f9',
+      microphone: '',
+      avoidBluetooth: true,
+      language: 'sv',
+      live: null,
+      sounds: true
+    },
     microphoneId: '',
     captureSystemAudio: true,
     runInBackground: false,
@@ -179,6 +190,7 @@ function load(): StoredSettings {
           defaultTemplateId: resolveDefaultId(templates, storedSummary?.defaultTemplateId)
         },
         diarization: { ...base.diarization, ...parsed.diarization },
+        dictation: { ...base.dictation, ...parsed.dictation },
         microphoneId: parsed.microphoneId ?? base.microphoneId,
         captureSystemAudio: parsed.captureSystemAudio ?? base.captureSystemAudio,
         runInBackground: parsed.runInBackground ?? base.runInBackground,
@@ -272,6 +284,7 @@ export function getSettings(): AppSettings {
       baseUrl: s.diarization.baseUrl,
       recognitionEnabled: s.diarization.recognitionEnabled
     },
+    dictation: { ...s.dictation },
     microphoneId: s.microphoneId,
     captureSystemAudio: s.captureSystemAudio,
     runInBackground: s.runInBackground,
@@ -349,6 +362,22 @@ export function saveDiarizationSettings(payload: SaveDiarizationSettings): void 
     baseUrl: payload.baseUrl,
     recognitionEnabled: payload.recognitionEnabled
   }
+  persist(s)
+}
+
+export function saveDictationSettings(payload: DictationSettings): void {
+  const s = load()
+  s.dictation = {
+    enabled: payload.enabled,
+    hotkey: payload.hotkey.trim().toLowerCase() || 'f9',
+    microphone: payload.microphone,
+    avoidBluetooth: payload.avoidBluetooth,
+    language: payload.language === 'en' ? 'en' : 'sv',
+    live: payload.live,
+    sounds: payload.sounds
+  }
+  // Dictation only works while referat runs, so it keeps referat in the tray.
+  if (payload.enabled) s.runInBackground = true
   persist(s)
 }
 

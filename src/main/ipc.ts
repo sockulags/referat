@@ -57,6 +57,8 @@ export const IPC = {
   saveSummarySettings: 'settings:save-summary',
   saveDiarizationSettings: 'settings:save-diarization',
   saveGeneralSettings: 'settings:save-general',
+  saveDictationSettings: 'settings:save-dictation',
+  listDictationMicrophones: 'dictation:list-microphones',
   testTranscriptionConnection: 'settings:test-transcription',
   testSummaryConnection: 'settings:test-summary',
   testDiarizationConnection: 'settings:test-diarization',

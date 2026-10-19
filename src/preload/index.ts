@@ -76,6 +76,8 @@ const api: RendererApi = {
   saveSummarySettings: invoke('saveSummarySettings'),
   saveDiarizationSettings: invoke('saveDiarizationSettings'),
   saveGeneralSettings: invoke('saveGeneralSettings'),
+  saveDictationSettings: invoke('saveDictationSettings'),
+  listDictationMicrophones: invoke('listDictationMicrophones'),
   testTranscriptionConnection: invoke('testTranscriptionConnection'),
   testSummaryConnection: invoke('testSummaryConnection'),
   testDiarizationConnection: invoke('testDiarizationConnection'),

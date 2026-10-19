@@ -249,10 +249,42 @@ export interface DiarizationSettings {
   recognitionEnabled: boolean
 }
 
+/**
+ * Dictation: hold a key anywhere in Windows, speak, and the text is typed
+ * where the cursor is. Run by Viska's dictation engine (src/main/dictation.ts).
+ */
+export interface DictationSettings {
+  /** Off by default. Turning it on also keeps referat running in the tray. */
+  enabled: boolean
+  /** The key to hold, as the engine names it: 'f9', 'ctrl+space', 'mouse4'. */
+  hotkey: string
+  /** A name from listDictationMicrophones; '' picks automatically. */
+  microphone: string
+  /**
+   * With the automatic choice: use the computer's own microphone rather than
+   * a Bluetooth headset's, which drops the headset into low-quality call mode.
+   */
+  avoidBluetooth: boolean
+  language: 'sv' | 'en'
+  /** Type finished phrases at natural pauses. null = on when a GPU is used. */
+  live: boolean | null
+  /** Short tones when dictation starts and stops. */
+  sounds: boolean
+}
+
+/** A microphone the dictation engine can use. */
+export interface DictationMicrophone {
+  name: string
+  bluetooth: boolean
+  /** Windows' default microphone. */
+  default: boolean
+}
+
 export interface AppSettings {
   transcription: TranscriptionSettings
   summary: SummarySettings
   diarization: DiarizationSettings
+  dictation: DictationSettings
   /**
    * What to call the person at the microphone in transcripts and minutes.
    * Empty falls back to 'Jag'; a real name is also what lets the user's own
@@ -524,6 +556,13 @@ export interface RendererApi {
   saveSummarySettings(s: SaveSummarySettings): Promise<void>
   saveDiarizationSettings(s: SaveDiarizationSettings): Promise<void>
   saveGeneralSettings(s: SaveGeneralSettings): Promise<void>
+  /**
+   * Save the dictation settings and apply them: start, reconfigure or stop
+   * the engine. Rejects with a plain-language reason when it cannot start.
+   */
+  saveDictationSettings(s: DictationSettings): Promise<void>
+  /** The microphones the running engine sees; empty when it is not running. */
+  listDictationMicrophones(): Promise<DictationMicrophone[]>
   testTranscriptionConnection(): Promise<ConnectionTestResult>
   testSummaryConnection(): Promise<ConnectionTestResult>
   testDiarizationConnection(): Promise<ConnectionTestResult>

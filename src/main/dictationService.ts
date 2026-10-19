@@ -1,9 +1,12 @@
 // Runs the dictation engine and shows what it reports in the status pill.
 //
-// Started from settings once dictation can be switched on there; until then
-// only when REFERAT_DICTATION_ENGINE points at a locally built engine.
+// Started when dictation is switched on in settings, and at launch when it
+// was left on. REFERAT_DICTATION_ENGINE points at a locally built engine for
+// development.
 
 import { overlayChange } from '../shared/dictationOverlay'
+import type { DictationMicrophone, DictationSettings } from '../shared/types'
+import { dictationEngineConfig } from './dictationConfig'
 import { DictationEngineProcess, dictationEngineProgram, type EngineEvent } from './dictation'
 import { DictationOverlay } from './dictationOverlay'
 
@@ -45,6 +48,19 @@ export async function startDictation(config: Record<string, unknown>): Promise<v
     engine = await DictationEngineProcess.start(program, onEvent, onExit)
   }
   await engine.connection.send('configure', { config })
+}
+
+/** Start, reconfigure or stop the engine to match the settings. */
+export async function applyDictationSettings(settings: DictationSettings): Promise<void> {
+  if (settings.enabled) await startDictation(dictationEngineConfig(settings))
+  else await stopDictation()
+}
+
+/** The microphones the engine sees, for the settings page. */
+export async function listDictationMicrophones(): Promise<DictationMicrophone[]> {
+  if (!engine) return []
+  const reply = await engine.connection.send('list_mics')
+  return Array.isArray(reply.mics) ? (reply.mics as DictationMicrophone[]) : []
 }
 
 export async function stopDictation(): Promise<void> {
