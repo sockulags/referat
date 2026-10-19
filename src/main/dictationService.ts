@@ -7,7 +7,8 @@
 import { BrowserWindow } from 'electron'
 import { overlayChange } from '../shared/dictationOverlay'
 import type { DictationMicrophone, DictationSettings } from '../shared/types'
-import { dictationEngineConfig } from './dictationConfig'
+import { dictationEngineConfig, dictationGlossaryConfig } from './dictationConfig'
+import { listGlossaryTerms } from './glossary'
 import { DictationEngineProcess, dictationEngineProgram, type EngineEvent } from './dictation'
 import { DictationOverlay } from './dictationOverlay'
 import { addDictation } from './dictationHistory'
@@ -70,8 +71,16 @@ export async function startDictation(config: Record<string, unknown>): Promise<v
 
 /** Start, reconfigure or stop the engine to match the settings. */
 export async function applyDictationSettings(settings: DictationSettings): Promise<void> {
-  if (settings.enabled) await startDictation(dictationEngineConfig(settings))
+  if (settings.enabled) await startDictation(dictationEngineConfig(settings, listGlossaryTerms()))
   else await stopDictation()
+}
+
+/** Give a running engine the glossary as it is now, after a term changed. */
+export async function syncDictationGlossary(): Promise<void> {
+  if (!engine) return
+  await engine.connection.send('configure', {
+    config: dictationGlossaryConfig(listGlossaryTerms())
+  })
 }
 
 /** The microphones the engine sees, for the settings page. */

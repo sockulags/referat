@@ -2,7 +2,11 @@
 
 import { ipcMain, app, clipboard } from 'electron'
 import type { RendererApi } from '../shared/types'
-import { applyDictationSettings, listDictationMicrophones } from './dictationService'
+import {
+  applyDictationSettings,
+  listDictationMicrophones,
+  syncDictationGlossary
+} from './dictationService'
 import { IPC, type InvokeName } from './ipc'
 import * as storage from './storage'
 import * as settings from './settings'
@@ -47,6 +51,17 @@ function handle<K extends InvokeName>(name: K, fn: Handler<K>): void {
   ipcMain.handle(IPC[name], (_e, ...args) => fn(...(args as Parameters<RendererApi[K]>)))
 }
 
+/**
+ * A glossary change reaches a running dictation engine too, so a word fixed
+ * from the Diktat page is right in the very next dictation.
+ */
+function withDictationGlossary<T>(result: T): T {
+  syncDictationGlossary().catch((error) =>
+    console.error('Kunde inte skicka ordlistan till dikteringen', error)
+  )
+  return result
+}
+
 /** Called after app is ready. Registers all handlers exactly once. */
 export function registerIpcHandlers(): void {
   // ---- Meetings ----
@@ -79,10 +94,12 @@ export function registerIpcHandlers(): void {
   // ---- Glossary ----
   handle('listGlossaryTerms', () => glossary.listGlossaryTerms())
   handle('addGlossaryEntry', (canonical, variant, projectId) =>
-    glossary.addGlossaryEntry(canonical, variant, projectId)
+    withDictationGlossary(glossary.addGlossaryEntry(canonical, variant, projectId))
   )
-  handle('updateGlossaryTerm', (id, patch) => glossary.updateGlossaryTerm(id, patch))
-  handle('deleteGlossaryTerm', (id) => glossary.deleteGlossaryTerm(id))
+  handle('updateGlossaryTerm', (id, patch) =>
+    withDictationGlossary(glossary.updateGlossaryTerm(id, patch))
+  )
+  handle('deleteGlossaryTerm', (id) => withDictationGlossary(glossary.deleteGlossaryTerm(id)))
   handle('applyGlossary', (meetingId) => applyGlossaryToMeeting(meetingId))
 
   // ---- Projects ----
