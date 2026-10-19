@@ -59,6 +59,9 @@ export const IPC = {
   saveGeneralSettings: 'settings:save-general',
   saveDictationSettings: 'settings:save-dictation',
   listDictationMicrophones: 'dictation:list-microphones',
+  listDictations: 'dictation:list',
+  deleteDictation: 'dictation:delete',
+  clearDictations: 'dictation:clear',
   testTranscriptionConnection: 'settings:test-transcription',
   testSummaryConnection: 'settings:test-summary',
   testDiarizationConnection: 'settings:test-diarization',
@@ -82,11 +85,16 @@ export const IPC = {
   pipelineProgress: 'pipeline:progress',
   updateDownloaded: 'updater:downloaded',
   localAiComponentProgress: 'local-ai:progress',
-  callDetected: 'calls:detected'
+  callDetected: 'calls:detected',
+  dictationAdded: 'dictation:added'
 } as const
 
 /** RendererApi methods that are requests to main, as opposed to event subscriptions. */
 export type InvokeName = Exclude<
   keyof RendererApi,
-  'onPipelineProgress' | 'onUpdateDownloaded' | 'onLocalAiComponentProgress' | 'onCallDetected'
+  | 'onPipelineProgress'
+  | 'onUpdateDownloaded'
+  | 'onLocalAiComponentProgress'
+  | 'onCallDetected'
+  | 'onDictationAdded'
 >

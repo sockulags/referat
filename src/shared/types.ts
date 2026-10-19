@@ -272,6 +272,17 @@ export interface DictationSettings {
   sounds: boolean
 }
 
+/** One dictation, kept for a week so it can be copied again or corrected. */
+export interface DictationEntry {
+  id: string
+  /** The text as it was typed in. */
+  text: string
+  /** The program it was typed into ("Microsoft Outlook"), when known. */
+  app: string | null
+  /** ISO time it was made. */
+  at: string
+}
+
 /** A microphone the dictation engine can use. */
 export interface DictationMicrophone {
   name: string
@@ -563,6 +574,10 @@ export interface RendererApi {
   saveDictationSettings(s: DictationSettings): Promise<void>
   /** The microphones the running engine sees; empty when it is not running. */
   listDictationMicrophones(): Promise<DictationMicrophone[]>
+  /** The last week's dictations, newest first. */
+  listDictations(): Promise<DictationEntry[]>
+  deleteDictation(id: string): Promise<void>
+  clearDictations(): Promise<void>
   testTranscriptionConnection(): Promise<ConnectionTestResult>
   testSummaryConnection(): Promise<ConnectionTestResult>
   testDiarizationConnection(): Promise<ConnectionTestResult>
@@ -590,6 +605,8 @@ export interface RendererApi {
   onLocalAiComponentProgress(cb: (e: LocalAiComponentStatus) => void): () => void
   /** Fires when a call starts or ends in a meeting app. */
   onCallDetected(cb: (e: CallEvent) => void): () => void
+  /** Fires when a dictation is added to the history. */
+  onDictationAdded(cb: (e: DictationEntry) => void): () => void
 
   // Updates
   /** Quit and install the downloaded update immediately (toast action). */

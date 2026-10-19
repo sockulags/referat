@@ -275,6 +275,10 @@ async function main() {
     'dictation cannot be turned on before it is installed'
   )
   await shot('settings-dictation')
+  assert(
+    (await page.getByRole('button', { name: 'Diktat', exact: true }).count()) === 0,
+    'the dictation history stays out of the menu while dictation is off'
+  )
   await page.getByRole('button', { name: 'Hem', exact: true }).click()
   await page.waitForTimeout(1000)
   assert(await seen('Starta inspelning'), 'back home after enabling speaker identification')

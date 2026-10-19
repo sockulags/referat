@@ -2,7 +2,7 @@ import type { JSX, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useApp } from '../store'
 import { strings } from '../strings'
-import { Wordmark, IconHome, IconDocument, IconSettings, IconSearch } from './icons'
+import { Wordmark, IconHome, IconDocument, IconSettings, IconSearch, IconMic } from './icons'
 import { cn } from './ui/cn'
 
 /**
@@ -13,6 +13,8 @@ export function SideMenu(): JSX.Element {
   const view = useApp((s) => s.view)
   const meetingId = useApp((s) => s.meetingId)
   const navigate = useApp((s) => s.navigate)
+  // Only for those who dictate: someone who just records meetings never sees it.
+  const dictating = useApp((s) => s.settings?.dictation.enabled ?? false)
   const [latestId, setLatestId] = useState<string | null>(null)
 
   // Meetings are listed newest first; refreshed whenever the user moves on,
@@ -61,6 +63,15 @@ export function SideMenu(): JSX.Element {
         >
           {strings.nav.search}
         </MenuItem>
+        {dictating && (
+          <MenuItem
+            icon={<IconMic size={18} />}
+            active={view === 'dictations'}
+            onClick={() => navigate('dictations')}
+          >
+            {strings.nav.dictations}
+          </MenuItem>
+        )}
         <div className="hidden flex-1 md:block" />
         <MenuItem
           icon={<IconSettings size={18} />}

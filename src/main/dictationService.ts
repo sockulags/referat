@@ -4,11 +4,14 @@
 // was left on. REFERAT_DICTATION_ENGINE points at a locally built engine for
 // development.
 
+import { BrowserWindow } from 'electron'
 import { overlayChange } from '../shared/dictationOverlay'
 import type { DictationMicrophone, DictationSettings } from '../shared/types'
 import { dictationEngineConfig } from './dictationConfig'
 import { DictationEngineProcess, dictationEngineProgram, type EngineEvent } from './dictation'
 import { DictationOverlay } from './dictationOverlay'
+import { addDictation } from './dictationHistory'
+import { IPC } from './ipc'
 
 const overlay = new DictationOverlay()
 let engine: DictationEngineProcess | null = null
@@ -19,9 +22,24 @@ function onEvent(event: EngineEvent): void {
     overlay.level(typeof event.value === 'number' ? event.value : 0)
     return
   }
+  if (event.event === 'history' && typeof event.last === 'string' && event.last) {
+    remember(event.last, typeof event.app === 'string' ? event.app : null)
+    return
+  }
   const change = overlayChange(event, hotkey)
   if (change === 'hide') overlay.hide()
   else if (change) overlay.show(change)
+}
+
+function remember(text: string, appName: string | null): void {
+  try {
+    const entry = addDictation(text, appName)
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send(IPC.dictationAdded, entry)
+    }
+  } catch (error) {
+    console.error('Kunde inte spara diktatet i historiken', error)
+  }
 }
 
 function onExit(reason: string): void {

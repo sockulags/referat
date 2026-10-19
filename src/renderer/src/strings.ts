@@ -29,7 +29,32 @@ export const strings = {
     home: 'Hem',
     latestMeeting: 'Senaste mötet',
     search: 'Sök i möten',
+    dictations: 'Diktat',
     settings: 'Inställningar'
+  },
+
+  dictations: {
+    title: 'Diktat',
+    description: 'Det du dikterat den senaste veckan. Sparas bara på den här datorn.',
+    empty: 'Inga diktat än. Håll dikteringstangenten var som helst i Windows och prata.',
+    copy: 'Kopiera',
+    copied: 'Kopierat',
+    correct: 'Rätta ett ord',
+    correctHint:
+      'Ett ord som blev fel läggs i ordlistan och skrivs rätt från och med nu, både när du dikterar och i mötestranskript.',
+    heard: 'Det som skrevs',
+    heardPlaceholder: 'T.ex. kuber nettes',
+    shouldBe: 'Ska skrivas',
+    shouldBePlaceholder: 'T.ex. Kubernetes',
+    addToGlossary: 'Lägg till i ordlistan',
+    addedToGlossary: (term: string): string => `${term} finns nu i ordlistan`,
+    delete: 'Ta bort diktatet',
+    clear: 'Rensa alla',
+    cleared: 'Alla diktat är borttagna',
+    clearConfirmTitle: 'Ta bort alla diktat?',
+    clearConfirmBody:
+      'Historiken töms. Texten som redan skrivits in i andra program påverkas inte.',
+    clearConfirm: 'Ja, ta bort alla'
   },
 
   consent: {
