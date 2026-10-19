@@ -1,5 +1,6 @@
 param(
-  [ValidateSet('transcription-cpu', 'transcription-gpu', 'diarization-cpu', 'diarization-gpu', 'all')]
+  [ValidateSet('transcription-cpu', 'transcription-gpu', 'diarization-cpu', 'diarization-gpu',
+    'dictation-cpu', 'dictation-gpu', 'all')]
   [string]$Component = 'all',
   [string]$CertificateSha1 = ''
 )
@@ -183,7 +184,44 @@ function Build-Diarization([bool]$gpu) {
   }
 }
 
+function Build-Dictation([bool]$gpu) {
+  # The dictation engine is Viska's (viska --engine), built from the commit
+  # pinned in scripts/viska-engine.ref so a referat release always ships the
+  # engine it was tested with. Move the pin to take a newer Viska.
+  $ref = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'viska-engine.ref') -Raw).Trim()
+  $source = Join-Path ([IO.Path]::GetTempPath()) ("viska-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
+  git clone --quiet https://github.com/sockulags/viska.git $source
+  if ($LASTEXITCODE -ne 0) { throw 'Cloning Viska failed.' }
+  Push-Location $source
+  try {
+    git checkout --quiet $ref
+    if ($LASTEXITCODE -ne 0) { throw "Viska has no commit $ref." }
+    $sync = @('sync', '--group', 'dev')
+    $buildArgs = @('build.py', '--engine')
+    if ($gpu) {
+      $sync += @('--extra', 'gpu')
+      $buildArgs += '--gpu'
+    }
+    uv @sync
+    if ($LASTEXITCODE -ne 0) { throw 'uv sync failed for the dictation engine.' }
+    uv run python @buildArgs
+    if ($LASTEXITCODE -ne 0) { throw 'Building the dictation engine failed.' }
+    $runtime = Join-Path $source 'dist\viska-engine'
+    Sign-Executable (Join-Path $runtime 'viska-engine.exe')
+    $name = if ($gpu) { 'referat-dictation-gpu-win-x64.zip' } else { 'referat-dictation-cpu-win-x64.zip' }
+    Package-Directory $runtime $name
+    if ((Get-Item -LiteralPath (Join-Path $output $name)).Length -gt 1800MB) {
+      throw "$name outgrew one release asset; split it and set parts in localAiComponents.ts."
+    }
+  } finally {
+    Pop-Location
+    Remove-Item -LiteralPath $source -Recurse -Force -ErrorAction SilentlyContinue
+  }
+}
+
 if ($Component -in @('transcription-cpu', 'all')) { Build-Transcription $false }
 if ($Component -in @('transcription-gpu', 'all')) { Build-Transcription $true }
 if ($Component -in @('diarization-cpu', 'all')) { Build-Diarization $false }
 if ($Component -in @('diarization-gpu', 'all')) { Build-Diarization $true }
+if ($Component -in @('dictation-cpu', 'all')) { Build-Dictation $false }
+if ($Component -in @('dictation-gpu', 'all')) { Build-Dictation $true }
