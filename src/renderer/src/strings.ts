@@ -446,6 +446,47 @@ export const strings = {
         forgetAllConfirm: 'Ja, glöm alla'
       }
     },
+    dictation: {
+      title: 'Diktering',
+      description:
+        'Håll en tangent var som helst i Windows, prata och släpp. Texten skrivs där markören står. Ljudet stannar på datorn.',
+      cpuTitle: 'Diktering på den här datorn',
+      cpuDescription:
+        'Referat installerar dikteringen och en svensk Whisper-modell och kör dem lokalt.',
+      cpuSize: 'Cirka 260 MB, plus modellen som laddas ner första gången.',
+      gpuTitle: 'Snabbare med Nvidia GPU',
+      gpuDescription:
+        'Samma diktering på ett Nvidia-grafikkort: texten kommer fram på under en sekund och kan skrivas in medan du pratar. Används automatiskt när den är installerad.',
+      gpuSize: 'Cirka 1,5 GB. Kräver ett Nvidia-grafikkort och en aktuell drivrutin.',
+      enable: 'Diktera med en tangent',
+      enableHint:
+        'Referat ligger kvar i systemfältet medan dikteringen är på, så att tangenten fungerar även när fönstret är stängt.',
+      installFirst: 'Installera dikteringen ovan först.',
+      startFailed: 'Dikteringen kunde inte starta.',
+      hotkey: 'Tangent',
+      hotkeyHint:
+        'Håll ned för att prata, tryck två gånger för att låta den vara på. T.ex. f9, ctrl+space eller mouse4 för musens bakåtknapp.',
+      microphone: 'Mikrofon',
+      micAutomatic: 'Automatiskt (rekommenderas)',
+      micAutomaticHint:
+        'Windows standardmikrofon. Är den ett Bluetooth-headset används datorns egen mikrofon i stället.',
+      micDefault: 'Windows standardmikrofon.',
+      micBluetoothHint:
+        'Headsetet byter till samtalsläge medan du dikterar: musiken låter sämre och de första orden kan försvinna.',
+      micMissing: 'Hittas inte just nu.',
+      micListLater: 'Fler mikrofoner visas här när dikteringen är igång.',
+      bluetooth: 'Bluetooth',
+      avoidBluetooth: 'Använd inte headsetets mikrofon',
+      avoidBluetoothHint:
+        'Ett Bluetooth-headset byter till samtalsläge när dess mikrofon används. Under ett samtal i Teams, Zoom eller webbläsaren används headsetet ändå, eftersom det redan är i samtalsläge.',
+      language: 'Språk',
+      swedish: 'Svenska',
+      english: 'Engelska',
+      live: 'Skriv in medan jag pratar',
+      liveHint:
+        'Färdiga fraser skrivs in vid pauserna. Går snabbast med grafikkort; utan skrivs allt in när du släpper tangenten.',
+      sounds: 'Ljudsignal när dikteringen startar och slutar'
+    },
     glossary: {
       title: 'Ordlista',
       description:
