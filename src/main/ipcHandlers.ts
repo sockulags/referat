@@ -8,6 +8,7 @@ import * as storage from './storage'
 import * as settings from './settings'
 import * as speakerProfiles from './speakerProfiles'
 import * as glossary from './glossary'
+import * as dictationHistory from './dictationHistory'
 import * as projects from './projects'
 import * as projectSummary from './projectSummary'
 import {
@@ -159,6 +160,9 @@ export function registerIpcHandlers(): void {
     await applyDictationSettings(settings.getSettings().dictation)
   })
   handle('listDictationMicrophones', () => listDictationMicrophones())
+  handle('listDictations', () => dictationHistory.listDictations())
+  handle('deleteDictation', (id) => dictationHistory.deleteDictation(id))
+  handle('clearDictations', () => dictationHistory.clearDictations())
   handle('testTranscriptionConnection', () =>
     testTranscriptionConnection(settings.getTranscriptionConfig())
   )

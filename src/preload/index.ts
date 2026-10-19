@@ -4,7 +4,8 @@ import type {
   PipelineProgressEvent,
   UpdateDownloadedEvent,
   LocalAiComponentStatus,
-  CallEvent
+  CallEvent,
+  DictationEntry
 } from '../shared/types'
 import { IPC, type InvokeName } from '../main/ipc'
 
@@ -78,6 +79,9 @@ const api: RendererApi = {
   saveGeneralSettings: invoke('saveGeneralSettings'),
   saveDictationSettings: invoke('saveDictationSettings'),
   listDictationMicrophones: invoke('listDictationMicrophones'),
+  listDictations: invoke('listDictations'),
+  deleteDictation: invoke('deleteDictation'),
+  clearDictations: invoke('clearDictations'),
   testTranscriptionConnection: invoke('testTranscriptionConnection'),
   testSummaryConnection: invoke('testSummaryConnection'),
   testDiarizationConnection: invoke('testDiarizationConnection'),
@@ -95,6 +99,7 @@ const api: RendererApi = {
   onUpdateDownloaded: listen<UpdateDownloadedEvent>(IPC.updateDownloaded),
   onLocalAiComponentProgress: listen<LocalAiComponentStatus>(IPC.localAiComponentProgress),
   onCallDetected: listen<CallEvent>(IPC.callDetected),
+  onDictationAdded: listen<DictationEntry>(IPC.dictationAdded),
 
   // Updates
   installUpdateNow: invoke('installUpdateNow'),
