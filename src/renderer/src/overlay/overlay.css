@@ -1,0 +1,190 @@
+/*
+ * The dictation status pill. Dark in both themes: it floats over whatever
+ * app the user is dictating into, light or dark, and has to stand out on
+ * both. Colours follow the referat palette (docs/design.md): coral only for
+ * recording, a warm amber for problems, forest green for done.
+ */
+
+:root {
+  --pill-bg: #232220;
+  --pill-fg: #ecebe6;
+  --pill-muted: #a8a59d;
+  --rec: #f0705f;
+  --rec-ring: rgb(240 112 95 / 0.25);
+  --ok: #95d5b2;
+  --ok-soft: #22352b;
+  --warn: #e0b055;
+  --warn-soft: #382f1e;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 520px;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 10px 20px 10px 16px;
+  border-radius: 24px;
+  background: var(--pill-bg);
+  color: var(--pill-fg);
+  box-shadow: 0 8px 24px rgb(20 30 25 / 0.28);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  animation: appear 150ms ease-out;
+}
+
+.pill[hidden] {
+  display: none;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.text {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.clock {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -- Icon ----------------------------------------------------------------- */
+
+.icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.icon[data-icon='dot']::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--rec);
+  box-shadow: 0 0 0 4px var(--rec-ring);
+}
+
+.icon[data-icon='spinner']::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid var(--pill-muted);
+  border-right-color: transparent;
+  animation: spin 900ms linear infinite;
+}
+
+.icon[data-icon='wave']::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background:
+    linear-gradient(var(--ok), var(--ok)) 0 50% / 2px 6px no-repeat,
+    linear-gradient(var(--ok), var(--ok)) 4px 50% / 2px 12px no-repeat,
+    linear-gradient(var(--ok), var(--ok)) 8px 50% / 2px 8px no-repeat,
+    linear-gradient(var(--ok), var(--ok)) 12px 50% / 2px 4px no-repeat;
+}
+
+.icon[data-icon='check'] {
+  background: var(--ok-soft);
+}
+
+.icon[data-icon='check']::before {
+  content: '';
+  width: 8px;
+  height: 4px;
+  margin-top: -2px;
+  border-left: 2px solid var(--ok);
+  border-bottom: 2px solid var(--ok);
+  transform: rotate(-45deg);
+}
+
+.icon[data-icon='alert'] {
+  background: var(--warn-soft);
+}
+
+.icon[data-icon='alert']::before {
+  content: '!';
+  color: var(--warn);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.pill[data-tone='neutral'] .icon[data-icon='alert'] {
+  background: #2c2b28;
+}
+
+.pill[data-tone='neutral'] .icon[data-icon='alert']::before {
+  color: var(--pill-muted);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* -- Level meter ---------------------------------------------------------- */
+
+.meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+}
+
+.meter[hidden] {
+  display: none;
+}
+
+.bar {
+  width: 3px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rec);
+  transition: height 60ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill,
+  .icon::before {
+    animation: none;
+  }
+
+  .bar {
+    transition: none;
+  }
+}

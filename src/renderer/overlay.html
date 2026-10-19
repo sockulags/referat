@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <title>referat – diktering</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    />
+  </head>
+
+  <body>
+    <div id="pill" class="pill" role="status" aria-live="polite" hidden>
+      <span id="icon" class="icon" aria-hidden="true"></span>
+      <span id="meter" class="meter" aria-hidden="true" hidden></span>
+      <span id="text" class="text"></span>
+      <span id="clock" class="clock" hidden></span>
+    </div>
+    <script type="module" src="/src/overlay/overlay.ts"></script>
+  </body>
+</html>
