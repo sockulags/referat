@@ -1,4 +1,4 @@
-import type { JSX, ReactNode } from 'react'
+import type { JSX } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import type {
   AppSettings,
@@ -18,7 +18,6 @@ import {
   summaryDefaults,
   transcriptionDefaults
 } from '../presets'
-import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Input, Select, Textarea, Field } from '../components/ui/Field'
 import { Toggle } from '../components/ui/Toggle'
@@ -31,6 +30,8 @@ import { useLocalAiComponents } from '../components/useLocalAiComponents'
 import { IconSun, IconMoon, IconMonitor, IconChevronDown, IconFolder } from '../components/icons'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import { cn } from '../components/ui/cn'
+import { SaveRow, Section } from './settings/Section'
+import { DictationSection } from './settings/DictationSection'
 
 export function Settings(): JSX.Element {
   const settings = useApp((s) => s.settings)
@@ -67,40 +68,11 @@ export function Settings(): JSX.Element {
         <SummarySection settings={settings} />
         <GlossarySection />
         <DiarizationSection settings={settings} />
+        <DictationSection settings={settings} />
         <AppearanceSection settings={settings} />
       </div>
 
       <Footer version={version} />
-    </div>
-  )
-}
-
-function Section({
-  title,
-  description,
-  children
-}: {
-  title: string
-  description: string
-  children: ReactNode
-}): JSX.Element {
-  return (
-    <Card className="p-6">
-      <div className="mb-5">
-        <h2 className="text-base font-semibold text-fg">{title}</h2>
-        <p className="text-sm text-fg-muted mt-0.5">{description}</p>
-      </div>
-      <div className="flex flex-col gap-4">{children}</div>
-    </Card>
-  )
-}
-
-function SaveRow({ onSave, saving }: { onSave: () => void; saving: boolean }): JSX.Element {
-  return (
-    <div className="pt-1">
-      <Button variant="primary" size="sm" onClick={onSave} loading={saving}>
-        {strings.common.save}
-      </Button>
     </div>
   )
 }

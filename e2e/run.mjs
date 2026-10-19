@@ -252,10 +252,29 @@ async function main() {
   await page.waitForTimeout(300)
   await page.getByLabel('Kör talaridentifiering').selectOption('server')
   await page.getByLabel('Serveradress').fill('http://localhost:8000')
-  // Only Transkribering, Sammanfattning and Talare have a Spara button; Talare is last.
-  await page.getByRole('button', { name: 'Spara', exact: true }).last().click()
+  await page
+    .getByRole('heading', { name: 'Talare', exact: true })
+    .locator('../..')
+    .getByRole('button', { name: 'Spara', exact: true })
+    .click()
   await page.waitForTimeout(1000)
   await shot('settings-diarization')
+
+  // Dictation: it cannot be switched on before its component is installed,
+  // which this walkthrough does not download.
+  const dictationCard = page
+    .getByRole('heading', { name: 'Diktering', exact: true })
+    .locator('../..')
+  await dictationCard.scrollIntoViewIfNeeded()
+  assert(
+    await seen('Installera dikteringen ovan först.'),
+    'dictation asks for its component before it can be turned on'
+  )
+  assert(
+    await dictationCard.getByRole('switch', { name: 'Diktera med en tangent' }).isDisabled(),
+    'dictation cannot be turned on before it is installed'
+  )
+  await shot('settings-dictation')
   await page.getByRole('button', { name: 'Hem', exact: true }).click()
   await page.waitForTimeout(1000)
   assert(await seen('Starta inspelning'), 'back home after enabling speaker identification')
