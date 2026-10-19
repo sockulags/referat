@@ -24,7 +24,7 @@ import { watchCalls } from './callDetection'
 import type { CallApp } from '../shared/types'
 import { initAutoUpdater, installUpdateNow } from './updater'
 import { IPC } from './ipc'
-import { shutdownDictation, startDictation } from './dictationService'
+import { applyDictationSettings, shutdownDictation } from './dictationService'
 
 // Test hook: E2E harnesses point userData at a scratch directory so runs are
 // isolated and repeatable. Also keeps `electron out/main` dev runs from
@@ -217,10 +217,13 @@ app.whenReady().then(() => {
   // Background auto-updates. No-ops in dev / when not packaged.
   initAutoUpdater(() => mainWindow)
 
-  // Dictation is switched on in settings once that exists; for now a locally
-  // built engine (REFERAT_DICTATION_ENGINE) starts it with default settings.
-  if (process.env.REFERAT_DICTATION_ENGINE) {
-    startDictation({}).catch((error) => console.error('Dikteringen startade inte:', error))
+  // Dictation left on last time starts again with referat. A locally built
+  // engine (REFERAT_DICTATION_ENGINE) starts it regardless, for development.
+  const dictation = getSettings().dictation
+  if (dictation.enabled || process.env.REFERAT_DICTATION_ENGINE) {
+    applyDictationSettings({ ...dictation, enabled: true }).catch((error) =>
+      console.error('Dikteringen startade inte:', error)
+    )
   }
 
   app.on('activate', () => {

@@ -9,6 +9,7 @@ import {
   getSummaryConfig,
   getTranscriptionConfig,
   saveDiarizationSettings,
+  saveDictationSettings,
   saveSummarySettings,
   saveTranscriptionSettings
 } from './settings'
@@ -216,5 +217,26 @@ describe('live transcription setting', () => {
     expect(
       JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf-8')).transcription
     ).not.toHaveProperty('live')
+  })
+})
+
+describe('dictation settings', () => {
+  it('is off until the user turns it on, with F9 and the automatic microphone', () => {
+    expect(getSettings().dictation).toEqual({
+      enabled: false,
+      hotkey: 'f9',
+      microphone: '',
+      avoidBluetooth: true,
+      language: 'sv',
+      live: null,
+      sounds: true
+    })
+  })
+
+  it('keeps referat in the background once dictation is on', () => {
+    saveGeneralSettings({ runInBackground: false })
+    saveDictationSettings({ ...getSettings().dictation, enabled: true, hotkey: ' F10 ' })
+    expect(getSettings().dictation).toMatchObject({ enabled: true, hotkey: 'f10' })
+    expect(getSettings().runInBackground).toBe(true)
   })
 })

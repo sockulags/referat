@@ -2,6 +2,7 @@
 
 import { ipcMain, app, clipboard } from 'electron'
 import type { RendererApi } from '../shared/types'
+import { applyDictationSettings, listDictationMicrophones } from './dictationService'
 import { IPC, type InvokeName } from './ipc'
 import * as storage from './storage'
 import * as settings from './settings'
@@ -153,6 +154,11 @@ export function registerIpcHandlers(): void {
     settings.saveGeneralSettings(s)
     if (s.openAtLogin !== undefined) applyOpenAtLogin(s.openAtLogin)
   })
+  handle('saveDictationSettings', async (s) => {
+    settings.saveDictationSettings(s)
+    await applyDictationSettings(settings.getSettings().dictation)
+  })
+  handle('listDictationMicrophones', () => listDictationMicrophones())
   handle('testTranscriptionConnection', () =>
     testTranscriptionConnection(settings.getTranscriptionConfig())
   )
