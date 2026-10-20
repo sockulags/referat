@@ -74,9 +74,12 @@ for (const button of actions.querySelectorAll('button')) {
   })
 }
 
-// The window lets clicks through unless the pointer is on the pill.
-pill.addEventListener('mouseenter', () => window.overlay.pointer(true))
-pill.addEventListener('mouseleave', () => window.overlay.pointer(false))
+// The window lets clicks through unless the pointer is on the pill; the
+// main process watches the pointer and needs to know where the pill is.
+new ResizeObserver(() => {
+  const box = pill.getBoundingClientRect()
+  window.overlay.rect({ x: box.x, y: box.y, width: box.width, height: box.height })
+}).observe(pill)
 
 window.overlay.onState(render)
 window.overlay.onLevel(showLevel)

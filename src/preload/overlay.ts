@@ -3,6 +3,7 @@ import {
   OVERLAY_CHANNELS,
   type OverlayAction,
   type OverlayApi,
+  type OverlayRect,
   type OverlayState
 } from '../shared/dictationOverlay'
 
@@ -17,8 +18,8 @@ const overlay: OverlayApi = {
   act(action: OverlayAction): void {
     ipcRenderer.send(OVERLAY_CHANNELS.action, action)
   },
-  pointer(over: boolean): void {
-    ipcRenderer.send(OVERLAY_CHANNELS.pointer, over)
+  rect(rect: OverlayRect): void {
+    ipcRenderer.send(OVERLAY_CHANNELS.rect, rect)
   }
 }
 
