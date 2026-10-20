@@ -14,7 +14,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipcHandlers'
 import { handleMediaRequests, registerMediaScheme } from './media'
-import { stopAllLocalAiComponents } from './localAiComponents'
+import { stopAllLocalAiComponents, updateLocalAiComponents } from './localAiComponents'
 import { openExternalSafe } from './security'
 import { recoverPipeline } from './pipeline'
 import { isRecordingActive } from './storage'
@@ -28,6 +28,8 @@ import {
   applyDictationSettings,
   dictationTranscriptionUrl,
   onOpenDictationSettings,
+  isDictationRunning,
+  restartDictationAfterUpdate,
   shutdownDictation
 } from './dictationService'
 import { shareTranscriptionWith } from './providers/transcription'
@@ -260,6 +262,24 @@ app.whenReady().then(() => {
     applyDictationSettings({ ...dictation, enabled: true }).catch((error) =>
       console.error('Dikteringen startade inte:', error)
     )
+  }
+
+  // A new version of referat can ship rebuilt components; the installed ones
+  // follow along. Shortly after launch, so it never delays the start. Only
+  // a packaged app has a release of its own to compare with.
+  if (app.isPackaged || process.env.REFERAT_COMPONENT_BASE_URL) {
+    setTimeout(() => {
+      updateLocalAiComponents(
+        (component) => component.startsWith('dictation-') && isDictationRunning()
+      )
+        .then((updated) => {
+          if (updated.some((component) => component.startsWith('dictation-'))) {
+            return restartDictationAfterUpdate()
+          }
+          return undefined
+        })
+        .catch((error) => console.error('Komponenterna kunde inte uppdateras', error))
+    }, 15_000)
   }
 
   app.on('activate', () => {

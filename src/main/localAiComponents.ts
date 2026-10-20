@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { createHash } from 'crypto'
 import { createReadStream, createWriteStream, existsSync } from 'fs'
-import { mkdir, rename, rm } from 'fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'fs/promises'
 import { spawn, type ChildProcess } from 'child_process'
 import { dirname, join, resolve } from 'path'
 import { pipeline } from 'stream/promises'
@@ -9,6 +9,10 @@ import { Readable } from 'stream'
 import type { LocalAiComponent, LocalAiComponentStatus } from '../shared/types'
 import { IPC } from './ipc'
 import { trimBaseUrl } from './providers/shared'
+import { parseSha256, updateDecision } from './componentUpdates'
+
+/** In each component's folder: the checksum of the release asset it came from. */
+const INSTALL_RECORD = 'referat-component.json'
 
 interface ComponentDefinition {
   asset: string
@@ -77,6 +81,7 @@ const DEFINITIONS: Record<LocalAiComponent, ComponentDefinition> = {
 
 const states = new Map<LocalAiComponent, LocalAiComponentStatus>()
 const children = new Map<LocalAiComponent, ChildProcess>()
+const starting = new Map<LocalAiComponent, Promise<void>>()
 
 function componentsRoot(): string {
   const localBase = process.env.LOCALAPPDATA || app.getPath('userData')
@@ -113,6 +118,11 @@ export function localAiModelCache(): string {
 
 function componentDir(component: LocalAiComponent): string {
   return join(componentsRoot(), component)
+}
+
+/** A downloaded update, waiting for the component to stop before it is put in place. */
+function pendingDir(component: LocalAiComponent): string {
+  return join(componentsRoot(), `${component}.update`)
 }
 
 function executablePath(component: LocalAiComponent): string {
@@ -155,6 +165,7 @@ async function download(
   url: string,
   destination: string,
   component: LocalAiComponent,
+  message: string,
   progressStart = 0,
   progressSpan = 1
 ): Promise<void> {
@@ -172,21 +183,22 @@ async function download(
       component,
       state: 'downloading',
       progress: total > 0 ? progressStart + (received / total) * progressSpan : undefined,
-      message: 'Laddar ner komponenten…'
+      message
     })
   })
   await pipeline(source, createWriteStream(destination, { flags: 'wx' }))
 }
 
+/** Download and verify the package; returns its checksum, for the install record. */
 async function downloadPackage(
   component: LocalAiComponent,
   archive: string,
-  definition: ComponentDefinition
-): Promise<void> {
+  definition: ComponentDefinition,
+  message: string
+): Promise<string> {
   if (!definition.parts) {
-    await download(releaseUrl(definition.asset), archive, component)
-    await verifySha256(archive, releaseUrl(`${definition.asset}.sha256`))
-    return
+    await download(releaseUrl(definition.asset), archive, component, message)
+    return verifySha256(archive, definition.asset)
   }
 
   const partPaths: string[] = []
@@ -200,30 +212,36 @@ async function downloadPackage(
         releaseUrl(asset),
         partPath,
         component,
+        message,
         index / definition.parts,
         1 / definition.parts
       )
-      await verifySha256(partPath, releaseUrl(`${asset}.sha256`))
+      await verifySha256(partPath, asset)
       await pipeline(createReadStream(partPath), createWriteStream(archive, { flags: 'a' }))
     }
-    await verifySha256(archive, releaseUrl(`${definition.asset}.sha256`))
+    return await verifySha256(archive, definition.asset)
   } finally {
     await Promise.all(partPaths.map((partPath) => rm(partPath, { force: true })))
   }
 }
 
-async function verifySha256(archive: string, checksumUrl: string): Promise<void> {
-  const checksumResponse = await fetch(checksumUrl)
+/** The checksum this version's release gives for an asset. */
+async function releaseSha256(asset: string): Promise<string> {
+  const checksumResponse = await fetch(releaseUrl(`${asset}.sha256`))
   assertTrustedDownloadUrl(checksumResponse.url)
   if (!checksumResponse.ok) throw new Error('Kunde inte hämta komponentens kontrollsumma')
-  const expected = (await checksumResponse.text()).trim().split(/\s+/)[0]?.toLowerCase()
-  if (!expected || !/^[a-f0-9]{64}$/.test(expected)) {
-    throw new Error('Komponentens kontrollsumma är ogiltig')
-  }
+  const expected = parseSha256(await checksumResponse.text())
+  if (!expected) throw new Error('Komponentens kontrollsumma är ogiltig')
+  return expected
+}
+
+async function verifySha256(archive: string, asset: string): Promise<string> {
+  const expected = await releaseSha256(asset)
   const hash = createHash('sha256')
   for await (const chunk of createReadStream(archive)) hash.update(chunk)
   const actual = hash.digest('hex')
   if (actual !== expected) throw new Error('Komponenten klarade inte integritetskontrollen')
+  return expected
 }
 
 function assertTrustedDownloadUrl(rawUrl: string): void {
@@ -243,7 +261,10 @@ function assertTrustedDownloadUrl(rawUrl: string): void {
 async function extractZip(archive: string, destination: string): Promise<void> {
   await mkdir(destination, { recursive: true })
   await new Promise<void>((resolvePromise, reject) => {
-    const child = spawn('tar.exe', ['-xf', archive, '-C', destination], {
+    // Windows' own tar by its full path: GNU tar from Git, often earlier on
+    // PATH, reads "C:" in a path as a remote host and fails.
+    const tar = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe')
+    const child = spawn(tar, ['-xf', archive, '-C', destination], {
       windowsHide: true,
       stdio: ['ignore', 'ignore', 'pipe']
     })
@@ -264,32 +285,47 @@ function assertManagedPath(path: string): void {
   }
 }
 
-export async function installLocalAiComponent(
-  component: LocalAiComponent
-): Promise<LocalAiComponentStatus> {
-  const existing = currentStatus(component)
-  if (existing.state === 'installed' || existing.state === 'running') return existing
-
+/**
+ * Download, verify and unpack the component into `target`, with the record
+ * of what it was installed from. Leaves nothing behind when it fails.
+ */
+async function fetchComponent(
+  component: LocalAiComponent,
+  target: string,
+  message: string
+): Promise<void> {
   const root = componentsRoot()
   await mkdir(root, { recursive: true })
-  const definition = DEFINITIONS[component]
   const archive = join(root, `${component}-${Date.now()}.zip`)
   const staging = join(root, `${component}-${Date.now()}.staging`)
-  const destination = componentDir(component)
   assertManagedPath(archive)
   assertManagedPath(staging)
-  assertManagedPath(destination)
-
+  assertManagedPath(target)
   try {
-    emit({ component, state: 'downloading', progress: 0, message: 'Laddar ner komponenten…' })
-    await downloadPackage(component, archive, definition)
+    emit({ component, state: 'downloading', progress: 0, message })
+    const sha256 = await downloadPackage(component, archive, DEFINITIONS[component], message)
     emit({ component, state: 'installing', message: 'Installerar komponenten…' })
     await extractZip(archive, staging)
     if (!existsSync(join(staging, DEFINITIONS[component].executable))) {
       throw new Error('Komponentpaketet saknar den förväntade programfilen')
     }
-    await rm(destination, { recursive: true, force: true })
-    await rename(staging, destination)
+    await writeFile(join(staging, INSTALL_RECORD), JSON.stringify({ sha256 }))
+    await rm(target, { recursive: true, force: true })
+    await rename(staging, target)
+  } finally {
+    await rm(archive, { force: true }).catch(() => undefined)
+    await rm(staging, { recursive: true, force: true }).catch(() => undefined)
+  }
+}
+
+export async function installLocalAiComponent(
+  component: LocalAiComponent
+): Promise<LocalAiComponentStatus> {
+  const existing = currentStatus(component)
+  if (existing.state === 'installed' || existing.state === 'running') return existing
+  try {
+    await fetchComponent(component, componentDir(component), 'Laddar ner komponenten…')
+    await rm(pendingDir(component), { recursive: true, force: true })
     return emit({ component, state: 'installed', progress: 1, message: 'Installerad' })
   } catch (error) {
     return emit({
@@ -298,10 +334,105 @@ export async function installLocalAiComponent(
       message: 'Installationen misslyckades',
       detail: error instanceof Error ? error.message : String(error)
     })
-  } finally {
-    await rm(archive, { force: true }).catch(() => undefined)
-    await rm(staging, { recursive: true, force: true }).catch(() => undefined)
   }
+}
+
+async function installedSha256(component: LocalAiComponent): Promise<string | null> {
+  try {
+    const record = JSON.parse(await readFile(join(componentDir(component), INSTALL_RECORD), 'utf8'))
+    return typeof record?.sha256 === 'string' ? record.sha256 : null
+  } catch {
+    return null
+  }
+}
+
+function isRunning(component: LocalAiComponent): boolean {
+  const child = children.get(component)
+  return (!!child && child.exitCode === null) || starting.has(component)
+}
+
+/**
+ * Bring installed components up to the ones this version's release ships.
+ * Only rebuilt components are downloaded. An update is put in place at once
+ * when the component is not running, and otherwise the next time it starts;
+ * referat never stops a component that is in use. Returns the components
+ * with a new build, in place or waiting. A component that cannot be checked
+ * (offline, say) stays as it is until the next launch.
+ *
+ * `inUse` names components running outside this module: the dictation
+ * engine, which the dictation service starts and which calls
+ * applyPendingLocalAiComponentUpdate itself before it starts the engine.
+ */
+export async function updateLocalAiComponents(
+  inUse: (component: LocalAiComponent) => boolean = () => false
+): Promise<LocalAiComponent[]> {
+  const busy = (component: LocalAiComponent): boolean => isRunning(component) || inUse(component)
+  const updated: LocalAiComponent[] = []
+  for (const component of Object.keys(DEFINITIONS) as LocalAiComponent[]) {
+    const state = currentStatus(component).state
+    if (
+      !['installed', 'running', 'error'].includes(state) ||
+      !isLocalAiComponentInstalled(component)
+    )
+      continue
+    let release: string
+    try {
+      release = await releaseSha256(DEFINITIONS[component].asset)
+    } catch (error) {
+      console.error(`Kunde inte se om ${component} har en ny version`, error)
+      continue
+    }
+    const installed = await installedSha256(component)
+    const decision = updateDecision(component, installed, release)
+    if (decision === 'current') continue
+    if (decision === 'adopt') {
+      await writeFile(
+        join(componentDir(component), INSTALL_RECORD),
+        JSON.stringify({ sha256: release })
+      ).catch(() => undefined)
+      continue
+    }
+    try {
+      await fetchComponent(component, pendingDir(component), 'Uppdaterar komponenten…')
+      updated.push(component)
+      if (!busy(component)) {
+        await applyPendingLocalAiComponentUpdate(component)
+      } else {
+        emit({ component, state: isRunning(component) ? 'running' : 'installed' })
+      }
+    } catch (error) {
+      console.error(`Kunde inte uppdatera ${component}`, error)
+      emit({ component, state: isRunning(component) ? 'running' : 'installed' })
+    }
+  }
+  return updated
+}
+
+/**
+ * Put a downloaded update in place, if there is one. Only for a component
+ * that is not running: Windows keeps a running program's files locked.
+ */
+export async function applyPendingLocalAiComponentUpdate(
+  component: LocalAiComponent
+): Promise<boolean> {
+  const pending = pendingDir(component)
+  if (!existsSync(pending)) return false
+  const destination = componentDir(component)
+  assertManagedPath(pending)
+  assertManagedPath(destination)
+  // A process that just exited can hold its files for a moment longer.
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await rm(destination, { recursive: true, force: true })
+      await rename(pending, destination)
+      break
+    } catch (error) {
+      if (attempt >= 5) throw error
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 500))
+    }
+  }
+  emit({ component, state: 'installed', message: 'Uppdaterad' })
+  return true
 }
 
 export async function removeLocalAiComponent(component: LocalAiComponent): Promise<void> {
@@ -309,6 +440,7 @@ export async function removeLocalAiComponent(component: LocalAiComponent): Promi
   const target = componentDir(component)
   assertManagedPath(target)
   await rm(target, { recursive: true, force: true })
+  await rm(pendingDir(component), { recursive: true, force: true })
   emit({ component, state: 'not-installed' })
 }
 
@@ -339,8 +471,6 @@ async function waitForHealth(port: number, exited: () => string | null): Promise
   throw new Error(`Komponenten blev inte redo: ${lastError}`)
 }
 
-const starting = new Map<LocalAiComponent, Promise<void>>()
-
 /**
  * Start the component unless it already runs. Callers that arrive while it is
  * starting share that start, so none of them talks to a process that is not
@@ -364,6 +494,10 @@ async function startComponent(component: LocalAiComponent): Promise<void> {
   }
   const existing = children.get(component)
   if (existing && existing.exitCode === null) return
+
+  await applyPendingLocalAiComponentUpdate(component).catch((error) =>
+    console.error(`Uppdateringen av ${component} kunde inte läggas på plats`, error)
+  )
 
   // CPU and GPU variants of a service share its port and must never run together.
   for (const other of Object.keys(DEFINITIONS) as LocalAiComponent[]) {

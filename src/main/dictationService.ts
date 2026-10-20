@@ -20,12 +20,15 @@ import { DictationEngineProcess, dictationEngineProgram, type EngineEvent } from
 import { DictationOverlay } from './dictationOverlay'
 import { addDictation } from './dictationHistory'
 import { IPC } from './ipc'
+import { applyPendingLocalAiComponentUpdate } from './localAiComponents'
 
 const overlay = new DictationOverlay(onOverlayAction)
 let engine: DictationEngineProcess | null = null
 /** The engine's transcription server for meetings, once it has been started. */
 let transcriptionUrl: string | null = null
 let hotkey = 'f9'
+/** A dictation is under way: from the key press until the engine is idle again. */
+let dictating = false
 /** Opens referat on the dictation settings; set by the app at launch. */
 let openDictationSettings: () => void = () => undefined
 
@@ -59,6 +62,8 @@ function noticeAvoidedHeadset(event: EngineEvent): void {
 }
 
 function onEvent(event: EngineEvent): void {
+  if (event.event === 'listening') dictating = true
+  else if (event.event === 'idle') dictating = false
   if (event.event === 'level') {
     overlay.level(typeof event.value === 'number' ? event.value : 0)
     return
@@ -115,6 +120,7 @@ function remember(text: string, appName: string | null): void {
 
 function onExit(reason: string): void {
   engine = null
+  dictating = false
   transcriptionUrl = null
   overlay.show({
     tone: 'warning',
@@ -132,6 +138,11 @@ function onExit(reason: string): void {
 export async function startDictation(config: Record<string, unknown>): Promise<void> {
   if (typeof config.hotkey === 'string') hotkey = config.hotkey
   if (!engine) {
+    for (const component of ['dictation-gpu', 'dictation-cpu'] as const) {
+      await applyPendingLocalAiComponentUpdate(component).catch((error) =>
+        console.error('Dikteringens uppdatering kunde inte läggas på plats', error)
+      )
+    }
     const program = dictationEngineProgram()
     if (!program) throw new Error('Dikteringen är inte installerad')
     overlay.prepare()
@@ -188,6 +199,22 @@ export async function dictationTranscriptionUrl(): Promise<string | null> {
     return null
   }
   return transcriptionUrl
+}
+
+/** The engine runs, and holds its program's files. */
+export function isDictationRunning(): boolean {
+  return engine !== null
+}
+
+/**
+ * Restart the engine on its updated build, once no dictation is under way.
+ * Without a running engine the update waits for the next start.
+ */
+export async function restartDictationAfterUpdate(): Promise<void> {
+  while (engine && dictating) await new Promise((resolve) => setTimeout(resolve, 1_000))
+  if (!engine) return
+  await stopDictation()
+  await applyDictationSettings(getSettings().dictation)
 }
 
 export async function stopDictation(): Promise<void> {
