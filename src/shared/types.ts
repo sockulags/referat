@@ -621,6 +621,8 @@ export interface RendererApi {
   onCallDetected(cb: (e: CallEvent) => void): () => void
   /** Fires when a dictation is added to the history. */
   onDictationAdded(cb: (e: DictationEntry) => void): () => void
+  /** Fires when the main process wants the dictation settings shown. */
+  onOpenDictationSettings(cb: () => void): () => void
 
   // Updates
   /** Quit and install the downloaded update immediately (toast action). */

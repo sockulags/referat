@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { dictationEngineConfig, dictationGlossaryConfig } from './dictationConfig'
+import { avoidedHeadset, dictationEngineConfig, dictationGlossaryConfig } from './dictationConfig'
 import type { GlossaryTerm } from '../shared/types'
 
 describe('dictationEngineConfig', () => {
@@ -80,5 +80,25 @@ describe('dictationGlossaryConfig', () => {
       term(`Term${i}`, [], `2026-10-20T08:${String(i).padStart(2, '0')}:00Z`)
     )
     expect(dictationGlossaryConfig(terms).initial_prompt.split(', ')).toHaveLength(40)
+  })
+})
+
+describe('avoidedHeadset', () => {
+  const mic = (avoided: unknown): { event: string; avoided: unknown } => ({ event: 'mic', avoided })
+
+  it('names a headset dictation left alone, the first time', () => {
+    expect(avoidedHeadset(mic('Headset (Jabra Evolve3 85)'), [])).toBe('Headset (Jabra Evolve3 85)')
+  })
+
+  it('stays quiet about a headset the user was already told about', () => {
+    expect(
+      avoidedHeadset(mic('Headset (Jabra Evolve3 85)'), ['Headset (Jabra Evolve3 85)'])
+    ).toBeNull()
+  })
+
+  it('stays quiet when no headset was avoided, or for other events', () => {
+    expect(avoidedHeadset(mic(null), [])).toBeNull()
+    expect(avoidedHeadset(mic('  '), [])).toBeNull()
+    expect(avoidedHeadset({ event: 'listening', avoided: 'Headset' }, [])).toBeNull()
   })
 })

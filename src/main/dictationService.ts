@@ -4,23 +4,59 @@
 // was left on. REFERAT_DICTATION_ENGINE points at a locally built engine for
 // development.
 
-import { BrowserWindow } from 'electron'
-import { overlayChange } from '../shared/dictationOverlay'
+import { BrowserWindow, Notification } from 'electron'
+import { overlayChange, type OverlayAction } from '../shared/dictationOverlay'
 import type { DictationMicrophone, DictationSettings } from '../shared/types'
-import { dictationEngineConfig, dictationGlossaryConfig } from './dictationConfig'
+import { avoidedHeadset, dictationEngineConfig, dictationGlossaryConfig } from './dictationConfig'
 import { glossaryPromptBlock, listGlossaryTerms } from './glossary'
-import { getSettings, getSummaryConfig } from './settings'
+import {
+  getSettings,
+  getSummaryConfig,
+  headsetNoticesShown,
+  markHeadsetNoticeShown
+} from './settings'
 import { rewriteDictation } from './providers/dictationRewrite'
 import { DictationEngineProcess, dictationEngineProgram, type EngineEvent } from './dictation'
 import { DictationOverlay } from './dictationOverlay'
 import { addDictation } from './dictationHistory'
 import { IPC } from './ipc'
 
-const overlay = new DictationOverlay()
+const overlay = new DictationOverlay(onOverlayAction)
 let engine: DictationEngineProcess | null = null
 /** The engine's transcription server for meetings, once it has been started. */
 let transcriptionUrl: string | null = null
 let hotkey = 'f9'
+/** Opens referat on the dictation settings; set by the app at launch. */
+let openDictationSettings: () => void = () => undefined
+
+export function onOpenDictationSettings(open: () => void): void {
+  openDictationSettings = open
+}
+
+/** "Infoga råtext" or "Avbryt" on the pill, during a rewrite. */
+function onOverlayAction(action: OverlayAction): void {
+  engine?.connection.send(action).catch((error) => {
+    console.error(`Dikteringsmotorn tog inte emot ${action}`, error)
+  })
+}
+
+/**
+ * The first time dictation leaves a Bluetooth headset alone, say why, once
+ * per headset: the computer's microphone keeps the headset out of call mode,
+ * so its sound stays at full quality.
+ */
+function noticeAvoidedHeadset(event: EngineEvent): void {
+  const headset = avoidedHeadset(event, headsetNoticesShown())
+  if (!headset) return
+  markHeadsetNoticeShown(headset)
+  if (!Notification.isSupported()) return
+  const notification = new Notification({
+    title: 'Dikteringen använder datorns mikrofon',
+    body: `Så behåller ${headset} full ljudkvalitet. Klicka för att välja mikrofon själv.`
+  })
+  notification.on('click', () => openDictationSettings())
+  notification.show()
+}
 
 function onEvent(event: EngineEvent): void {
   if (event.event === 'level') {
@@ -29,6 +65,10 @@ function onEvent(event: EngineEvent): void {
   }
   if (event.event === 'polish_request') {
     void answerRewrite(event)
+    return
+  }
+  if (event.event === 'mic') {
+    noticeAvoidedHeadset(event)
     return
   }
   if (event.event === 'history' && typeof event.last === 'string' && event.last) {

@@ -87,7 +87,8 @@ export const IPC = {
   updateDownloaded: 'updater:downloaded',
   localAiComponentProgress: 'local-ai:progress',
   callDetected: 'calls:detected',
-  dictationAdded: 'dictation:added'
+  dictationAdded: 'dictation:added',
+  openDictationSettings: 'dictation:open-settings'
 } as const
 
 /** RendererApi methods that are requests to main, as opposed to event subscriptions. */
@@ -98,4 +99,5 @@ export type InvokeName = Exclude<
   | 'onLocalAiComponentProgress'
   | 'onCallDetected'
   | 'onDictationAdded'
+  | 'onOpenDictationSettings'
 >

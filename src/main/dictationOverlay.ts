@@ -1,11 +1,13 @@
 // The dictation status pill: a small always-on-top window near the bottom of
-// the screen the user is working on. It never takes focus and lets every
-// click through, so dictating into another app is never interrupted.
+// the screen the user is working on. It never takes focus and lets clicks
+// through, so dictating into another app is never interrupted. Only while
+// its buttons show, and the pointer is on the pill, does it take a click —
+// still without taking focus, so the text lands where the user was typing.
 
-import { BrowserWindow, screen } from 'electron'
+import { BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
-import { OVERLAY_CHANNELS, type OverlayState } from '../shared/dictationOverlay'
+import { OVERLAY_CHANNELS, type OverlayAction, type OverlayState } from '../shared/dictationOverlay'
 
 const WIDTH = 560
 const HEIGHT = 96
@@ -15,6 +17,11 @@ const MARGIN = 16
 export class DictationOverlay {
   private window: BrowserWindow | null = null
   private hideTimer: ReturnType<typeof setTimeout> | null = null
+  /** The state shown has buttons. */
+  private actions = false
+  private listening = false
+
+  constructor(private readonly onAction: (action: OverlayAction) => void) {}
 
   /**
    * Create the window hidden, ahead of the first dictation, so showing it is
@@ -45,7 +52,9 @@ export class DictationOverlay {
       }
     })
     window.setAlwaysOnTop(true, 'screen-saver')
-    window.setIgnoreMouseEvents(true)
+    // Forwarded moves still reach the page, which says when the pointer is on the pill.
+    window.setIgnoreMouseEvents(true, { forward: true })
+    this.listen()
     window.webContents.on('will-navigate', (event) => event.preventDefault())
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -59,10 +68,32 @@ export class DictationOverlay {
     this.window = window
   }
 
+  private listen(): void {
+    if (this.listening) return
+    this.listening = true
+    const fromPill = (sender: Electron.WebContents): boolean =>
+      !!this.window && !this.window.isDestroyed() && sender === this.window.webContents
+    ipcMain.on(OVERLAY_CHANNELS.action, (event, action: unknown) => {
+      if (!fromPill(event.sender) || !this.actions) return
+      if (action === 'insert_raw' || action === 'cancel') this.onAction(action)
+    })
+    ipcMain.on(OVERLAY_CHANNELS.pointer, (event, over: unknown) => {
+      if (fromPill(event.sender)) this.takeClicks(this.actions && over === true)
+    })
+  }
+
+  private takeClicks(take: boolean): void {
+    if (!this.window || this.window.isDestroyed()) return
+    if (take) this.window.setIgnoreMouseEvents(false)
+    else this.window.setIgnoreMouseEvents(true, { forward: true })
+  }
+
   show(state: OverlayState): void {
     this.prepare()
     const window = this.window!
     this.clearHideTimer()
+    this.actions = !!state.actions
+    if (!this.actions) this.takeClicks(false)
     window.webContents.send(OVERLAY_CHANNELS.state, state)
     if (!window.isVisible()) {
       this.placeOnActiveScreen(window)
@@ -79,6 +110,8 @@ export class DictationOverlay {
 
   hide(): void {
     this.clearHideTimer()
+    this.actions = false
+    this.takeClicks(false)
     if (this.window?.isVisible()) this.window.hide()
   }
 

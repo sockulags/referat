@@ -11,6 +11,7 @@ import { Settings } from './views/Settings'
 import { Search } from './views/Search'
 import { Dictations } from './views/Dictations'
 import { Onboarding } from './views/Onboarding'
+import { DICTATION_SECTION_ID } from './views/settings/sectionIds'
 import { Spinner } from './components/ui/Spinner'
 
 /**
@@ -55,6 +56,20 @@ function App(): JSX.Element {
         else if (useApp.getState().call === e.app) setCall(undefined)
       }),
     [setCall]
+  )
+
+  // A dictation notification was clicked: show the dictation settings.
+  useEffect(
+    () =>
+      window.api.onOpenDictationSettings(() => {
+        navigate('settings')
+        requestAnimationFrame(() =>
+          document
+            .getElementById(DICTATION_SECTION_ID)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        )
+      }),
+    [navigate]
   )
 
   // Load settings once, resolve theme and route to onboarding on first launch.
