@@ -506,7 +506,14 @@ export const strings = {
       startFailed: 'Dikteringen kunde inte starta.',
       hotkey: 'Tangent',
       hotkeyHint:
-        'Håll ned för att prata, tryck två gånger för att låta den vara på. T.ex. f9, ctrl+space eller mouse4 för musens bakåtknapp.',
+        'Håll ned för att prata, tryck två gånger för att låta den vara på. Funktionstangenter och musens tumknappar fungerar bra.',
+      hotkeyChange: 'Byt tangent',
+      hotkeyWaiting: 'Tryck …',
+      hotkeyCatching: 'Tryck den tangent eller musknapp du vill använda. Esc avbryter.',
+      hotkeyNeedsModifier:
+        'En bokstav, siffra eller mellanslag behöver Ctrl, Alt eller Win med sig, annars går den inte att skriva. Prova igen.',
+      hotkeyUnsupported:
+        'Den tangenten går inte att använda. Prova en funktionstangent eller en av musens tumknappar.',
       microphone: 'Mikrofon',
       micAutomatic: 'Automatiskt (rekommenderas)',
       micAutomaticHint:
