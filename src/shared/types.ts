@@ -303,6 +303,8 @@ export interface AppSettings {
   summary: SummarySettings
   diarization: DiarizationSettings
   dictation: DictationSettings
+  /** Set once Viska's settings and replacement rules have been moved over. */
+  viskaImport: { at: string; terms: number } | null
   /**
    * What to call the person at the microphone in transcripts and minutes.
    * Empty falls back to 'Jag'; a real name is also what lets the user's own

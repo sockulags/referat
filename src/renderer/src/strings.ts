@@ -499,6 +499,10 @@ export const strings = {
       enableHint:
         'Referat ligger kvar i systemfältet medan dikteringen är på, så att tangenten fungerar även när fönstret är stängt.',
       installFirst: 'Installera dikteringen ovan först.',
+      fromViska: (terms: number): string =>
+        terms > 0
+          ? `Dina inställningar från Viska har flyttats hit, och ${terms} ord från Viska finns nu i ordlistan.`
+          : 'Dina inställningar från Viska har flyttats hit.',
       startFailed: 'Dikteringen kunde inte starta.',
       hotkey: 'Tangent',
       hotkeyHint:
