@@ -34,7 +34,19 @@ const DEFINITIONS: Record<LocalAiComponent, ComponentDefinition> = {
     asset: 'referat-transcription-gpu-win-x64.zip',
     executable: 'referat-transcription.exe',
     port: 8310,
-    args: ['--host', '127.0.0.1', '--port', '8310', '--device', 'cuda']
+    // A GPU has room for the large model, which hears Swedish markedly
+    // better. If it does not fit, the start fails and the CPU build (small)
+    // takes over, as for any GPU that cannot be used.
+    args: [
+      '--host',
+      '127.0.0.1',
+      '--port',
+      '8310',
+      '--device',
+      'cuda',
+      '--model',
+      'KBLab/kb-whisper-large'
+    ]
   },
   'diarization-cpu': {
     asset: 'referat-diarization-cpu-win-x64.zip',
