@@ -413,9 +413,9 @@ export const strings = {
       builtInSize: 'Cirka 700 MB efter installation.',
       gpuTitle: 'Snabbare med Nvidia GPU',
       gpuDescription:
-        'Samma modell, körd på ett Nvidia-grafikkort — flera gånger snabbare för långa möten. Används automatiskt när den är installerad. Behåll CPU-transkriberingen som reserv: den tar över om grafikkortet inte går att använda.',
+        'Den större modellen KB-Whisper large på ett Nvidia-grafikkort: hör svenska klart bättre och är flera gånger snabbare för långa möten. Används automatiskt när den är installerad. Behåll CPU-transkriberingen som reserv: den tar över om grafikkortet inte går att använda.',
       gpuSize:
-        'Cirka 1,5 GB efter installation. Kräver ett Nvidia-grafikkort och en aktuell drivrutin.',
+        'Cirka 1,5 GB, plus modellen på cirka 3 GB som laddas ner första gången. Kräver ett Nvidia-grafikkort med minst 4 GB minne och en aktuell drivrutin.',
       live: 'Visa text medan du spelar in',
       liveHintLocal:
         'Ljudet skickas i korta bitar till transkriberingen på den här datorn medan mötet pågår. Hela transkriptet skapas som vanligt när du stoppar.',
