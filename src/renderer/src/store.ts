@@ -10,6 +10,9 @@ export interface MeetingFocus {
   atSec?: number
 }
 
+/** The tabs of the settings page. */
+export type SettingsTab = 'general' | 'speech' | 'meetings' | 'dictation' | 'ai' | 'glossary'
+
 /** Which meetings Home lists: all of them, those outside any project, or one project's id. */
 export type ProjectFilter = 'all' | 'none' | (string & {})
 
@@ -57,12 +60,16 @@ interface AppState {
   meetingFocus?: MeetingFocus
   /** A call going on in a meeting app, which Home offers to record. */
   call?: CallApp
+  settingsTab: SettingsTab
 
   navigate: (view: View, meetingId?: string) => void
   /** Open a meeting at a tab and, in the transcript, at a moment. */
   openMeetingAt: (meetingId: string, focus: MeetingFocus) => void
   clearMeetingFocus: () => void
   setCall: (call: CallApp | undefined) => void
+  /** Open the settings page at a tab. */
+  openSettings: (tab: SettingsTab) => void
+  setSettingsTab: (tab: SettingsTab) => void
   setPendingTitle: (title: string) => void
   setPendingTemplateId: (templateId: string) => void
   setPendingStart: (start: { templateId: string; projectId: string }) => void
@@ -83,12 +90,16 @@ export const useApp = create<AppState>((set) => ({
   projectFilter: readFilter(),
   settings: undefined,
   toasts: [],
+  settingsTab: 'general',
 
   navigate: (view, meetingId): void => set({ view, meetingId, meetingFocus: undefined }),
   openMeetingAt: (meetingId, meetingFocus): void =>
     set({ view: 'meeting', meetingId, meetingFocus }),
   clearMeetingFocus: (): void => set({ meetingFocus: undefined }),
   setCall: (call): void => set({ call }),
+  openSettings: (settingsTab): void =>
+    set({ view: 'settings', settingsTab, meetingId: undefined, meetingFocus: undefined }),
+  setSettingsTab: (settingsTab): void => set({ settingsTab }),
   setPendingTitle: (pendingTitle): void => set({ pendingTitle }),
   setPendingTemplateId: (pendingTemplateId): void => set({ pendingTemplateId }),
   setPendingStart: (pendingStart): void => set({ pendingStart }),

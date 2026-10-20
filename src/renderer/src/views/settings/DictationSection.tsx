@@ -5,12 +5,12 @@ import { useApp } from '../../store'
 import { strings } from '../../strings'
 import { Select, Textarea } from '../../components/ui/Field'
 import { Toggle } from '../../components/ui/Toggle'
-import { ComponentInstallCard } from '../../components/LocalAiComponents'
 import { useLocalAiComponents } from '../../components/useLocalAiComponents'
 import { cn } from '../../components/ui/cn'
 import { SaveRow, Section } from './Section'
 import { DICTATION_SECTION_ID } from './sectionIds'
 import { HotkeyField } from './HotkeyField'
+import { OpenSpeechTab } from './OpenSpeechTab'
 
 /** Dictation: hold a key anywhere in Windows, speak, and the text is typed at the cursor. */
 export function DictationSection({ settings }: { settings: AppSettings }): JSX.Element {
@@ -67,22 +67,7 @@ export function DictationSection({ settings }: { settings: AppSettings }): JSX.E
           {d.fromViska(settings.viskaImport.terms)}
         </p>
       )}
-      <div className="flex flex-col gap-3">
-        <ComponentInstallCard
-          component="dictation-cpu"
-          title={d.cpuTitle}
-          description={d.cpuDescription}
-          detail={d.cpuSize}
-          manager={components}
-        />
-        <ComponentInstallCard
-          component="dictation-gpu"
-          title={d.gpuTitle}
-          description={d.gpuDescription}
-          detail={d.gpuSize}
-          manager={components}
-        />
-      </div>
+      {!installed && <OpenSpeechTab label={d.openSpeech} />}
       <Toggle
         checked={draft.enabled}
         onChange={(enabled) => update({ enabled })}

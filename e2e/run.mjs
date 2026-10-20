@@ -188,7 +188,17 @@ async function main() {
   await page.getByRole('button', { name: 'Inställningar', exact: true }).click()
   await page.waitForTimeout(1000)
   await shot('settings')
-  assert(await seen('Identifiera talare'), 'settings shows the speaker section')
+  const settingsTab = async (name) => {
+    await page.getByRole('tab', { name, exact: true }).click()
+    await page.waitForTimeout(300)
+  }
+  assert((await page.getByRole('tab').count()) === 6, 'settings are split into six tabs')
+  assert(
+    (await page
+      .getByRole('tab', { name: 'Allmänt', exact: true })
+      .getAttribute('aria-selected')) === 'true',
+    'settings open on the general tab'
+  )
 
   // In the background: with the setting on, closing the window hides it to
   // the tray instead of quitting, and it can be shown again.
@@ -216,18 +226,36 @@ async function main() {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show())
   await page.waitForTimeout(500)
 
+  await settingsTab('Möten')
+  assert(await seen('Identifiera talare'), 'the meetings tab shows the speaker section')
   const transcriptionCard = page
     .getByRole('heading', { name: 'Transkribering', exact: true })
     .locator('../..')
   await transcriptionCard.getByLabel('Förval').selectOption('built-in')
   assert(
-    await seen('Lokal CPU-transkribering'),
-    'built-in transcription preset shows the managed installer'
+    await seen('Installera taligenkänningen under fliken Taligenkänning först.'),
+    'built-in transcription points to the shared speech recognition'
   )
+  await transcriptionCard.getByRole('button', { name: 'Taligenkänning och modell' }).click()
+  await page.waitForTimeout(300)
+  assert(
+    await seen('Taligenkänning på den här datorn'),
+    'the speech tab offers the speech recognition component'
+  )
+  assert((await page.getByRole('radio').count()) === 4, 'the speech tab offers four model choices')
+  await page.getByLabel(/^Medel/).check()
+  await page.waitForTimeout(300)
+  assert(
+    (await page.evaluate(() => window.api.getSettings())).speechModel === 'medium',
+    'the chosen speech model is saved'
+  )
+  await shot('settings-speech')
+  await settingsTab('Möten')
   await transcriptionCard.getByLabel('Förval').selectOption('custom')
 
   // Codex summary backend: selecting it hides HTTP/key fields, explains the
   // existing-login behavior, and persists the backend discriminator.
+  await settingsTab('AI-tjänst')
   const summaryCard = page
     .getByRole('heading', { name: 'Sammanfattning', exact: true })
     .locator('../..')
@@ -254,6 +282,7 @@ async function main() {
   await summaryCard.getByLabel('Bas-URL').fill('http://localhost:8000/v1')
   await summaryCard.getByRole('button', { name: 'Spara', exact: true }).click()
 
+  await settingsTab('Möten')
   await page.getByLabel('Identifiera talare').click()
   await page.waitForTimeout(300)
   // Voice recognition across meetings (renaming a speaker saves a profile).
@@ -272,12 +301,12 @@ async function main() {
 
   // Dictation: it cannot be switched on before its component is installed,
   // which this walkthrough does not download.
+  await settingsTab('Diktering')
   const dictationCard = page
     .getByRole('heading', { name: 'Diktering', exact: true })
     .locator('../..')
-  await dictationCard.scrollIntoViewIfNeeded()
   assert(
-    await seen('Installera dikteringen ovan först.'),
+    await seen('Installera taligenkänningen under fliken Taligenkänning först.'),
     'dictation asks for its component before it can be turned on'
   )
   assert(
@@ -765,11 +794,15 @@ async function main() {
   // --- Settings: the saved voice is listed under "Sparade röster"
   await page.getByRole('button', { name: 'Inställningar', exact: true }).click()
   await page.waitForTimeout(1000)
+  await page.getByRole('tab', { name: 'Möten', exact: true }).click()
+  await page.waitForTimeout(300)
   assert(await seen('Sparade röster', 8000), 'settings shows the saved voices list')
   assert(await seen('Anna', 5000), 'saved voice "Anna" is listed under "Sparade röster"')
   await shot('settings-voices')
 
   // --- Settings: the glossary term added from the transcript is listed
+  await page.getByRole('tab', { name: 'Ordlista', exact: true }).click()
+  await page.waitForTimeout(300)
   assert(await seen('Ordlista', 8000), 'settings shows the glossary section')
   assert(
     await seen('Annonsmall CMS', 5000),

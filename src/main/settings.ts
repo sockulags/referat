@@ -13,6 +13,7 @@ import type {
   SaveSummarySettings,
   SaveDiarizationSettings,
   SaveGeneralSettings,
+  SpeechModel,
   SummaryTemplate
 } from '../shared/types'
 import {
@@ -58,6 +59,7 @@ interface StoredSettings {
   viskaImport?: { at: string; terms: number }
   /** Bluetooth headsets the user has been told dictation leaves alone. */
   headsetNotices?: string[]
+  speechModel: SpeechModel
   microphoneId: string
   captureSystemAudio: boolean
   runInBackground: boolean
@@ -157,6 +159,7 @@ function defaults(): StoredSettings {
       rewriteInstruction:
         'Skriv om texten till korrekt och tydlig text utan utfyllnadsord. Behåll innehållet.'
     },
+    speechModel: 'auto',
     microphoneId: '',
     captureSystemAudio: true,
     runInBackground: false,
@@ -201,6 +204,9 @@ function load(): StoredSettings {
         ...(Array.isArray(parsed.headsetNotices)
           ? { headsetNotices: parsed.headsetNotices.filter((n) => typeof n === 'string') }
           : {}),
+        speechModel: SPEECH_MODELS.includes(parsed.speechModel as SpeechModel)
+          ? (parsed.speechModel as SpeechModel)
+          : base.speechModel,
         microphoneId: parsed.microphoneId ?? base.microphoneId,
         captureSystemAudio: parsed.captureSystemAudio ?? base.captureSystemAudio,
         runInBackground: parsed.runInBackground ?? base.runInBackground,
@@ -296,6 +302,7 @@ export function getSettings(): AppSettings {
     },
     dictation: { ...s.dictation },
     viskaImport: s.viskaImport ?? null,
+    speechModel: s.speechModel,
     microphoneId: s.microphoneId,
     captureSystemAudio: s.captureSystemAudio,
     runInBackground: s.runInBackground,
@@ -424,8 +431,13 @@ export function recordViskaImport(record: { at: string; terms: number }): void {
   persist(s)
 }
 
+const SPEECH_MODELS: SpeechModel[] = ['auto', 'small', 'medium', 'large']
+
 export function saveGeneralSettings(payload: SaveGeneralSettings): void {
   const s = load()
+  if (payload.speechModel !== undefined && SPEECH_MODELS.includes(payload.speechModel)) {
+    s.speechModel = payload.speechModel
+  }
   if (payload.microphoneId !== undefined) s.microphoneId = payload.microphoneId
   if (payload.captureSystemAudio !== undefined) s.captureSystemAudio = payload.captureSystemAudio
   if (payload.runInBackground !== undefined) s.runInBackground = payload.runInBackground

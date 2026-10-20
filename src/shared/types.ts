@@ -298,8 +298,16 @@ export interface DictationMicrophone {
   default: boolean
 }
 
+/**
+ * Which KB-Whisper model the speech recognition on the computer uses, for
+ * meetings and dictation alike. 'auto' is large on an Nvidia GPU, small on
+ * the processor.
+ */
+export type SpeechModel = 'auto' | 'small' | 'medium' | 'large'
+
 export interface AppSettings {
   transcription: TranscriptionSettings
+  speechModel: SpeechModel
   summary: SummarySettings
   diarization: DiarizationSettings
   dictation: DictationSettings
@@ -432,6 +440,7 @@ export interface SearchResult {
 // ---------- The preload API surface ----------
 
 export interface SaveGeneralSettings {
+  speechModel?: SpeechModel
   microphoneId?: string
   captureSystemAudio?: boolean
   runInBackground?: boolean
