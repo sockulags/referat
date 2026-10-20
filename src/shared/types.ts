@@ -583,6 +583,11 @@ export interface RendererApi {
   saveDictationSettings(s: DictationSettings): Promise<void>
   /** The microphones the running engine sees; empty when it is not running. */
   listDictationMicrophones(): Promise<DictationMicrophone[]>
+  /**
+   * The microphone the dictation engine would pick now — with its Bluetooth
+   * rules — for meetings left on the system default. Null without dictation.
+   */
+  getDictationMicrophone(): Promise<string | null>
   /** The last week's dictations, newest first. */
   listDictations(): Promise<DictationEntry[]>
   deleteDictation(id: string): Promise<void>

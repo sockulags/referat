@@ -59,6 +59,7 @@ export const IPC = {
   saveGeneralSettings: 'settings:save-general',
   saveDictationSettings: 'settings:save-dictation',
   listDictationMicrophones: 'dictation:list-microphones',
+  getDictationMicrophone: 'dictation:current-microphone',
   listDictations: 'dictation:list',
   deleteDictation: 'dictation:delete',
   clearDictations: 'dictation:clear',

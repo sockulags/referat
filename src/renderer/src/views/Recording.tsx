@@ -4,6 +4,7 @@ import { useApp } from '../store'
 import { strings } from '../strings'
 import { formatDuration } from '../format'
 import { MeetingRecorder, isMicPermissionError } from '../audio/recorder'
+import { meetingMicrophoneId } from '../audio/microphoneChoice'
 import { LiveQueue, type LiveState } from '../audio/live'
 import { isLiveTranscriptionOn } from '../../../shared/live'
 import { LevelMeter } from '../components/LevelMeter'
@@ -82,8 +83,15 @@ export function Recording(): JSX.Element {
           pendingStart.projectId || undefined
         )
         meetingIdRef.current = handle.meetingId
+        // Left on the system default, a meeting uses the microphone dictation
+        // would pick, so a Bluetooth headset is avoided the same way.
+        const microphoneId = meetingMicrophoneId(
+          settings?.microphoneId ?? '',
+          await window.api.getDictationMicrophone().catch(() => null),
+          await navigator.mediaDevices.enumerateDevices().catch(() => [])
+        )
         await recorder.start({
-          microphoneId: settings?.microphoneId ?? '',
+          microphoneId,
           captureSystemAudio: settings?.captureSystemAudio ?? false,
           onChunk: async (chunk, segmentIndex) => {
             if (meetingIdRef.current) {
