@@ -5,7 +5,8 @@ import { useApp } from '../store'
 import { strings } from '../strings'
 import { transcriptionDefaults, summaryDefaults } from '../presets'
 import { Button } from '../components/ui/Button'
-import { Input, Select } from '../components/ui/Field'
+import { Input, Select, Textarea } from '../components/ui/Field'
+import { Toggle } from '../components/ui/Toggle'
 import { LevelMeter } from '../components/LevelMeter'
 import {
   Wordmark,
@@ -27,7 +28,7 @@ import { ComponentInstallCard } from '../components/LocalAiComponents'
 import { useLocalAiComponents } from '../components/useLocalAiComponents'
 
 type Choice = 'local' | 'server' | 'cloud'
-const STEPS = 4
+const STEPS = 5
 
 // Guide for setting up a local AI server. http/https only — safe for openExternal.
 const LOCAL_AI_DOCS_URL = 'https://github.com/sockulags/referat#lokal-ai'
@@ -133,6 +134,7 @@ export function Onboarding(): JSX.Element {
               )}
               {step === 2 && <TestStep onResult={setTestFailed} />}
               {step === 3 && <MicStep />}
+              {step === 4 && <DictationStep />}
             </div>
 
             <div className="mt-6 flex items-center justify-between">
@@ -151,7 +153,7 @@ export function Onboarding(): JSX.Element {
                   {step === 0
                     ? strings.onboarding.welcome.cta
                     : step === STEPS - 1
-                      ? strings.onboarding.mic.finish
+                      ? strings.onboarding.finish
                       : step === 2 && testFailed
                         ? strings.onboarding.test.continueAnyway
                         : strings.common.next}
@@ -441,6 +443,68 @@ function TestRow({
         </div>
       </div>
       {!result.ok && result.detail && <ErrorDetail detail={result.detail} className="mt-2 ml-9" />}
+    </div>
+  )
+}
+
+/**
+ * Optional and last: someone who only records meetings just finishes. Turning
+ * dictation on starts the engine right away, so it can be tried in the box
+ * below — the engine types into whatever has focus, including referat.
+ */
+function DictationStep(): JSX.Element {
+  const settings = useApp((s) => s.settings)
+  const patchSettings = useApp((s) => s.patchSettings)
+  const manager = useLocalAiComponents()
+  const [error, setError] = useState('')
+  const d = strings.onboarding.dictation
+  const enabled = settings?.dictation.enabled ?? false
+  const installed = manager.statuses.some(
+    (status) =>
+      (status.component === 'dictation-cpu' || status.component === 'dictation-gpu') &&
+      (status.state === 'installed' || status.state === 'running')
+  )
+
+  const turn = async (on: boolean): Promise<void> => {
+    if (!settings) return
+    const next = { ...settings.dictation, enabled: on }
+    setError('')
+    try {
+      await window.api.saveDictationSettings(next)
+      patchSettings({ dictation: next, ...(on ? { runInBackground: true } : {}) })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : strings.settings.dictation.startFailed)
+    }
+  }
+
+  return (
+    <div className="animate-fade-in">
+      <StepHeader title={d.title} body={d.body} />
+      <div className="flex flex-col gap-4">
+        <ComponentInstallCard
+          component="dictation-cpu"
+          title={strings.settings.dictation.cpuTitle}
+          description={strings.settings.dictation.cpuDescription}
+          detail={strings.settings.dictation.cpuSize}
+          manager={manager}
+        />
+        <Toggle
+          checked={enabled}
+          onChange={(on) => void turn(on)}
+          disabled={!installed && !enabled}
+          label={d.enable((settings?.dictation.hotkey ?? 'f9').toUpperCase())}
+          description={installed ? d.enableHint : d.installFirst}
+        />
+        {error && <p className="text-sm text-danger">{error}</p>}
+        {enabled && (
+          <Textarea
+            label={d.tryLabel}
+            placeholder={d.tryPlaceholder((settings?.dictation.hotkey ?? 'f9').toUpperCase())}
+            hint={d.tryHint}
+            rows={3}
+          />
+        )}
+      </div>
     </div>
   )
 }
