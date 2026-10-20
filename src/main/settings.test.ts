@@ -159,6 +159,15 @@ describe('summary backend settings', () => {
     expect(getSettings().consentMessage).toBe('')
   })
 
+  it('lets the engine pick the speech model until the user chooses one', () => {
+    expect(getSettings().speechModel).toBe('auto')
+    saveGeneralSettings({ speechModel: 'medium' })
+    expect(getSettings().speechModel).toBe('medium')
+    saveGeneralSettings({ speechModel: 'huge' as never })
+    expect(getSettings().speechModel).toBe('medium')
+    saveGeneralSettings({ speechModel: 'auto' })
+  })
+
   it('keeps referat out of the background until the user turns it on', () => {
     expect(getSettings()).toMatchObject({ runInBackground: false, openAtLogin: false })
     saveGeneralSettings({ runInBackground: true, openAtLogin: true })

@@ -9,7 +9,7 @@ import type {
   SummaryTemplate,
   TranscriptionPreset
 } from '../../../shared/types'
-import { useApp, applyTheme } from '../store'
+import { useApp, applyTheme, type SettingsTab } from '../store'
 import { strings } from '../strings'
 import {
   SUMMARY_PRESETS,
@@ -32,9 +32,15 @@ import { useAutofocusHeading } from '../components/useAutofocusHeading'
 import { cn } from '../components/ui/cn'
 import { SaveRow, Section } from './settings/Section'
 import { DictationSection } from './settings/DictationSection'
+import { SpeechSection } from './settings/SpeechSection'
+import { OpenSpeechTab } from './settings/OpenSpeechTab'
+
+const TABS: SettingsTab[] = ['general', 'speech', 'meetings', 'dictation', 'ai', 'glossary']
 
 export function Settings(): JSX.Element {
   const settings = useApp((s) => s.settings)
+  const tab = useApp((s) => s.settingsTab)
+  const setTab = useApp((s) => s.setSettingsTab)
   const [version, setVersion] = useState('')
   const headingRef = useAutofocusHeading<HTMLHeadingElement>()
 
@@ -52,7 +58,7 @@ export function Settings(): JSX.Element {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-8">
+    <div className="mx-auto max-w-4xl px-5 py-8">
       <h1
         ref={headingRef}
         tabIndex={-1}
@@ -61,18 +67,63 @@ export function Settings(): JSX.Element {
         {strings.settings.title}
       </h1>
 
-      <div className="flex flex-col gap-4">
-        <AudioSection settings={settings} />
-        <BackgroundSection settings={settings} />
-        <TranscriptionSection settings={settings} />
-        <SummarySection settings={settings} />
-        <GlossarySection />
-        <DiarizationSection settings={settings} />
-        <DictationSection settings={settings} />
-        <AppearanceSection settings={settings} />
-      </div>
+      <div className="flex items-start gap-8">
+        <nav
+          role="tablist"
+          aria-orientation="vertical"
+          aria-label={strings.settings.title}
+          className="sticky top-8 flex w-44 shrink-0 flex-col gap-1"
+        >
+          {TABS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`settings-tab-${id}`}
+              aria-selected={tab === id}
+              aria-controls="settings-panel"
+              onClick={() => setTab(id)}
+              className={cn(
+                'h-9 rounded-[10px] px-3 text-left text-sm font-medium transition-colors duration-150',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                tab === id
+                  ? 'bg-accent-soft text-accent-soft-fg'
+                  : 'text-fg-muted hover:bg-surface-2 hover:text-fg'
+              )}
+            >
+              {strings.settings.tabs[id]}
+            </button>
+          ))}
+        </nav>
 
-      <Footer version={version} />
+        <div
+          id="settings-panel"
+          role="tabpanel"
+          aria-labelledby={`settings-tab-${tab}`}
+          className="min-w-0 max-w-2xl flex-1"
+        >
+          <div key={tab} className="flex flex-col gap-4 animate-fade-in">
+            {tab === 'general' && (
+              <>
+                <AudioSection settings={settings} />
+                <BackgroundSection settings={settings} />
+                <AppearanceSection settings={settings} />
+              </>
+            )}
+            {tab === 'speech' && <SpeechSection settings={settings} />}
+            {tab === 'meetings' && (
+              <>
+                <TranscriptionSection settings={settings} />
+                <DiarizationSection settings={settings} />
+              </>
+            )}
+            {tab === 'dictation' && <DictationSection settings={settings} />}
+            {tab === 'ai' && <SummarySection settings={settings} />}
+            {tab === 'glossary' && <GlossarySection />}
+          </div>
+          <Footer version={version} />
+        </div>
+      </div>
     </div>
   )
 }
@@ -195,6 +246,11 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
   const [apiKey, setApiKey] = useState('')
   const [saving, setSaving] = useState(false)
   const components = useLocalAiComponents()
+  const speechInstalled = components.statuses.some(
+    (status) =>
+      (status.component === 'dictation-cpu' || status.component === 'dictation-gpu') &&
+      (status.state === 'installed' || status.state === 'running')
+  )
 
   const onPreset = (p: TranscriptionPreset): void => {
     setPreset(p)
@@ -244,21 +300,13 @@ function TranscriptionSection({ settings }: { settings: AppSettings }): JSX.Elem
         onChange={(v) => onPreset(v as TranscriptionPreset)}
       />
       {preset === 'built-in' ? (
-        <div className="flex flex-col gap-3">
-          <ComponentInstallCard
-            component="transcription-cpu"
-            title={strings.settings.transcription.builtInTitle}
-            description={strings.settings.transcription.builtInDescription}
-            detail={strings.settings.transcription.builtInSize}
-            manager={components}
-          />
-          <ComponentInstallCard
-            component="transcription-gpu"
-            title={strings.settings.transcription.gpuTitle}
-            description={strings.settings.transcription.gpuDescription}
-            detail={strings.settings.transcription.gpuSize}
-            manager={components}
-          />
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-sm text-fg-muted">
+            {speechInstalled
+              ? strings.settings.transcription.builtInReady
+              : strings.settings.transcription.builtInMissing}
+          </p>
+          <OpenSpeechTab label={strings.settings.transcription.openSpeech} />
         </div>
       ) : (
         <>

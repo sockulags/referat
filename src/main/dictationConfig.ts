@@ -1,4 +1,9 @@
-import type { DictationSettings, GlossaryTerm } from '../shared/types'
+import type { DictationSettings, GlossaryTerm, SpeechModel } from '../shared/types'
+
+/** The engine's model setting: 'auto', or a KB-Whisper model on Hugging Face. */
+export function speechModelId(model: SpeechModel): string {
+  return model === 'auto' ? 'auto' : `KBLab/kb-whisper-${model}`
+}
 
 /**
  * The headset to tell the user about, from the engine's mic event: one it
@@ -22,11 +27,14 @@ const PROMPT_TERMS = 40
  */
 export function dictationEngineConfig(
   settings: DictationSettings,
-  terms: GlossaryTerm[] = []
+  terms: GlossaryTerm[] = [],
+  model: SpeechModel = 'auto'
 ): Record<string, unknown> {
   return {
     ...dictationGlossaryConfig(terms),
-    hotkey: settings.hotkey,
+    model: speechModelId(model),
+    // No key while dictation is off: the engine then serves meetings only.
+    hotkey: settings.enabled ? settings.hotkey : '',
     input_device: settings.microphone || null,
     mic_avoid_bluetooth: settings.avoidBluetooth,
     language: settings.language,

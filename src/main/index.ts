@@ -14,7 +14,11 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipcHandlers'
 import { handleMediaRequests, registerMediaScheme } from './media'
-import { stopAllLocalAiComponents, updateLocalAiComponents } from './localAiComponents'
+import {
+  migrateSpeechComponents,
+  stopAllLocalAiComponents,
+  updateLocalAiComponents
+} from './localAiComponents'
 import { openExternalSafe } from './security'
 import { recoverPipeline } from './pipeline'
 import { isRecordingActive } from './storage'
@@ -26,7 +30,7 @@ import { initAutoUpdater, installUpdateNow } from './updater'
 import { IPC } from './ipc'
 import {
   applyDictationSettings,
-  dictationTranscriptionUrl,
+  speechTranscriptionUrl,
   onOpenDictationSettings,
   isDictationRunning,
   restartDictationAfterUpdate,
@@ -229,7 +233,7 @@ app.whenReady().then(() => {
   initAutoUpdater(() => mainWindow)
 
   // With dictation running, meetings use its model instead of a second one.
-  shareTranscriptionWith(dictationTranscriptionUrl)
+  shareTranscriptionWith(speechTranscriptionUrl)
 
   // A notification from dictation opens its settings.
   onOpenDictationSettings(() => {
@@ -272,11 +276,13 @@ app.whenReady().then(() => {
       updateLocalAiComponents(
         (component) => component.startsWith('dictation-') && isDictationRunning()
       )
-        .then((updated) => {
+        .then(async (updated) => {
           if (updated.some((component) => component.startsWith('dictation-'))) {
-            return restartDictationAfterUpdate()
+            await restartDictationAfterUpdate()
           }
-          return undefined
+          // Meetings and dictation share one speech component now; an older
+          // transcription component is replaced by it.
+          await migrateSpeechComponents()
         })
         .catch((error) => console.error('Komponenterna kunde inte uppdateras', error))
     }, 15_000)

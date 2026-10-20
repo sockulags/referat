@@ -409,6 +409,26 @@ export async function updateLocalAiComponents(
 }
 
 /**
+ * Meetings and dictation share one speech component, the dictation engine.
+ * An older transcription component is replaced by the engine of the same
+ * kind (processor or Nvidia GPU): the engine is installed first, and the old
+ * component removed once it is not in use. A failed download leaves the old
+ * one working.
+ */
+export async function migrateSpeechComponents(): Promise<void> {
+  for (const kind of ['cpu', 'gpu'] as const) {
+    const legacy: LocalAiComponent = `transcription-${kind}`
+    const speech: LocalAiComponent = `dictation-${kind}`
+    if (!isLocalAiComponentInstalled(legacy)) continue
+    if (!isLocalAiComponentInstalled(speech)) {
+      const status = await installLocalAiComponent(speech)
+      if (status.state !== 'installed') continue
+    }
+    if (!isRunning(legacy)) await removeLocalAiComponent(legacy)
+  }
+}
+
+/**
  * Put a downloaded update in place, if there is one. Only for a component
  * that is not running: Windows keeps a running program's files locked.
  */

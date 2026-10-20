@@ -30,6 +30,21 @@ describe('dictationEngineConfig', () => {
     ).toMatchObject({ input_device: 'Mikrofonmatris (Realtek)', live: false })
   })
 
+  it('gives the engine no key while dictation is off, so it serves meetings only', () => {
+    expect(dictationEngineConfig(settings)).toMatchObject({ hotkey: 'f9' })
+    expect(dictationEngineConfig({ ...settings, enabled: false })).toMatchObject({ hotkey: '' })
+  })
+
+  it('names the chosen KB-Whisper model, or lets the engine pick', () => {
+    expect(dictationEngineConfig(settings)).toMatchObject({ model: 'auto' })
+    expect(dictationEngineConfig(settings, [], 'medium')).toMatchObject({
+      model: 'KBLab/kb-whisper-medium'
+    })
+    expect(dictationEngineConfig(settings, [], 'large')).toMatchObject({
+      model: 'KBLab/kb-whisper-large'
+    })
+  })
+
   it('never lets the engine keep its own history', () => {
     expect(dictationEngineConfig(settings)).toMatchObject({ history_persist: false })
   })

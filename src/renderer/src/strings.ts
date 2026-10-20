@@ -373,6 +373,46 @@ export const strings = {
 
   settings: {
     title: 'Inställningar',
+    tabs: {
+      general: 'Allmänt',
+      speech: 'Taligenkänning',
+      meetings: 'Möten',
+      dictation: 'Diktering',
+      ai: 'AI-tjänst',
+      glossary: 'Ordlista'
+    },
+    speech: {
+      title: 'Taligenkänning',
+      description:
+        'Svensk taligenkänning som körs på den här datorn. Mötena och dikteringen använder samma, och ljudet lämnar aldrig datorn.',
+      cpuTitle: 'Taligenkänning på den här datorn',
+      cpuDescription:
+        'Referat installerar KB-Whisper, en svensk Whisper-modell, och kör den på processorn. Ingen server eller API-nyckel behövs.',
+      cpuSize: 'Cirka 260 MB, plus modellen som laddas ner första gången.',
+      gpuTitle: 'Snabbare med Nvidia GPU',
+      gpuDescription:
+        'Samma taligenkänning på ett Nvidia-grafikkort, flera gånger snabbare. Används automatiskt när den är installerad, och processorn tar över om grafikkortet inte går att använda.',
+      gpuSize: 'Cirka 650 MB. Kräver ett Nvidia-grafikkort och en aktuell drivrutin.',
+      model: 'Modell',
+      modelHint:
+        'En större modell hör svenska bättre men tar längre tid. Den laddas ner första gången den används, och byts direkt.',
+      modelFailed: 'Modellen kunde inte bytas.',
+      models: {
+        auto: {
+          label: 'Automatiskt (rekommenderas)',
+          hint: 'Stor på ett Nvidia-grafikkort, liten på processorn.'
+        },
+        small: { label: 'Liten', hint: 'Snabbast. Cirka 0,5 GB.' },
+        medium: {
+          label: 'Medel',
+          hint: 'Hör svenska bättre än liten, men tar ungefär tre gånger så lång tid på processorn. Cirka 1,5 GB.'
+        },
+        large: {
+          label: 'Stor',
+          hint: 'Hör bäst. På processorn kan en lång diktering ta många sekunder. Cirka 3 GB.'
+        }
+      }
+    },
     audio: {
       title: 'Ljud',
       description: 'Vilken mikrofon som används och om systemljudet spelas in.',
@@ -407,15 +447,9 @@ export const strings = {
       model: 'Modell',
       language: 'Språk',
       languageHint: 'Lämna tomt för automatisk igenkänning, eller ange t.ex. sv.',
-      builtInTitle: 'Lokal CPU-transkribering',
-      builtInDescription:
-        'Referat installerar en svensk Whisper-modell och kör den lokalt. Ingen Docker, serveradress eller API-nyckel behövs.',
-      builtInSize: 'Cirka 700 MB efter installation.',
-      gpuTitle: 'Snabbare med Nvidia GPU',
-      gpuDescription:
-        'Den större modellen KB-Whisper large på ett Nvidia-grafikkort: hör svenska klart bättre och är flera gånger snabbare för långa möten. Används automatiskt när den är installerad. Behåll CPU-transkriberingen som reserv: den tar över om grafikkortet inte går att använda.',
-      gpuSize:
-        'Cirka 1,5 GB, plus modellen på cirka 3 GB som laddas ner första gången. Kräver ett Nvidia-grafikkort med minst 4 GB minne och en aktuell drivrutin.',
+      builtInReady: 'Mötena skrivs ut med taligenkänningen på den här datorn.',
+      builtInMissing: 'Installera taligenkänningen under fliken Taligenkänning först.',
+      openSpeech: 'Taligenkänning och modell',
       live: 'Visa text medan du spelar in',
       liveHintLocal:
         'Ljudet skickas i korta bitar till transkriberingen på den här datorn medan mötet pågår. Hela transkriptet skapas som vanligt när du stoppar.',
@@ -487,18 +521,11 @@ export const strings = {
       title: 'Diktering',
       description:
         'Håll en tangent var som helst i Windows, prata och släpp. Texten skrivs där markören står. Ljudet stannar på datorn.',
-      cpuTitle: 'Diktering på den här datorn',
-      cpuDescription:
-        'Referat installerar dikteringen och en svensk Whisper-modell och kör dem lokalt.',
-      cpuSize: 'Cirka 260 MB, plus modellen som laddas ner första gången.',
-      gpuTitle: 'Snabbare med Nvidia GPU',
-      gpuDescription:
-        'Samma diktering på ett Nvidia-grafikkort: texten kommer fram på under en sekund och kan skrivas in medan du pratar. Används automatiskt när den är installerad.',
-      gpuSize: 'Cirka 1,5 GB. Kräver ett Nvidia-grafikkort och en aktuell drivrutin.',
       enable: 'Diktera med en tangent',
       enableHint:
         'Referat ligger kvar i systemfältet medan dikteringen är på, så att tangenten fungerar även när fönstret är stängt.',
-      installFirst: 'Installera dikteringen ovan först.',
+      installFirst: 'Installera taligenkänningen under fliken Taligenkänning först.',
+      openSpeech: 'Taligenkänning och modell',
       fromViska: (terms: number): string =>
         terms > 0
           ? `Dina inställningar från Viska har flyttats hit, och ${terms} ord från Viska finns nu i ordlistan.`

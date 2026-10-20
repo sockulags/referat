@@ -338,9 +338,9 @@ function OnboardingTranscriptionInstall(): JSX.Element {
   return (
     <div className="w-full">
       <ComponentInstallCard
-        component="transcription-cpu"
-        title={strings.settings.transcription.builtInTitle}
-        description={strings.settings.transcription.builtInSize}
+        component="dictation-cpu"
+        title={strings.settings.speech.cpuTitle}
+        description={strings.settings.speech.cpuSize}
         detail={strings.onboarding.provider.localGpuHint}
         manager={manager}
         removable={false}
@@ -483,9 +483,9 @@ function DictationStep(): JSX.Element {
       <div className="flex flex-col gap-4">
         <ComponentInstallCard
           component="dictation-cpu"
-          title={strings.settings.dictation.cpuTitle}
-          description={strings.settings.dictation.cpuDescription}
-          detail={strings.settings.dictation.cpuSize}
+          title={strings.settings.speech.cpuTitle}
+          description={strings.settings.speech.cpuDescription}
+          detail={strings.settings.speech.cpuSize}
           manager={manager}
         />
         <Toggle

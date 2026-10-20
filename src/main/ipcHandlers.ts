@@ -4,6 +4,7 @@ import { ipcMain, app, clipboard } from 'electron'
 import type { RendererApi } from '../shared/types'
 import {
   applyDictationSettings,
+  applySpeechModel,
   dictationMicrophone,
   listDictationMicrophones,
   syncDictationGlossary
@@ -169,9 +170,10 @@ export function registerIpcHandlers(): void {
   handle('saveTranscriptionSettings', (s) => settings.saveTranscriptionSettings(s))
   handle('saveSummarySettings', (s) => settings.saveSummarySettings(s))
   handle('saveDiarizationSettings', (s) => settings.saveDiarizationSettings(s))
-  handle('saveGeneralSettings', (s) => {
+  handle('saveGeneralSettings', async (s) => {
     settings.saveGeneralSettings(s)
     if (s.openAtLogin !== undefined) applyOpenAtLogin(s.openAtLogin)
+    if (s.speechModel !== undefined) await applySpeechModel()
   })
   handle('saveDictationSettings', async (s) => {
     settings.saveDictationSettings(s)
