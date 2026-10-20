@@ -166,7 +166,17 @@ async function main() {
   await shot('onboarding-mic')
   await page.waitForTimeout(2500)
   await shot('onboarding-mic-live')
-  assert(await seen('Klar — sätt igång'), 'mic step shows finish button')
+  await page.getByText('Nästa', { exact: true }).click()
+  await page.waitForTimeout(400)
+
+  // --- Step 5: dictation, optional; it cannot be turned on uninstalled
+  await shot('onboarding-dictation')
+  assert(await seen('Vill du också kunna diktera?'), 'onboarding offers dictation last')
+  assert(
+    await page.getByRole('switch', { name: 'Diktera med F9' }).isDisabled(),
+    'dictation cannot be turned on in onboarding before it is installed'
+  )
+  assert(await seen('Klar — sätt igång'), 'the dictation step shows the finish button')
   await page.getByText('Klar — sätt igång').click()
   await page.waitForTimeout(1000)
 

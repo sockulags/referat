@@ -335,9 +335,21 @@ export const strings = {
       body: 'Säg något — stapeln nedan ska röra sig. Välj en annan mikrofon om det behövs.',
       device: 'Mikrofon',
       speakNow: 'Säg något så ser du mätaren röra sig',
-      looksGood: 'Mikrofonen fungerar',
-      finish: 'Klar — sätt igång'
-    }
+      looksGood: 'Mikrofonen fungerar'
+    },
+    dictation: {
+      title: 'Vill du också kunna diktera?',
+      body: 'Håll en tangent var som helst i Windows, prata och släpp, så skrivs texten där markören står. Det här steget går bra att hoppa över — dikteringen finns under Inställningar.',
+      enable: (key: string): string => `Diktera med ${key}`,
+      enableHint:
+        'Referat ligger kvar i systemfältet så att tangenten fungerar även när fönstret är stängt.',
+      installFirst: 'Installera dikteringen ovan först.',
+      tryLabel: 'Prova här',
+      tryPlaceholder: (key: string): string => `Klicka här, håll ${key} och säg något`,
+      tryHint:
+        'Första gången laddas språkmodellen ner, så det kan dröja en stund innan texten kommer.'
+    },
+    finish: 'Klar — sätt igång'
   },
 
   search: {
