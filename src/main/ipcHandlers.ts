@@ -4,6 +4,7 @@ import { ipcMain, app, clipboard } from 'electron'
 import type { RendererApi } from '../shared/types'
 import {
   applyDictationSettings,
+  dictationMicrophone,
   listDictationMicrophones,
   syncDictationGlossary
 } from './dictationService'
@@ -177,6 +178,7 @@ export function registerIpcHandlers(): void {
     await applyDictationSettings(settings.getSettings().dictation)
   })
   handle('listDictationMicrophones', () => listDictationMicrophones())
+  handle('getDictationMicrophone', () => dictationMicrophone())
   handle('listDictations', () => dictationHistory.listDictations())
   handle('deleteDictation', (id) => dictationHistory.deleteDictation(id))
   handle('clearDictations', () => dictationHistory.clearDictations())

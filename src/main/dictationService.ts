@@ -114,6 +114,17 @@ export async function syncDictationGlossary(): Promise<void> {
   })
 }
 
+/** The microphone the engine would pick now, or null without a running engine. */
+export async function dictationMicrophone(): Promise<string | null> {
+  if (!engine) return null
+  try {
+    const reply = await engine.connection.send('current_mic')
+    return typeof reply.name === 'string' && reply.name ? reply.name : null
+  } catch {
+    return null // an engine too old to answer: the meeting keeps the default
+  }
+}
+
 /** The microphones the engine sees, for the settings page. */
 export async function listDictationMicrophones(): Promise<DictationMicrophone[]> {
   if (!engine) return []

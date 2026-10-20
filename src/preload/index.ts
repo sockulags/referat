@@ -79,6 +79,7 @@ const api: RendererApi = {
   saveGeneralSettings: invoke('saveGeneralSettings'),
   saveDictationSettings: invoke('saveDictationSettings'),
   listDictationMicrophones: invoke('listDictationMicrophones'),
+  getDictationMicrophone: invoke('getDictationMicrophone'),
   listDictations: invoke('listDictations'),
   deleteDictation: invoke('deleteDictation'),
   clearDictations: invoke('clearDictations'),
