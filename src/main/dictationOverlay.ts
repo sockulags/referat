@@ -3,16 +3,28 @@
 // through, so dictating into another app is never interrupted. Only while
 // its buttons show, and the pointer is on the pill, does it take a click —
 // still without taking focus, so the text lands where the user was typing.
+//
+// Whether the pointer is on the pill is checked here, from the cursor's
+// position, rather than with mouse moves forwarded to the page: Windows does
+// not reliably send those to a window that cannot take focus.
 
 import { BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
-import { OVERLAY_CHANNELS, type OverlayAction, type OverlayState } from '../shared/dictationOverlay'
+import {
+  OVERLAY_CHANNELS,
+  pointOnPill,
+  type OverlayAction,
+  type OverlayRect,
+  type OverlayState
+} from '../shared/dictationOverlay'
 
 const WIDTH = 560
 const HEIGHT = 96
 /** Space between the pill window and the bottom of the work area. */
 const MARGIN = 16
+/** How often the pointer is checked while the buttons show. */
+const POINTER_POLL_MS = 40
 
 export class DictationOverlay {
   private window: BrowserWindow | null = null
@@ -20,6 +32,10 @@ export class DictationOverlay {
   /** The state shown has buttons. */
   private actions = false
   private listening = false
+  private pill: OverlayRect | null = null
+  private pointerTimer: ReturnType<typeof setInterval> | null = null
+  /** The window takes clicks right now. */
+  private clickable = false
 
   constructor(private readonly onAction: (action: OverlayAction) => void) {}
 
@@ -52,8 +68,7 @@ export class DictationOverlay {
       }
     })
     window.setAlwaysOnTop(true, 'screen-saver')
-    // Forwarded moves still reach the page, which says when the pointer is on the pill.
-    window.setIgnoreMouseEvents(true, { forward: true })
+    window.setIgnoreMouseEvents(true)
     this.listen()
     window.webContents.on('will-navigate', (event) => event.preventDefault())
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
@@ -77,15 +92,39 @@ export class DictationOverlay {
       if (!fromPill(event.sender) || !this.actions) return
       if (action === 'insert_raw' || action === 'cancel') this.onAction(action)
     })
-    ipcMain.on(OVERLAY_CHANNELS.pointer, (event, over: unknown) => {
-      if (fromPill(event.sender)) this.takeClicks(this.actions && over === true)
+    ipcMain.on(OVERLAY_CHANNELS.rect, (event, rect: unknown) => {
+      if (!fromPill(event.sender) || typeof rect !== 'object' || rect === null) return
+      const { x, y, width, height } = rect as Record<string, unknown>
+      if ([x, y, width, height].every((n) => typeof n === 'number' && Number.isFinite(n))) {
+        this.pill = rect as OverlayRect
+      }
     })
   }
 
   private takeClicks(take: boolean): void {
+    if (take === this.clickable) return
+    this.clickable = take
     if (!this.window || this.window.isDestroyed()) return
-    if (take) this.window.setIgnoreMouseEvents(false)
-    else this.window.setIgnoreMouseEvents(true, { forward: true })
+    this.window.setIgnoreMouseEvents(!take)
+  }
+
+  /** While the buttons show: take clicks when the pointer is on the pill. */
+  private watchPointer(watch: boolean): void {
+    if (!watch) {
+      if (this.pointerTimer) clearInterval(this.pointerTimer)
+      this.pointerTimer = null
+      this.takeClicks(false)
+      return
+    }
+    if (this.pointerTimer) return
+    this.pointerTimer = setInterval(() => {
+      const window = this.window
+      if (!window || window.isDestroyed() || !window.isVisible() || !this.pill) {
+        this.takeClicks(false)
+        return
+      }
+      this.takeClicks(pointOnPill(screen.getCursorScreenPoint(), window.getBounds(), this.pill))
+    }, POINTER_POLL_MS)
   }
 
   show(state: OverlayState): void {
@@ -93,7 +132,7 @@ export class DictationOverlay {
     const window = this.window!
     this.clearHideTimer()
     this.actions = !!state.actions
-    if (!this.actions) this.takeClicks(false)
+    this.watchPointer(this.actions)
     window.webContents.send(OVERLAY_CHANNELS.state, state)
     if (!window.isVisible()) {
       this.placeOnActiveScreen(window)
@@ -111,7 +150,7 @@ export class DictationOverlay {
   hide(): void {
     this.clearHideTimer()
     this.actions = false
-    this.takeClicks(false)
+    this.watchPointer(false)
     if (this.window?.isVisible()) this.window.hide()
   }
 

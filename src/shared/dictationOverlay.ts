@@ -7,9 +7,30 @@ export const OVERLAY_CHANNELS = {
   level: 'dictation-overlay:level',
   /** From the pill: a button was clicked. */
   action: 'dictation-overlay:action',
-  /** From the pill: the pointer entered or left it. */
-  pointer: 'dictation-overlay:pointer'
+  /** From the pill: where the pill is in its window, after each change. */
+  rect: 'dictation-overlay:rect'
 } as const
+
+/** The pill's place in its window, in CSS pixels. */
+export interface OverlayRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Whether a screen point is on the pill, given the window's place on the screen. */
+export function pointOnPill(
+  point: { x: number; y: number },
+  window: { x: number; y: number },
+  pill: OverlayRect
+): boolean {
+  const left = window.x + pill.x
+  const top = window.y + pill.y
+  return (
+    point.x >= left && point.x < left + pill.width && point.y >= top && point.y < top + pill.height
+  )
+}
 
 /** What the pill's buttons ask the engine to do; named as the engine's commands. */
 export type OverlayAction = 'insert_raw' | 'cancel'
@@ -39,8 +60,8 @@ export interface OverlayApi {
   onState(cb: (state: OverlayState) => void): void
   onLevel(cb: (value: number) => void): void
   act(action: OverlayAction): void
-  /** The pointer is over the pill, so its buttons should take the click. */
-  pointer(over: boolean): void
+  /** Where the pill is now, so the main process knows when the pointer is on it. */
+  rect(rect: OverlayRect): void
 }
 
 /** The pill's reaction to one event: a new state, hide it, or leave it be. */
@@ -109,7 +130,12 @@ export function overlayChange(
     case 'transcribing':
       return { tone: 'neutral', icon: 'wave', text: 'Skriver ut …' }
     case 'polishing':
-      return { tone: 'neutral', icon: 'spinner', text: 'Skriver om …', actions: true }
+      return {
+        tone: 'neutral',
+        icon: 'spinner',
+        text: `Skriver om … ${key} infogar råtexten`,
+        actions: true
+      }
     case 'inserting':
       return { tone: 'neutral', icon: 'wave', text: 'Skriver in …' }
     case 'nothing_heard':
