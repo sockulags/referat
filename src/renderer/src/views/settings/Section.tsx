@@ -5,16 +5,19 @@ import { Button } from '../../components/ui/Button'
 
 /** One block on the settings page: a heading, a line on what it is for, its fields. */
 export function Section({
+  id,
   title,
   description,
   children
 }: {
+  /** Lets other views scroll to this block. */
+  id?: string
   title: string
   description: string
   children: ReactNode
 }): JSX.Element {
   return (
-    <Card className="p-6">
+    <Card className="p-6 scroll-mt-6" id={id}>
       <div className="mb-5">
         <h2 className="text-base font-semibold text-fg">{title}</h2>
         <p className="text-sm text-fg-muted mt-0.5">{description}</p>

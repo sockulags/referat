@@ -76,6 +76,37 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.actions[hidden] {
+  display: none;
+}
+
+.actions button {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #45433e;
+  background: #2c2b28;
+  color: var(--pill-fg);
+  cursor: pointer;
+  transition: background 100ms ease-out;
+}
+
+.actions button:hover {
+  background: #3a3834;
+}
+
+.actions button:first-child {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
 /* -- Icon ----------------------------------------------------------------- */
 
 .icon {

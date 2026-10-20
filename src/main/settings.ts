@@ -56,6 +56,8 @@ interface StoredSettings {
   diarization: StoredDiarization
   dictation: DictationSettings
   viskaImport?: { at: string; terms: number }
+  /** Bluetooth headsets the user has been told dictation leaves alone. */
+  headsetNotices?: string[]
   microphoneId: string
   captureSystemAudio: boolean
   runInBackground: boolean
@@ -196,6 +198,9 @@ function load(): StoredSettings {
         diarization: { ...base.diarization, ...parsed.diarization },
         dictation: { ...base.dictation, ...parsed.dictation },
         ...(parsed.viskaImport ? { viskaImport: parsed.viskaImport } : {}),
+        ...(Array.isArray(parsed.headsetNotices)
+          ? { headsetNotices: parsed.headsetNotices.filter((n) => typeof n === 'string') }
+          : {}),
         microphoneId: parsed.microphoneId ?? base.microphoneId,
         captureSystemAudio: parsed.captureSystemAudio ?? base.captureSystemAudio,
         runInBackground: parsed.runInBackground ?? base.runInBackground,
@@ -398,6 +403,18 @@ export function mergeImportedDictation(patch: Partial<DictationSettings>): void 
   const rest = { ...patch }
   delete rest.enabled
   s.dictation = { ...s.dictation, ...rest }
+  persist(s)
+}
+
+export function headsetNoticesShown(): string[] {
+  return load().headsetNotices ?? []
+}
+
+export function markHeadsetNoticeShown(headset: string): void {
+  const s = load()
+  const shown = s.headsetNotices ?? []
+  if (shown.includes(headset)) return
+  s.headsetNotices = [...shown, headset]
   persist(s)
 }
 

@@ -1,5 +1,18 @@
 import type { DictationSettings, GlossaryTerm } from '../shared/types'
 
+/**
+ * The headset to tell the user about, from the engine's mic event: one it
+ * left alone for the computer's microphone, not told about before.
+ */
+export function avoidedHeadset(
+  event: { event: string; [field: string]: unknown },
+  shown: string[]
+): string | null {
+  if (event.event !== 'mic') return null
+  const headset = typeof event.avoided === 'string' ? event.avoided.trim() : ''
+  return headset && !shown.includes(headset) ? headset : null
+}
+
 /** Whisper's prompt is short; the most recently edited terms get the room. */
 const PROMPT_TERMS = 40
 

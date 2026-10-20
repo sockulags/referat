@@ -9,6 +9,7 @@ import { ComponentInstallCard } from '../../components/LocalAiComponents'
 import { useLocalAiComponents } from '../../components/useLocalAiComponents'
 import { cn } from '../../components/ui/cn'
 import { SaveRow, Section } from './Section'
+import { DICTATION_SECTION_ID } from './sectionIds'
 
 /** Dictation: hold a key anywhere in Windows, speak, and the text is typed at the cursor. */
 export function DictationSection({ settings }: { settings: AppSettings }): JSX.Element {
@@ -59,7 +60,7 @@ export function DictationSection({ settings }: { settings: AppSettings }): JSX.E
   }
 
   return (
-    <Section title={d.title} description={d.description}>
+    <Section id={DICTATION_SECTION_ID} title={d.title} description={d.description}>
       {settings.viskaImport && (
         <p className="rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent-soft-fg">
           {d.fromViska(settings.viskaImport.terms)}

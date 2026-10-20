@@ -27,6 +27,7 @@ import { IPC } from './ipc'
 import {
   applyDictationSettings,
   dictationTranscriptionUrl,
+  onOpenDictationSettings,
   shutdownDictation
 } from './dictationService'
 import { shareTranscriptionWith } from './providers/transcription'
@@ -227,6 +228,16 @@ app.whenReady().then(() => {
 
   // With dictation running, meetings use its model instead of a second one.
   shareTranscriptionWith(dictationTranscriptionUrl)
+
+  // A notification from dictation opens its settings.
+  onOpenDictationSettings(() => {
+    restoreWindow()
+    const contents = mainWindow?.webContents
+    if (!contents) return
+    const open = (): void => contents.send(IPC.openDictationSettings)
+    if (contents.isLoading()) contents.once('did-finish-load', open)
+    else open()
+  })
 
   // Someone coming from Viska keeps their dictation settings and words.
   try {

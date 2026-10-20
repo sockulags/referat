@@ -2,7 +2,7 @@
 // shared/dictationOverlay.ts); this only draws it.
 
 import './overlay.css'
-import type { OverlayState } from '../../../shared/dictationOverlay'
+import type { OverlayAction, OverlayState } from '../../../shared/dictationOverlay'
 
 const BAR_COUNT = 9
 /** RMS that fills the meter: ordinary speech sits around 0.02–0.1. */
@@ -13,6 +13,7 @@ const icon = document.getElementById('icon')!
 const meter = document.getElementById('meter')!
 const text = document.getElementById('text')!
 const clock = document.getElementById('clock')!
+const actions = document.getElementById('actions')!
 
 const bars = Array.from({ length: BAR_COUNT }, () => {
   const bar = document.createElement('span')
@@ -31,6 +32,7 @@ function render(state: OverlayState): void {
   text.textContent = state.text
   text.hidden = state.text === ''
   meter.hidden = !state.meter
+  actions.hidden = !state.actions
   if (state.meter) history.fill(0)
   if (state.timer) {
     startClock()
@@ -64,6 +66,17 @@ function showLevel(value: number): void {
     bar.style.height = `${Math.round(4 + history[index] * 18)}px`
   })
 }
+
+for (const button of actions.querySelectorAll('button')) {
+  button.addEventListener('click', () => {
+    actions.hidden = true
+    window.overlay.act(button.dataset.action as OverlayAction)
+  })
+}
+
+// The window lets clicks through unless the pointer is on the pill.
+pill.addEventListener('mouseenter', () => window.overlay.pointer(true))
+pill.addEventListener('mouseleave', () => window.overlay.pointer(false))
 
 window.overlay.onState(render)
 window.overlay.onLevel(showLevel)

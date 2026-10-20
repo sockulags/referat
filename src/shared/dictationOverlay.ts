@@ -4,8 +4,15 @@
 /** Channels from the main process to the pill's window. */
 export const OVERLAY_CHANNELS = {
   state: 'dictation-overlay:state',
-  level: 'dictation-overlay:level'
+  level: 'dictation-overlay:level',
+  /** From the pill: a button was clicked. */
+  action: 'dictation-overlay:action',
+  /** From the pill: the pointer entered or left it. */
+  pointer: 'dictation-overlay:pointer'
 } as const
+
+/** What the pill's buttons ask the engine to do; named as the engine's commands. */
+export type OverlayAction = 'insert_raw' | 'cancel'
 
 export type OverlayTone = 'recording' | 'neutral' | 'success' | 'warning'
 export type OverlayIcon = 'dot' | 'spinner' | 'wave' | 'check' | 'alert'
@@ -20,12 +27,20 @@ export interface OverlayState {
   timer?: boolean
   /** Hide by itself after this long; absent stays until the next state. */
   autoHideMs?: number
+  /**
+   * Show "Infoga råtext" and "Avbryt" while the AI rewrites a dictation, so
+   * the user need not wait for it. The pill takes clicks only then.
+   */
+  actions?: boolean
 }
 
-/** What the pill's window may do: listen, nothing else. */
+/** What the pill's window may do: listen, and report its two buttons. */
 export interface OverlayApi {
   onState(cb: (state: OverlayState) => void): void
   onLevel(cb: (value: number) => void): void
+  act(action: OverlayAction): void
+  /** The pointer is over the pill, so its buttons should take the click. */
+  pointer(over: boolean): void
 }
 
 /** The pill's reaction to one event: a new state, hide it, or leave it be. */
@@ -94,7 +109,7 @@ export function overlayChange(
     case 'transcribing':
       return { tone: 'neutral', icon: 'wave', text: 'Skriver ut …' }
     case 'polishing':
-      return { tone: 'neutral', icon: 'spinner', text: 'Polerar …' }
+      return { tone: 'neutral', icon: 'spinner', text: 'Skriver om …', actions: true }
     case 'inserting':
       return { tone: 'neutral', icon: 'wave', text: 'Skriver in …' }
     case 'nothing_heard':

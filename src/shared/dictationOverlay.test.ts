@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { overlayChange } from './dictationOverlay'
 
+describe('the rewrite', () => {
+  it('offers to insert the raw text or cancel while the AI rewrites', () => {
+    expect(overlayChange({ event: 'polishing' }, 'f9')).toMatchObject({ actions: true })
+  })
+
+  it('takes the buttons away once the text is being typed', () => {
+    const change = overlayChange({ event: 'inserting' }, 'f9')
+    expect(change).not.toBe('hide')
+    expect(change && change !== 'hide' && change.actions).toBeFalsy()
+  })
+})
+
 describe('overlayChange', () => {
   it('shows recording with level bars and a clock', () => {
     expect(overlayChange({ event: 'listening' }, 'f9')).toMatchObject({

@@ -101,6 +101,7 @@ const api: RendererApi = {
   onLocalAiComponentProgress: listen<LocalAiComponentStatus>(IPC.localAiComponentProgress),
   onCallDetected: listen<CallEvent>(IPC.callDetected),
   onDictationAdded: listen<DictationEntry>(IPC.dictationAdded),
+  onOpenDictationSettings: listen<void>(IPC.openDictationSettings),
 
   // Updates
   installUpdateNow: invoke('installUpdateNow'),
