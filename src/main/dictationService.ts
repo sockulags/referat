@@ -18,6 +18,8 @@ import { IPC } from './ipc'
 
 const overlay = new DictationOverlay()
 let engine: DictationEngineProcess | null = null
+/** The engine's transcription server for meetings, once it has been started. */
+let transcriptionUrl: string | null = null
 let hotkey = 'f9'
 
 function onEvent(event: EngineEvent): void {
@@ -73,6 +75,7 @@ function remember(text: string, appName: string | null): void {
 
 function onExit(reason: string): void {
   engine = null
+  transcriptionUrl = null
   overlay.show({
     tone: 'warning',
     icon: 'alert',
@@ -118,9 +121,28 @@ export async function listDictationMicrophones(): Promise<DictationMicrophone[]>
   return Array.isArray(reply.mics) ? (reply.mics as DictationMicrophone[]) : []
 }
 
+/**
+ * The engine's OpenAI-compatible transcription server, started on first use,
+ * so meetings use the model dictation already has loaded. Null when the
+ * engine is not running, or is too old to offer one.
+ */
+export async function dictationTranscriptionUrl(): Promise<string | null> {
+  if (!engine) return null
+  if (transcriptionUrl) return transcriptionUrl
+  try {
+    const reply = await engine.connection.send('serve_transcription')
+    transcriptionUrl = typeof reply.url === 'string' ? reply.url : null
+  } catch (error) {
+    console.error('Dikteringsmotorn kunde inte ta emot mötesljud', error)
+    return null
+  }
+  return transcriptionUrl
+}
+
 export async function stopDictation(): Promise<void> {
   const running = engine
   engine = null
+  transcriptionUrl = null
   overlay.hide()
   if (running) await running.stop()
 }

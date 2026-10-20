@@ -24,7 +24,12 @@ import { watchCalls } from './callDetection'
 import type { CallApp } from '../shared/types'
 import { initAutoUpdater, installUpdateNow } from './updater'
 import { IPC } from './ipc'
-import { applyDictationSettings, shutdownDictation } from './dictationService'
+import {
+  applyDictationSettings,
+  dictationTranscriptionUrl,
+  shutdownDictation
+} from './dictationService'
+import { shareTranscriptionWith } from './providers/transcription'
 import { readViskaConfig, runViskaImport, viskaConfigPath } from './viskaImport'
 import { mergeImportedDictation, recordViskaImport } from './settings'
 import { addGlossaryEntry } from './glossary'
@@ -219,6 +224,9 @@ app.whenReady().then(() => {
 
   // Background auto-updates. No-ops in dev / when not packaged.
   initAutoUpdater(() => mainWindow)
+
+  // With dictation running, meetings use its model instead of a second one.
+  shareTranscriptionWith(dictationTranscriptionUrl)
 
   // Someone coming from Viska keeps their dictation settings and words.
   try {

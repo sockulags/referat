@@ -37,7 +37,8 @@ import {
 let gpuStartFailure: string | null = null
 
 interface BuiltInTranscriber {
-  component: LocalAiComponent
+  /** The managed component, or the dictation engine that already has a model loaded. */
+  component: LocalAiComponent | 'dictation-engine'
   baseUrl: string
   /** Set when the GPU component is installed but the CPU one had to step in. */
   gpuFailure?: string
@@ -52,9 +53,23 @@ interface BuiltInTranscriber {
  * `retryGpu` tries the GPU build again even after it failed in this session —
  * the connection test does, so it reports what works now.
  */
+/**
+ * Where a running dictation engine serves transcription, when it does. Its
+ * model is already loaded — the large one on a GPU — so a meeting written out
+ * there needs no second model and gets the better one, with dictation still
+ * going first. Registered by the dictation service.
+ */
+let sharedTranscription: (() => Promise<string | null>) | null = null
+
+export function shareTranscriptionWith(serve: () => Promise<string | null>): void {
+  sharedTranscription = serve
+}
+
 export async function startBuiltInTranscription({
   retryGpu = false
 }: { retryGpu?: boolean } = {}): Promise<BuiltInTranscriber> {
+  const shared = await sharedTranscription?.().catch(() => null)
+  if (shared) return { component: 'dictation-engine', baseUrl: shared }
   const cpuInstalled = isLocalAiComponentInstalled('transcription-cpu')
   if (isLocalAiComponentInstalled('transcription-gpu')) {
     if (retryGpu) gpuStartFailure = null
