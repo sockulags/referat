@@ -285,6 +285,30 @@ describe('built-in transcription component', () => {
     expect(url).toBe('http://127.0.0.1:8310/v1/audio/transcriptions')
   })
 
+  it("uses the dictation engine's model when it serves transcription", async () => {
+    installed('transcription-cpu', 'transcription-gpu')
+    mod.shareTranscriptionWith(async () => 'http://127.0.0.1:51116/v1')
+    await expect(mod.startBuiltInTranscription()).resolves.toEqual({
+      component: 'dictation-engine',
+      baseUrl: 'http://127.0.0.1:51116/v1'
+    })
+    expect(started()).toEqual([])
+  })
+
+  it('starts its own component when the dictation engine is not running', async () => {
+    installed('transcription-cpu')
+    mod.shareTranscriptionWith(async () => null)
+    await expect(mod.startBuiltInTranscription()).resolves.toMatchObject({
+      component: 'transcription-cpu'
+    })
+    mod.shareTranscriptionWith(async () => {
+      throw new Error('motorn svarar inte')
+    })
+    await expect(mod.startBuiltInTranscription()).resolves.toMatchObject({
+      component: 'transcription-cpu'
+    })
+  })
+
   it('uses the CPU component when the GPU one is not installed', async () => {
     installed('transcription-cpu')
     await expect(mod.startBuiltInTranscription()).resolves.toMatchObject({
