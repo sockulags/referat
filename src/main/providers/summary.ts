@@ -177,6 +177,31 @@ export async function summarize(
   return openAiChat(config, prompt, WORK_TIMEOUT_MS)
 }
 
+/**
+ * A short text job on the summary service — rewriting a dictation. The same
+ * backends as summaries, with a timeout the caller chooses.
+ */
+export async function rewriteWithSummaryProvider(
+  prompt: string,
+  config: SummaryConfig,
+  timeoutMs: number
+): Promise<string> {
+  if (config.backend === 'codex-cli') {
+    try {
+      return await runCodexSummary(`${CODEX_TEXT_ONLY_INSTRUCTION}\n\n${prompt}`, timeoutMs)
+    } catch (err) {
+      if (err instanceof CodexCliError) {
+        throw new UserFacingError(codexErrorMessage(err), err.detail)
+      }
+      throw err
+    }
+  }
+  if (config.apiFlavor === 'anthropic') {
+    return anthropicMessages(config, prompt, timeoutMs, 1024)
+  }
+  return openAiChat(config, prompt, timeoutMs, 1024)
+}
+
 export async function testSummaryConnection(config: SummaryConfig): Promise<ConnectionTestResult> {
   try {
     // Minimal real request that exercises auth + model.

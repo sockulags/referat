@@ -8,7 +8,9 @@ import { BrowserWindow } from 'electron'
 import { overlayChange } from '../shared/dictationOverlay'
 import type { DictationMicrophone, DictationSettings } from '../shared/types'
 import { dictationEngineConfig, dictationGlossaryConfig } from './dictationConfig'
-import { listGlossaryTerms } from './glossary'
+import { glossaryPromptBlock, listGlossaryTerms } from './glossary'
+import { getSettings, getSummaryConfig } from './settings'
+import { rewriteDictation } from './providers/dictationRewrite'
 import { DictationEngineProcess, dictationEngineProgram, type EngineEvent } from './dictation'
 import { DictationOverlay } from './dictationOverlay'
 import { addDictation } from './dictationHistory'
@@ -23,6 +25,10 @@ function onEvent(event: EngineEvent): void {
     overlay.level(typeof event.value === 'number' ? event.value : 0)
     return
   }
+  if (event.event === 'polish_request') {
+    void answerRewrite(event)
+    return
+  }
   if (event.event === 'history' && typeof event.last === 'string' && event.last) {
     remember(event.last, typeof event.app === 'string' ? event.app : null)
     return
@@ -30,6 +36,28 @@ function onEvent(event: EngineEvent): void {
   const change = overlayChange(event, hotkey)
   if (change === 'hide') overlay.hide()
   else if (change) overlay.show(change)
+}
+
+/**
+ * The engine waits for the rewrite with the pill showing "infoga råtext" and
+ * "avbryt"; a failure or no answer in time types the raw text instead.
+ */
+async function answerRewrite(event: EngineEvent): Promise<void> {
+  const running = engine
+  if (!running) return
+  const request = event.request
+  try {
+    const text = await rewriteDictation(
+      typeof event.text === 'string' ? event.text : '',
+      getSettings().dictation.rewriteInstruction,
+      glossaryPromptBlock(listGlossaryTerms().filter((term) => !term.projectId)),
+      getSummaryConfig()
+    )
+    await running.connection.send('polished', { request, text })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    await running.connection.send('polish_failed', { request, message }).catch(() => undefined)
+  }
 }
 
 function remember(text: string, appName: string | null): void {
