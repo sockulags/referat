@@ -10,6 +10,8 @@ import {
   getTranscriptionConfig,
   saveDiarizationSettings,
   saveDictationSettings,
+  mergeImportedDictation,
+  recordViskaImport,
   saveSummarySettings,
   saveTranscriptionSettings
 } from './settings'
@@ -234,6 +236,14 @@ describe('dictation settings', () => {
       rewriteInstruction:
         'Skriv om texten till korrekt och tydlig text utan utfyllnadsord. Behåll innehållet.'
     })
+  })
+
+  it('takes dictation settings from Viska but never switches dictation on', () => {
+    mergeImportedDictation({ hotkey: 'mouse4', enabled: true } as never)
+    expect(getSettings().dictation).toMatchObject({ hotkey: 'mouse4', enabled: false })
+    expect(getSettings().viskaImport).toBe(null)
+    recordViskaImport({ at: '2026-10-20T08:00:00.000Z', terms: 3 })
+    expect(getSettings().viskaImport).toEqual({ at: '2026-10-20T08:00:00.000Z', terms: 3 })
   })
 
   it('keeps referat in the background once dictation is on', () => {

@@ -55,6 +55,7 @@ interface StoredSettings {
   summary: StoredSummary
   diarization: StoredDiarization
   dictation: DictationSettings
+  viskaImport?: { at: string; terms: number }
   microphoneId: string
   captureSystemAudio: boolean
   runInBackground: boolean
@@ -194,6 +195,7 @@ function load(): StoredSettings {
         },
         diarization: { ...base.diarization, ...parsed.diarization },
         dictation: { ...base.dictation, ...parsed.dictation },
+        ...(parsed.viskaImport ? { viskaImport: parsed.viskaImport } : {}),
         microphoneId: parsed.microphoneId ?? base.microphoneId,
         captureSystemAudio: parsed.captureSystemAudio ?? base.captureSystemAudio,
         runInBackground: parsed.runInBackground ?? base.runInBackground,
@@ -288,6 +290,7 @@ export function getSettings(): AppSettings {
       recognitionEnabled: s.diarization.recognitionEnabled
     },
     dictation: { ...s.dictation },
+    viskaImport: s.viskaImport ?? null,
     microphoneId: s.microphoneId,
     captureSystemAudio: s.captureSystemAudio,
     runInBackground: s.runInBackground,
@@ -383,6 +386,24 @@ export function saveDictationSettings(payload: DictationSettings): void {
   }
   // Dictation only works while referat runs, so it keeps referat in the tray.
   if (payload.enabled) s.runInBackground = true
+  persist(s)
+}
+
+/**
+ * Take dictation settings brought over from Viska. Whether dictation is on
+ * is never among them: that stays the user's choice in referat.
+ */
+export function mergeImportedDictation(patch: Partial<DictationSettings>): void {
+  const s = load()
+  const rest = { ...patch }
+  delete rest.enabled
+  s.dictation = { ...s.dictation, ...rest }
+  persist(s)
+}
+
+export function recordViskaImport(record: { at: string; terms: number }): void {
+  const s = load()
+  s.viskaImport = record
   persist(s)
 }
 

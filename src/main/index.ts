@@ -25,6 +25,9 @@ import type { CallApp } from '../shared/types'
 import { initAutoUpdater, installUpdateNow } from './updater'
 import { IPC } from './ipc'
 import { applyDictationSettings, shutdownDictation } from './dictationService'
+import { readViskaConfig, runViskaImport, viskaConfigPath } from './viskaImport'
+import { mergeImportedDictation, recordViskaImport } from './settings'
+import { addGlossaryEntry } from './glossary'
 
 // Test hook: E2E harnesses point userData at a scratch directory so runs are
 // isolated and repeatable. Also keeps `electron out/main` dev runs from
@@ -216,6 +219,20 @@ app.whenReady().then(() => {
 
   // Background auto-updates. No-ops in dev / when not packaged.
   initAutoUpdater(() => mainWindow)
+
+  // Someone coming from Viska keeps their dictation settings and words.
+  try {
+    const imported = runViskaImport({
+      alreadyDone: () => getSettings().viskaImport !== null,
+      read: () => readViskaConfig(viskaConfigPath()),
+      saveDictation: mergeImportedDictation,
+      addTerm: (canonical, heard) => void addGlossaryEntry(canonical, heard),
+      record: recordViskaImport
+    })
+    if (imported) console.log(`Imported from Viska: ${imported.terms} glossary terms`)
+  } catch (err) {
+    console.error('Importing from Viska failed', err)
+  }
 
   // Dictation left on last time starts again with referat. A locally built
   // engine (REFERAT_DICTATION_ENGINE) starts it regardless, for development.

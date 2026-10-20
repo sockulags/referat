@@ -60,6 +60,11 @@ export function DictationSection({ settings }: { settings: AppSettings }): JSX.E
 
   return (
     <Section title={d.title} description={d.description}>
+      {settings.viskaImport && (
+        <p className="rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent-soft-fg">
+          {d.fromViska(settings.viskaImport.terms)}
+        </p>
+      )}
       <div className="flex flex-col gap-3">
         <ComponentInstallCard
           component="dictation-cpu"
