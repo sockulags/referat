@@ -229,7 +229,10 @@ describe('dictation settings', () => {
       avoidBluetooth: true,
       language: 'sv',
       live: null,
-      sounds: true
+      sounds: true,
+      rewrite: false,
+      rewriteInstruction:
+        'Skriv om texten till korrekt och tydlig text utan utfyllnadsord. Behåll innehållet.'
     })
   })
 

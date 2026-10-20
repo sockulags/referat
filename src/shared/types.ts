@@ -270,6 +270,13 @@ export interface DictationSettings {
   live: boolean | null
   /** Short tones when dictation starts and stops. */
   sounds: boolean
+  /**
+   * Rewrite each dictation with the summary's AI service before it is typed
+   * in. Off by default: it is slower, and the text may leave the computer.
+   */
+  rewrite: boolean
+  /** What the rewrite should do, e.g. "Skriv som ett vänligt mejl". */
+  rewriteInstruction: string
 }
 
 /** One dictation, kept for a week so it can be copied again or corrected. */

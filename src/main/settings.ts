@@ -149,7 +149,10 @@ function defaults(): StoredSettings {
       avoidBluetooth: true,
       language: 'sv',
       live: null,
-      sounds: true
+      sounds: true,
+      rewrite: false,
+      rewriteInstruction:
+        'Skriv om texten till korrekt och tydlig text utan utfyllnadsord. Behåll innehållet.'
     },
     microphoneId: '',
     captureSystemAudio: true,
@@ -374,7 +377,9 @@ export function saveDictationSettings(payload: DictationSettings): void {
     avoidBluetooth: payload.avoidBluetooth,
     language: payload.language === 'en' ? 'en' : 'sv',
     live: payload.live,
-    sounds: payload.sounds
+    sounds: payload.sounds,
+    rewrite: payload.rewrite,
+    rewriteInstruction: payload.rewriteInstruction.trim() || defaults().dictation.rewriteInstruction
   }
   // Dictation only works while referat runs, so it keeps referat in the tray.
   if (payload.enabled) s.runInBackground = true

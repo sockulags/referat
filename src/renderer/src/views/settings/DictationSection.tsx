@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { AppSettings, DictationMicrophone, DictationSettings } from '../../../../shared/types'
 import { useApp } from '../../store'
 import { strings } from '../../strings'
-import { Input, Select } from '../../components/ui/Field'
+import { Input, Select, Textarea } from '../../components/ui/Field'
 import { Toggle } from '../../components/ui/Toggle'
 import { ComponentInstallCard } from '../../components/LocalAiComponents'
 import { useLocalAiComponents } from '../../components/useLocalAiComponents'
@@ -124,6 +124,21 @@ export function DictationSection({ settings }: { settings: AppSettings }): JSX.E
             onChange={(sounds) => update({ sounds })}
             label={d.sounds}
           />
+          <Toggle
+            checked={draft.rewrite}
+            onChange={(rewrite) => update({ rewrite })}
+            label={d.rewrite}
+            description={d.rewriteHint}
+          />
+          {draft.rewrite && (
+            <Textarea
+              label={d.rewriteInstruction}
+              hint={d.rewriteInstructionHint}
+              rows={2}
+              value={draft.rewriteInstruction}
+              onChange={(e) => update({ rewriteInstruction: e.target.value })}
+            />
+          )}
         </>
       )}
       <SaveRow onSave={() => void save()} saving={saving} />

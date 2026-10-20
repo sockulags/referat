@@ -522,7 +522,13 @@ export const strings = {
       live: 'Skriv in medan jag pratar',
       liveHint:
         'Färdiga fraser skrivs in vid pauserna. Går snabbast med grafikkort; utan skrivs allt in när du släpper tangenten.',
-      sounds: 'Ljudsignal när dikteringen startar och slutar'
+      sounds: 'Ljudsignal när dikteringen startar och slutar',
+      rewrite: 'Skriv om med AI innan texten skrivs in',
+      rewriteHint:
+        'Använder samma AI-tjänst som sammanfattningarna. Det tar några sekunder, och texten skickas dit tjänsten finns. Under tiden kan du välja att infoga texten som den var.',
+      rewriteInstruction: 'Vad ska omskrivningen göra?',
+      rewriteInstructionHint:
+        'T.ex. "Skriv som ett vänligt mejl" eller "Gör texten kort och saklig".'
     },
     glossary: {
       title: 'Ordlista',

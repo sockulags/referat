@@ -20,7 +20,9 @@ export function dictationEngineConfig(
     live: settings.live ?? 'auto',
     sounds: settings.sounds,
     history_persist: false,
-    flow: false
+    // The engine asks referat to rewrite (polish_request); referat uses the
+    // summary's AI service, never a model of the engine's own.
+    flow: settings.rewrite
   }
 }
 

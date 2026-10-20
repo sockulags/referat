@@ -11,7 +11,9 @@ describe('dictationEngineConfig', () => {
     avoidBluetooth: true,
     language: 'sv' as const,
     live: null,
-    sounds: true
+    sounds: true,
+    rewrite: false,
+    rewriteInstruction: 'Skriv om'
   }
 
   it('lets the engine pick the microphone and the live mode when nothing is chosen', () => {
@@ -28,8 +30,13 @@ describe('dictationEngineConfig', () => {
     ).toMatchObject({ input_device: 'Mikrofonmatris (Realtek)', live: false })
   })
 
-  it('never lets the engine keep its own history or polish', () => {
-    expect(dictationEngineConfig(settings)).toMatchObject({ history_persist: false, flow: false })
+  it('never lets the engine keep its own history', () => {
+    expect(dictationEngineConfig(settings)).toMatchObject({ history_persist: false })
+  })
+
+  it('has the engine ask for a rewrite only when the user wants one', () => {
+    expect(dictationEngineConfig(settings)).toMatchObject({ flow: false })
+    expect(dictationEngineConfig({ ...settings, rewrite: true })).toMatchObject({ flow: true })
   })
 })
 
