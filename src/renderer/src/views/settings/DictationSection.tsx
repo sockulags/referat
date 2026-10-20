@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react'
 import type { AppSettings, DictationMicrophone, DictationSettings } from '../../../../shared/types'
 import { useApp } from '../../store'
 import { strings } from '../../strings'
-import { Input, Select, Textarea } from '../../components/ui/Field'
+import { Select, Textarea } from '../../components/ui/Field'
 import { Toggle } from '../../components/ui/Toggle'
 import { ComponentInstallCard } from '../../components/LocalAiComponents'
 import { useLocalAiComponents } from '../../components/useLocalAiComponents'
 import { cn } from '../../components/ui/cn'
 import { SaveRow, Section } from './Section'
 import { DICTATION_SECTION_ID } from './sectionIds'
+import { HotkeyField } from './HotkeyField'
 
 /** Dictation: hold a key anywhere in Windows, speak, and the text is typed at the cursor. */
 export function DictationSection({ settings }: { settings: AppSettings }): JSX.Element {
@@ -91,13 +92,7 @@ export function DictationSection({ settings }: { settings: AppSettings }): JSX.E
       />
       {draft.enabled && (
         <>
-          <Input
-            label={d.hotkey}
-            hint={d.hotkeyHint}
-            value={draft.hotkey}
-            onChange={(e) => update({ hotkey: e.target.value })}
-            placeholder="f9"
-          />
+          <HotkeyField value={draft.hotkey} onChange={(hotkey) => update({ hotkey })} />
           <MicrophoneChoice
             value={draft.microphone}
             microphones={microphones}
