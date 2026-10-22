@@ -224,6 +224,34 @@
   }
 }
 
+/*
+ * The top strip of the main window (see TitleBar in App.tsx): a transparent
+ * drag area over the top of the window, so the side menu runs up to the top
+ * edge and the content starts below it. Windows draws its window buttons over
+ * the right end, where the titlebar-area variables say. The fallback matches
+ * TITLE_BAR_HEIGHT in src/main/titleBar.ts. Anything clickable that can reach
+ * into the strip needs the no-drag class.
+ */
+:root {
+  --title-bar-height: env(titlebar-area-height, 36px);
+}
+
+.title-bar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--title-bar-height);
+  -webkit-app-region: drag;
+}
+
+.below-title-bar {
+  margin-top: var(--title-bar-height);
+}
+
+/* Floating layers that can reach up over the strip stay clickable there. */
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
 @keyframes shimmer {
   100% {
     transform: translateX(100%);

@@ -40,6 +40,7 @@ import { shareTranscriptionWith } from './providers/transcription'
 import { readViskaConfig, runViskaImport, viskaConfigPath } from './viskaImport'
 import { mergeImportedDictation, recordViskaImport } from './settings'
 import { addGlossaryEntry } from './glossary'
+import { applyNativeTheme, titleBarOverlay, trackTitleBar } from './titleBar'
 
 // Test hook: E2E harnesses point userData at a scratch directory so runs are
 // isolated and repeatable. Also keeps `electron out/main` dev runs from
@@ -118,6 +119,8 @@ function ensureTray(): void {
 }
 
 function createWindow(): void {
+  applyNativeTheme()
+  const overlay = titleBarOverlay()
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 720,
@@ -125,12 +128,18 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
+    // referat draws the top strip itself; Windows keeps drawing the window
+    // buttons (and snap layouts) on top of it, in the app's colours.
+    titleBarStyle: 'hidden',
+    titleBarOverlay: overlay,
+    backgroundColor: overlay.color,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true
     }
   })
+  trackTitleBar(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     // Started by the login item: stay in the tray until the user opens it.
