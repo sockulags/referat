@@ -42,20 +42,20 @@ function UpdateReadyToast(): JSX.Element | null {
 
 /**
  * The top of the window, drawn by referat instead of Windows so it is one piece
- * with the app. Windows still draws the window buttons over its right end
- * (titleBarOverlay in the main process); the strip only gives room for them
- * and lets the window be dragged, double-clicked and snapped by it.
+ * with the app. It is a transparent drag area: the side menu runs up under it
+ * and the content starts below it (below-title-bar). Windows still draws the
+ * window buttons over its right end (titleBarOverlay in the main process).
  */
 function TitleBar(): JSX.Element {
-  return <div className="title-bar shrink-0" />
+  return <div className="title-bar" />
 }
 
-/** Everything below the title bar. */
+/** A view with the title bar laid over its top. */
 function Frame({ children }: { children: ReactNode }): JSX.Element {
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="relative h-full">
+      {children}
       <TitleBar />
-      <div className="flex-1 min-h-0">{children}</div>
     </div>
   )
 }
@@ -121,7 +121,7 @@ function App(): JSX.Element {
   if (view === 'onboarding') {
     return (
       <Frame>
-        <div className="h-full overflow-y-auto">
+        <div className="below-title-bar h-[calc(100%-var(--title-bar-height))] overflow-y-auto">
           <Onboarding />
           <Toasts />
         </div>
@@ -133,7 +133,7 @@ function App(): JSX.Element {
     <Frame>
       <div className="h-full flex flex-col overflow-hidden md:flex-row">
         {view !== 'recording' && <SideMenu />}
-        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+        <main className="below-title-bar flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
           {view === 'home' && <Home />}
           {view === 'recording' && <Recording />}
           {view === 'meeting' && <Meeting />}
