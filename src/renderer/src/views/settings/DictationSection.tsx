@@ -1,6 +1,11 @@
 import type { JSX } from 'react'
 import { useEffect, useState } from 'react'
-import type { AppSettings, DictationMicrophone, DictationSettings } from '../../../../shared/types'
+import type {
+  AppSettings,
+  DictationHotkeyMode,
+  DictationMicrophone,
+  DictationSettings
+} from '../../../../shared/types'
 import { useApp } from '../../store'
 import { strings } from '../../strings'
 import { Select, Textarea } from '../../components/ui/Field'
@@ -62,11 +67,6 @@ export function DictationSection({ settings }: { settings: AppSettings }): JSX.E
 
   return (
     <Section id={DICTATION_SECTION_ID} title={d.title} description={d.description}>
-      {settings.viskaImport && (
-        <p className="rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent-soft-fg">
-          {d.fromViska(settings.viskaImport.terms)}
-        </p>
-      )}
       {!installed && <OpenSpeechTab label={d.openSpeech} />}
       <Toggle
         checked={draft.enabled}
@@ -78,6 +78,16 @@ export function DictationSection({ settings }: { settings: AppSettings }): JSX.E
       {draft.enabled && (
         <>
           <HotkeyField value={draft.hotkey} onChange={(hotkey) => update({ hotkey })} />
+          <Select
+            label={d.hotkeyMode}
+            hint={d.hotkeyModeHint[draft.hotkeyMode]}
+            value={draft.hotkeyMode}
+            onChange={(e) => update({ hotkeyMode: e.target.value as DictationHotkeyMode })}
+          >
+            <option value="hold">{d.hotkeyModes.hold}</option>
+            <option value="toggle">{d.hotkeyModes.toggle}</option>
+            <option value="auto">{d.hotkeyModes.auto}</option>
+          </Select>
           <MicrophoneChoice
             value={draft.microphone}
             microphones={microphones}
@@ -117,13 +127,43 @@ export function DictationSection({ settings }: { settings: AppSettings }): JSX.E
             description={d.rewriteHint}
           />
           {draft.rewrite && (
-            <Textarea
-              label={d.rewriteInstruction}
-              hint={d.rewriteInstructionHint}
-              rows={2}
-              value={draft.rewriteInstruction}
-              onChange={(e) => update({ rewriteInstruction: e.target.value })}
-            />
+            <>
+              <Select
+                label={d.rewriteWhen}
+                value={draft.rewriteWhen}
+                onChange={(e) =>
+                  update({ rewriteWhen: e.target.value as DictationSettings['rewriteWhen'] })
+                }
+              >
+                <option value="always">{d.rewriteWhenOptions.always}</option>
+                <option value="with-key">{d.rewriteWhenOptions['with-key']}</option>
+                <option value="without-key">{d.rewriteWhenOptions['without-key']}</option>
+              </Select>
+              {draft.rewriteWhen !== 'always' && (
+                <Select
+                  label={d.rewriteKey}
+                  hint={
+                    draft.hotkey.split('+').includes(draft.rewriteKey)
+                      ? d.rewriteKeyInHotkey
+                      : d.rewriteKeyHint[draft.rewriteWhen]
+                  }
+                  value={draft.rewriteKey}
+                  onChange={(e) =>
+                    update({ rewriteKey: e.target.value as DictationSettings['rewriteKey'] })
+                  }
+                >
+                  <option value="ctrl">Ctrl</option>
+                  <option value="shift">Shift</option>
+                </Select>
+              )}
+              <Textarea
+                label={d.rewriteInstruction}
+                hint={d.rewriteInstructionHint}
+                rows={2}
+                value={draft.rewriteInstruction}
+                onChange={(e) => update({ rewriteInstruction: e.target.value })}
+              />
+            </>
           )}
         </>
       )}

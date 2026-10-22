@@ -9,10 +9,19 @@ import type { SummaryConfig } from '../settings'
 import { rewriteWithSummaryProvider } from './summary'
 
 /**
- * The dictation engine waits at most ten seconds before typing the raw text
- * instead; an answer after that is thrown away, so do not wait longer.
+ * The dictation engine types the raw text instead once its time is up, and an
+ * answer after that is thrown away, so do not wait longer than the engine.
+ * It says how long in the request, longer for a long text; this is for an
+ * engine that does not.
  */
 export const REWRITE_TIMEOUT_MS = 10_000
+
+/** The engine's time limit from a polish_request, in milliseconds. */
+export function rewriteTimeoutMs(timeoutS: unknown): number {
+  return typeof timeoutS === 'number' && Number.isFinite(timeoutS) && timeoutS > 0
+    ? Math.round(timeoutS * 1000)
+    : REWRITE_TIMEOUT_MS
+}
 
 export function dictationRewritePrompt(
   text: string,
@@ -54,12 +63,13 @@ export async function rewriteDictation(
   text: string,
   instruction: string,
   glossaryBlock: string,
-  config: SummaryConfig
+  config: SummaryConfig,
+  timeoutMs = REWRITE_TIMEOUT_MS
 ): Promise<string> {
   const answer = await rewriteWithSummaryProvider(
     dictationRewritePrompt(text, instruction, glossaryBlock),
     config,
-    REWRITE_TIMEOUT_MS
+    timeoutMs
   )
   const cleaned = cleanRewrite(answer)
   if (!cleaned) throw new Error('AI-tjänsten svarade utan text')

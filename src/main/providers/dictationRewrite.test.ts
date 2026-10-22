@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { cleanRewrite, dictationRewritePrompt } from './dictationRewrite'
+import {
+  REWRITE_TIMEOUT_MS,
+  cleanRewrite,
+  dictationRewritePrompt,
+  rewriteTimeoutMs
+} from './dictationRewrite'
+
+describe('rewriteTimeoutMs', () => {
+  it('waits as long as the engine does, longer for a long text', () => {
+    expect(rewriteTimeoutMs(40)).toBe(40_000)
+    expect(rewriteTimeoutMs(10.15)).toBe(10_150)
+  })
+
+  it('falls back to ten seconds when the engine does not say', () => {
+    for (const odd of [undefined, null, '40', 0, -1, Number.NaN]) {
+      expect(rewriteTimeoutMs(odd)).toBe(REWRITE_TIMEOUT_MS)
+    }
+  })
+})
 
 describe('dictationRewritePrompt', () => {
   const prompt = dictationRewritePrompt(

@@ -22,7 +22,7 @@ export function avoidedHeadset(
 const PROMPT_TERMS = 40
 
 /**
- * The engine's settings, with the keys of Viska's config.json, for referat's
+ * The engine's settings, with the keys in dictation-engine/src/viska/config.py, for referat's
  * dictation settings. History is referat's to keep, never the engine's.
  */
 export function dictationEngineConfig(
@@ -35,6 +35,7 @@ export function dictationEngineConfig(
     model: speechModelId(model),
     // No key while dictation is off: the engine then serves meetings only.
     hotkey: settings.enabled ? settings.hotkey : '',
+    hotkey_mode: settings.hotkeyMode,
     input_device: settings.microphone || null,
     mic_avoid_bluetooth: settings.avoidBluetooth,
     language: settings.language,
@@ -43,7 +44,11 @@ export function dictationEngineConfig(
     history_persist: false,
     // The engine asks referat to rewrite (polish_request); referat uses the
     // summary's AI service, never a model of the engine's own.
-    flow: settings.rewrite
+    flow: settings.rewrite,
+    // The engine reads the key as the dictation starts: held, it rewrites
+    // ('with-key') or types the text as it was ('without-key').
+    flow_key: settings.rewriteWhen === 'always' ? '' : settings.rewriteKey,
+    flow_key_means: settings.rewriteWhen === 'without-key' ? 'raw' : 'polish'
   }
 }
 

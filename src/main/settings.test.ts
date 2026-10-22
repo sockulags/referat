@@ -236,14 +236,43 @@ describe('dictation settings', () => {
     expect(getSettings().dictation).toEqual({
       enabled: false,
       hotkey: 'f9',
+      hotkeyMode: 'auto',
       microphone: '',
       avoidBluetooth: true,
       language: 'sv',
       live: null,
       sounds: true,
       rewrite: false,
+      rewriteWhen: 'always',
+      rewriteKey: 'ctrl',
       rewriteInstruction:
         'Skriv om texten till korrekt och tydlig text utan utfyllnadsord. Behåll innehållet.'
+    })
+  })
+
+  it('saves how the key works and when to rewrite, and nothing it does not know', () => {
+    const current = getSettings().dictation
+    saveDictationSettings({
+      ...current,
+      hotkeyMode: 'toggle',
+      rewriteWhen: 'without-key',
+      rewriteKey: 'shift'
+    })
+    expect(getSettings().dictation).toMatchObject({
+      hotkeyMode: 'toggle',
+      rewriteWhen: 'without-key',
+      rewriteKey: 'shift'
+    })
+    saveDictationSettings({
+      ...current,
+      hotkeyMode: 'dansa',
+      rewriteWhen: 'ibland',
+      rewriteKey: 'alt'
+    } as never)
+    expect(getSettings().dictation).toMatchObject({
+      hotkeyMode: 'auto',
+      rewriteWhen: 'always',
+      rewriteKey: 'ctrl'
     })
   })
 

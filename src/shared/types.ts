@@ -251,13 +251,20 @@ export interface DiarizationSettings {
 
 /**
  * Dictation: hold a key anywhere in Windows, speak, and the text is typed
- * where the cursor is. Run by Viska's dictation engine (src/main/dictation.ts).
+ * where the cursor is. Run by the dictation engine in dictation-engine/
+ * (src/main/dictation.ts).
  */
 export interface DictationSettings {
   /** Off by default. Turning it on also keeps referat running in the tray. */
   enabled: boolean
   /** The key to hold, as the engine names it: 'f9', 'ctrl+space', 'mouse4'. */
   hotkey: string
+  /**
+   * 'auto': a short press keeps it on until the next, holding stops on
+   * release. 'hold': it records only while held. 'toggle': one press starts,
+   * the next stops.
+   */
+  hotkeyMode: DictationHotkeyMode
   /** A name from listDictationMicrophones; '' picks automatically. */
   microphone: string
   /**
@@ -275,9 +282,17 @@ export interface DictationSettings {
    * in. Off by default: it is slower, and the text may leave the computer.
    */
   rewrite: boolean
+  /**
+   * With rewrite on: every dictation, only those started with rewriteKey
+   * held, or all but those.
+   */
+  rewriteWhen: 'always' | 'with-key' | 'without-key'
+  rewriteKey: 'ctrl' | 'shift'
   /** What the rewrite should do, e.g. "Skriv som ett vänligt mejl". */
   rewriteInstruction: string
 }
+
+export type DictationHotkeyMode = 'auto' | 'hold' | 'toggle'
 
 /** One dictation, kept for a week so it can be copied again or corrected. */
 export interface DictationEntry {

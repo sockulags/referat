@@ -1,18 +1,21 @@
 import { describe, expect, it } from 'vitest'
 
 import { avoidedHeadset, dictationEngineConfig, dictationGlossaryConfig } from './dictationConfig'
-import type { GlossaryTerm } from '../shared/types'
+import type { DictationSettings, GlossaryTerm } from '../shared/types'
 
 describe('dictationEngineConfig', () => {
-  const settings = {
+  const settings: DictationSettings = {
     enabled: true,
     hotkey: 'f9',
+    hotkeyMode: 'auto',
     microphone: '',
     avoidBluetooth: true,
-    language: 'sv' as const,
+    language: 'sv',
     live: null,
     sounds: true,
     rewrite: false,
+    rewriteWhen: 'always',
+    rewriteKey: 'ctrl',
     rewriteInstruction: 'Skriv om'
   }
 
@@ -52,6 +55,24 @@ describe('dictationEngineConfig', () => {
   it('has the engine ask for a rewrite only when the user wants one', () => {
     expect(dictationEngineConfig(settings)).toMatchObject({ flow: false })
     expect(dictationEngineConfig({ ...settings, rewrite: true })).toMatchObject({ flow: true })
+  })
+
+  it('tells the engine which key decides the rewrite, and which way', () => {
+    const rewrite = { ...settings, rewrite: true }
+    expect(dictationEngineConfig(rewrite)).toMatchObject({ flow_key: '' })
+    expect(
+      dictationEngineConfig({ ...rewrite, rewriteWhen: 'with-key', rewriteKey: 'shift' })
+    ).toMatchObject({ flow_key: 'shift', flow_key_means: 'polish' })
+    expect(dictationEngineConfig({ ...rewrite, rewriteWhen: 'without-key' })).toMatchObject({
+      flow_key: 'ctrl',
+      flow_key_means: 'raw'
+    })
+  })
+
+  it('passes how the key starts and stops a dictation', () => {
+    expect(dictationEngineConfig({ ...settings, hotkeyMode: 'toggle' })).toMatchObject({
+      hotkey_mode: 'toggle'
+    })
   })
 })
 
