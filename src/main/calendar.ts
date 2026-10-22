@@ -2,7 +2,9 @@
 // user ticked lives in userData/calendar.json. While anything is ticked,
 // referat rereads Outlook now and then and, when a ticked meeting starts,
 // asks the window to record it: named after the meeting, and for a recurring
-// series in that series' project.
+// series in that series' project. It reminds a minute before a ticked
+// meeting starts, and when the meeting of a recording it started is over it
+// asks whether to stop, stopping by itself when nobody answers.
 
 import { app, BrowserWindow } from 'electron'
 import { existsSync, readFileSync } from 'fs'
@@ -10,12 +12,16 @@ import { join } from 'path'
 import type {
   CalendarEvent,
   CalendarFetch,
+  CalendarRecordingEnd,
   CalendarRecordingEvent,
   CalendarSelection
 } from '../shared/types'
 import {
   EMPTY_SELECTION,
+  END_STOP_GRACE_MS,
   dueEvent,
+  endOfMeetingStep,
+  remindersDue,
   nextRecording,
   pruneSelection,
   seriesProject,
@@ -30,6 +36,8 @@ import { IPC } from './ipc'
 const TICK_MS = 15_000
 const REFRESH_MS = 10 * 60_000
 const UNTITLED = 'Möte från kalendern'
+/** How long a calendar recording may take to start before referat stops waiting for it. */
+const START_WAIT_MS = 60_000
 
 function selectionPath(): string {
   return join(app.getPath('userData'), 'calendar.json')
@@ -99,6 +107,26 @@ export function getNextCalendarRecording(): CalendarEvent | null {
   return nextRecording(known, getCalendarSelection(), Date.now()) ?? null
 }
 
+/**
+ * The recording the calendar started: its meeting, and the recorded meeting's
+ * id once the window has started it. Recordings started by hand never get one.
+ */
+interface CalendarSession {
+  event: CalendarEvent
+  title: string
+  dueAt: number
+  meetingId: string | null
+  askedAt: number | null
+  kept: boolean
+}
+
+let session: CalendarSession | null = null
+
+/** The user chose to keep recording after the meeting ended; nothing more is asked. */
+export function keepCalendarRecording(): void {
+  if (session) session.kept = true
+}
+
 function hasTicks(selection: CalendarSelection): boolean {
   return selection.occurrences.length > 0 || selection.series.length > 0
 }
@@ -125,10 +153,14 @@ function projectFor(event: CalendarEvent, title: string): string {
  */
 export function watchCalendar(opts: {
   recording: () => boolean
+  activeRecordingIds: () => string[]
   onDue: (e: CalendarRecordingEvent) => void
+  onRemind: (event: CalendarEvent) => void
+  onEnd: (e: CalendarRecordingEnd) => void
 }): () => void {
   if (process.platform !== 'win32') return () => {}
   const handled = new Set<string>()
+  const reminded = new Set<string>()
   let lastRead = 0
   let reading = false
 
@@ -148,16 +180,52 @@ export function watchCalendar(opts: {
     }
   }
 
+  /** Ties the session to the recording the window started, and acts when its meeting is over. */
+  const follow = (now: number): void => {
+    if (!session) return
+    const active = opts.activeRecordingIds()
+    if (!session.meetingId) {
+      // onDue only fires with nothing recording, so the first recording is the calendar's.
+      if (active.length > 0) session.meetingId = active[0]
+      else if (now - session.dueAt > START_WAIT_MS) session = null
+      return
+    }
+    if (!active.includes(session.meetingId)) {
+      session = null
+      return
+    }
+    const step = endOfMeetingStep(Date.parse(session.event.end), now, session)
+    if (step === 'ask') {
+      session.askedAt = now
+      opts.onEnd({
+        state: 'ask',
+        title: session.title,
+        stopAt: new Date(now + END_STOP_GRACE_MS).toISOString()
+      })
+    } else if (step === 'stop') {
+      // Asked once, stopped once: a stop the window could not carry out is not repeated.
+      session.kept = true
+      opts.onEnd({ state: 'stop' })
+    }
+  }
+
   const tick = (): void => {
-    if (Date.now() - lastRead >= REFRESH_MS) void refresh()
-    if (opts.recording()) return
+    const now = Date.now()
+    if (now - lastRead >= REFRESH_MS) void refresh()
     const selection = getCalendarSelection()
-    const event = dueEvent(known, selection, Date.now(), handled)
+    for (const event of remindersDue(known, selection, now, reminded)) {
+      reminded.add(event.key)
+      opts.onRemind(event)
+    }
+    follow(now)
+    if (opts.recording()) return
+    const event = dueEvent(known, selection, now, handled)
     if (!event) return
     handled.add(event.key)
     const title = event.subject || UNTITLED
     try {
       opts.onDue({ title, projectId: projectFor(event, title) })
+      session = { event, title, dueAt: now, meetingId: null, askedAt: null, kept: false }
     } catch (err) {
       console.error('Could not start the calendar recording', err)
     }

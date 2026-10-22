@@ -3,6 +3,10 @@ import type { CalendarEvent, CalendarSelection, Project } from './types'
 import {
   EMPTY_SELECTION,
   START_GRACE_MS,
+  END_STOP_GRACE_MS,
+  REMINDER_LEAD_MS,
+  endOfMeetingStep,
+  remindersDue,
   dueEvent,
   eventKey,
   calendarRows,
@@ -141,6 +145,58 @@ describe('nextRecording', () => {
 
   it('is nothing when nothing ahead is recorded', () => {
     expect(nextRecording([mon], sel, start)).toBeUndefined()
+  })
+})
+
+describe('remindersDue', () => {
+  const sel = withSeriesRecorded(withMeetingRecorded(EMPTY_SELECTION, single, true), 'S', true)
+  const start = Date.parse(single.start)
+
+  it('reminds a minute before a recorded meeting starts, not earlier', () => {
+    expect(remindersDue([single], sel, start - REMINDER_LEAD_MS - 1, new Set())).toEqual([])
+    expect(remindersDue([single], sel, start - REMINDER_LEAD_MS, new Set())).toEqual([single])
+    expect(remindersDue([single], sel, start - 1, new Set())).toEqual([single])
+  })
+
+  it('does not remind once the meeting has started', () => {
+    expect(remindersDue([single], sel, start, new Set())).toEqual([])
+  })
+
+  it('reminds once per occurrence', () => {
+    expect(remindersDue([single], sel, start - 1000, new Set([single.key]))).toEqual([])
+  })
+
+  it('leaves out meetings that are not recorded or are skipped', () => {
+    const other = meeting('O', single.start)
+    expect(remindersDue([other], sel, start - 1000, new Set())).toEqual([])
+    const skipped = withMeetingRecorded(sel, mon, false)
+    const monStart = Date.parse(mon.start)
+    expect(remindersDue([mon], skipped, monStart - 1000, new Set())).toEqual([])
+    expect(remindersDue([mon], sel, monStart - 1000, new Set())).toEqual([mon])
+  })
+})
+
+describe('endOfMeetingStep', () => {
+  const end = Date.parse('2026-10-26T09:00:00Z')
+  const fresh = { askedAt: null, kept: false }
+
+  it('waits until the meeting ends, then asks', () => {
+    expect(endOfMeetingStep(end, end - 1, fresh)).toBe('wait')
+    expect(endOfMeetingStep(end, end, fresh)).toBe('ask')
+  })
+
+  it('stops when nobody answered within the grace period after asking', () => {
+    const asked = { askedAt: end + 30_000, kept: false }
+    expect(endOfMeetingStep(end, end + 30_000 + END_STOP_GRACE_MS - 1, asked)).toBe('wait')
+    expect(endOfMeetingStep(end, end + 30_000 + END_STOP_GRACE_MS, asked)).toBe('stop')
+  })
+
+  it('asks first even when it notices the end late', () => {
+    expect(endOfMeetingStep(end, end + 60 * 60_000, fresh)).toBe('ask')
+  })
+
+  it('does nothing more once the user chose to keep recording', () => {
+    expect(endOfMeetingStep(end, end + 60 * 60_000, { askedAt: end, kept: true })).toBe('wait')
   })
 })
 

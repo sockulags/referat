@@ -161,6 +161,11 @@ export function isRecordingActive(): boolean {
   return recordingIds.size > 0
 }
 
+/** The ids of the meetings being recorded right now. */
+export function activeRecordingIds(): string[] {
+  return [...recordingIds]
+}
+
 let noRecordingWaiters: (() => void)[] = []
 
 /** Resolves once no meeting is being recorded; at once when none is. */

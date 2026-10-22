@@ -21,12 +21,17 @@ import {
 } from './localAiComponents'
 import { openExternalSafe } from './security'
 import { recoverPipeline } from './pipeline'
-import { isRecordingActive } from './storage'
+import { activeRecordingIds, isRecordingActive } from './storage'
 import { getSettings } from './settings'
 import { startedHidden } from './background'
 import { watchCalls } from './callDetection'
-import { watchCalendar } from './calendar'
-import type { CalendarRecordingEvent, CallApp } from '../shared/types'
+import { keepCalendarRecording, setCalendarMeetingRecorded, watchCalendar } from './calendar'
+import type {
+  CalendarEvent,
+  CalendarRecordingEnd,
+  CalendarRecordingEvent,
+  CallApp
+} from '../shared/types'
 import { initAutoUpdater, installUpdateNow } from './updater'
 import { IPC } from './ipc'
 import {
@@ -119,6 +124,62 @@ function recordCalendarMeeting(e: CalendarRecordingEvent): void {
   })
   notification.on('click', () => restoreWindow())
   notification.show()
+}
+
+/**
+ * Notifications with buttons answer through their events, which stop firing
+ * once the object is garbage collected; these are held until they close.
+ */
+const openNotifications = new Set<Notification>()
+
+function showNotification(
+  options: Electron.NotificationConstructorOptions,
+  onAction?: (index: number) => void
+): void {
+  if (!Notification.isSupported()) return
+  const notification = new Notification(options)
+  openNotifications.add(notification)
+  notification.on('click', () => restoreWindow())
+  if (onAction) notification.on('action', (details) => onAction(details.actionIndex))
+  notification.on('close', () => openNotifications.delete(notification))
+  notification.show()
+}
+
+/** A minute before a ticked meeting starts, with a button that skips this occurrence. */
+function remindCalendarMeeting(event: CalendarEvent): void {
+  const title = event.subject || 'Mötet'
+  showNotification(
+    {
+      title: `”${title}” spelas in om 1 min`,
+      body: 'referat startar inspelningen när mötet börjar.',
+      actions: [{ type: 'button', text: 'Hoppa över' }]
+    },
+    () => setCalendarMeetingRecorded(event, false)
+  )
+}
+
+/** Passes on what to do now that a calendar recording's meeting is over, and asks with a notification. */
+function endCalendarRecording(e: CalendarRecordingEnd): void {
+  mainWindow?.webContents.send(IPC.calendarRecordingEnd, e)
+  if (e.state !== 'ask') return
+  showNotification(
+    {
+      title: 'Mötet är slut – stoppa inspelningen?',
+      body: `”${e.title}” är slut. Inspelningen stoppas av sig själv om 5 minuter.`,
+      actions: [
+        { type: 'button', text: 'Stoppa' },
+        { type: 'button', text: 'Fortsätt' }
+      ]
+    },
+    (index) => {
+      if (index === 0) {
+        mainWindow?.webContents.send(IPC.calendarRecordingEnd, { state: 'stop' })
+      } else {
+        keepCalendarRecording()
+        mainWindow?.webContents.send(IPC.calendarRecordingEnd, { state: 'kept' })
+      }
+    }
+  )
 }
 
 function ensureTray(): void {
@@ -262,7 +323,13 @@ app.whenReady().then(() => {
       mainWindow?.webContents.send(IPC.callDetected, { app: callApp, active: false })
   })
 
-  watchCalendar({ recording: isRecordingActive, onDue: recordCalendarMeeting })
+  watchCalendar({
+    recording: isRecordingActive,
+    activeRecordingIds,
+    onDue: recordCalendarMeeting,
+    onRemind: remindCalendarMeeting,
+    onEnd: endCalendarRecording
+  })
 
   // Background auto-updates. No-ops in dev / when not packaged.
   initAutoUpdater(() => mainWindow)

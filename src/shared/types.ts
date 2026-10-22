@@ -464,6 +464,14 @@ export type CalendarFetch =
   | { status: 'unavailable' }
   | { status: 'error'; message: string }
 
+/**
+ * About a recording the calendar started whose meeting is over: ask whether
+ * to stop (stopping by itself at stopAt), the user chose to keep recording,
+ * or stop now.
+ */
+export type CalendarRecordingEnd =
+  { state: 'ask'; title: string; stopAt: string } | { state: 'kept' } | { state: 'stop' }
+
 /** Main asks the window to start recording a ticked calendar meeting now. */
 export interface CalendarRecordingEvent {
   title: string
@@ -694,6 +702,8 @@ export interface RendererApi {
   onCalendarRecordingDue(cb: (e: CalendarRecordingEvent) => void): () => void
   /** Fires when the ticks or the meetings read from Outlook change. */
   onCalendarChanged(cb: () => void): () => void
+  /** Fires when the meeting of a recording the calendar started is over. */
+  onCalendarRecordingEnd(cb: (e: CalendarRecordingEnd) => void): () => void
 
   // Calendar
   /** The coming days' meetings from classic Outlook; starts Outlook if needed. */
@@ -705,6 +715,8 @@ export interface RendererApi {
   setCalendarSeriesRecorded(seriesId: string, recorded: boolean): Promise<CalendarSelection>
   /** The meeting referat will record next, from the meetings last read; never starts Outlook. */
   getNextCalendarRecording(): Promise<CalendarEvent | null>
+  /** Keep recording after the meeting ended; nothing more is asked for it. */
+  keepCalendarRecording(): Promise<void>
 
   // Updates
   /** Quit and install the downloaded update immediately (toast action). */

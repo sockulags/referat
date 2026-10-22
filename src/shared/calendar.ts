@@ -6,6 +6,12 @@ import type { CalendarEvent, CalendarSelection, Project } from './types'
 /** How long after a ticked meeting's start referat still starts recording it. */
 export const START_GRACE_MS = 10 * 60 * 1000
 
+/** How long referat waits for an answer to "stop the recording?" before it stops by itself. */
+export const END_STOP_GRACE_MS = 5 * 60 * 1000
+
+/** How long before a recorded meeting starts referat reminds about it. */
+export const REMINDER_LEAD_MS = 60 * 1000
+
 /** Ticks older than this are forgotten, so the file does not grow forever. */
 const KEEP_PAST_MS = 2 * 24 * 60 * 60 * 1000
 
@@ -122,6 +128,43 @@ export function nextRecording(
         Date.parse(e.start) + START_GRACE_MS > now
     )
     .sort((a, b) => a.start.localeCompare(b.start))[0]
+}
+
+/**
+ * The recorded meetings to remind about now: starting within REMINDER_LEAD_MS
+ * and not reminded before (`reminded` holds their keys).
+ */
+export function remindersDue(
+  events: CalendarEvent[],
+  selection: CalendarSelection,
+  now: number,
+  reminded: ReadonlySet<string>
+): CalendarEvent[] {
+  return events.filter((e) => {
+    const start = Date.parse(e.start)
+    return (
+      isRecorded(e, selection) &&
+      !reminded.has(e.key) &&
+      start - REMINDER_LEAD_MS <= now &&
+      now < start
+    )
+  })
+}
+
+/**
+ * What to do with a recording the calendar started, once its meeting is over:
+ * nothing before the end, then ask, then stop when nobody answered within
+ * END_STOP_GRACE_MS of asking. `askedAt` is when it asked, null before; once
+ * the user chose to keep recording (`kept`), nothing more.
+ */
+export function endOfMeetingStep(
+  end: number,
+  now: number,
+  state: { askedAt: number | null; kept: boolean }
+): 'wait' | 'ask' | 'stop' {
+  if (state.kept || now < end) return 'wait'
+  if (state.askedAt === null) return 'ask'
+  return now >= state.askedAt + END_STOP_GRACE_MS ? 'stop' : 'wait'
 }
 
 /** The local calendar day of an ISO time, "YYYY-MM-DD". */
