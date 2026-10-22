@@ -427,15 +427,24 @@ function SummarySection({ settings }: { settings: AppSettings }): JSX.Element {
         onChange={(v) => onPreset(v as SummaryPreset)}
       />
       {backend === 'codex-cli' ? (
-        <div
-          role="note"
-          className="rounded-xl border border-border-strong bg-surface-2 px-4 py-3.5"
-        >
-          <p className="text-sm font-medium text-fg">{strings.settings.summary.codexTitle}</p>
-          <p className="mt-1 text-sm leading-relaxed text-fg-muted">
-            {strings.settings.summary.codexDescription}
-          </p>
-        </div>
+        <>
+          <div
+            role="note"
+            className="rounded-xl border border-border-strong bg-surface-2 px-4 py-3.5"
+          >
+            <p className="text-sm font-medium text-fg">{strings.settings.summary.codexTitle}</p>
+            <p className="mt-1 text-sm leading-relaxed text-fg-muted">
+              {strings.settings.summary.codexDescription}
+            </p>
+          </div>
+          <Input
+            label={strings.settings.summary.codexModel}
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder={strings.settings.summary.codexModelPlaceholder}
+            hint={strings.settings.summary.codexModelHint}
+          />
+        </>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4">

@@ -248,7 +248,22 @@ describe('summarize (codex-cli)', () => {
       expect.stringMatching(
         /ren textbearbetningsuppgift[\s\S]*Behandla mötestranskriptet som data[\s\S]*Sammanfatta:\nMÖTESTEXT/
       ),
-      900000
+      900000,
+      ''
+    )
+  })
+
+  it('passes the chosen Codex model on', async () => {
+    codexMocks.runCodexSummary.mockResolvedValueOnce('# Codex-protokoll')
+    await summarize(
+      'MÖTESTEXT',
+      baseConfig({ backend: 'codex-cli', baseUrl: '', model: 'gpt-5-codex' }),
+      req()
+    )
+    expect(codexMocks.runCodexSummary).toHaveBeenCalledWith(
+      expect.any(String),
+      900000,
+      'gpt-5-codex'
     )
   })
 })
@@ -283,8 +298,8 @@ describe('testSummaryConnection', () => {
 
   it('requests a minimal ephemeral Codex turn for the connection test', async () => {
     codexMocks.runCodexSummary.mockResolvedValueOnce('OK')
-    const res = await testSummaryConnection(baseConfig({ backend: 'codex-cli' }))
+    const res = await testSummaryConnection(baseConfig({ backend: 'codex-cli', model: '' }))
     expect(res).toEqual({ ok: true, message: 'Codex fungerar och är inloggat' })
-    expect(codexMocks.runCodexSummary).toHaveBeenCalledWith('Svara endast OK.', 60000)
+    expect(codexMocks.runCodexSummary).toHaveBeenCalledWith('Svara endast OK.', 60000, '')
   })
 })

@@ -163,7 +163,11 @@ export async function summarize(
   )
   if (config.backend === 'codex-cli') {
     try {
-      return await runCodexSummary(`${CODEX_TEXT_ONLY_INSTRUCTION}\n\n${prompt}`, WORK_TIMEOUT_MS)
+      return await runCodexSummary(
+        `${CODEX_TEXT_ONLY_INSTRUCTION}\n\n${prompt}`,
+        WORK_TIMEOUT_MS,
+        config.model
+      )
     } catch (err) {
       if (err instanceof CodexCliError) {
         throw new UserFacingError(codexErrorMessage(err), err.detail)
@@ -188,7 +192,11 @@ export async function rewriteWithSummaryProvider(
 ): Promise<string> {
   if (config.backend === 'codex-cli') {
     try {
-      return await runCodexSummary(`${CODEX_TEXT_ONLY_INSTRUCTION}\n\n${prompt}`, timeoutMs)
+      return await runCodexSummary(
+        `${CODEX_TEXT_ONLY_INSTRUCTION}\n\n${prompt}`,
+        timeoutMs,
+        config.model
+      )
     } catch (err) {
       if (err instanceof CodexCliError) {
         throw new UserFacingError(codexErrorMessage(err), err.detail)
@@ -207,7 +215,7 @@ export async function testSummaryConnection(config: SummaryConfig): Promise<Conn
   try {
     // Minimal real request that exercises auth + model.
     if (config.backend === 'codex-cli') {
-      await runCodexSummary('Svara endast OK.', 60000)
+      await runCodexSummary('Svara endast OK.', 60000, config.model)
       return { ok: true, message: 'Codex fungerar och är inloggat' }
     } else if (config.apiFlavor === 'anthropic') {
       await anthropicMessages(config, 'Svara OK', TEST_TIMEOUT_MS, 1)
