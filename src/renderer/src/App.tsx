@@ -1,4 +1,4 @@
-import type { JSX } from 'react'
+import type { JSX, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useApp, applyTheme } from './store'
 import { strings } from './strings'
@@ -38,6 +38,26 @@ function UpdateReadyToast(): JSX.Element | null {
       >
         {strings.update.restartNow}
       </button>
+    </div>
+  )
+}
+
+/**
+ * The top of the window, drawn by referat instead of Windows so it is one piece
+ * with the app. It is a transparent drag area: the side menu runs up under it
+ * and the content starts below it (below-title-bar). Windows still draws the
+ * window buttons over its right end (titleBarOverlay in the main process).
+ */
+function TitleBar(): JSX.Element {
+  return <div className="title-bar" />
+}
+
+/** A view with the title bar laid over its top. */
+function Frame({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <div className="relative h-full">
+      {children}
+      <TitleBar />
     </div>
   )
 }
@@ -92,37 +112,43 @@ function App(): JSX.Element {
 
   if (!settings) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Spinner size={28} />
-      </div>
+      <Frame>
+        <div className="h-full flex items-center justify-center">
+          <Spinner size={28} />
+        </div>
+      </Frame>
     )
   }
 
   // The recording and onboarding views own the full frame (no chrome distractions).
   if (view === 'onboarding') {
     return (
-      <div className="h-full overflow-y-auto">
-        <Onboarding />
-        <Toasts />
-      </div>
+      <Frame>
+        <div className="below-title-bar h-[calc(100%-var(--title-bar-height))] overflow-y-auto">
+          <Onboarding />
+          <Toasts />
+        </div>
+      </Frame>
     )
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden md:flex-row">
-      {view !== 'recording' && <SideMenu />}
-      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
-        {view === 'home' && <Home />}
-        {view === 'recording' && <Recording />}
-        {view === 'meeting' && <Meeting />}
-        {view === 'settings' && <Settings />}
-        {view === 'search' && <Search />}
-        {view === 'dictations' && <Dictations />}
-        {view === 'calendar' && <Calendar />}
-      </main>
-      <Toasts />
-      <UpdateReadyToast />
-    </div>
+    <Frame>
+      <div className="h-full flex flex-col overflow-hidden md:flex-row">
+        {view !== 'recording' && <SideMenu />}
+        <main className="below-title-bar flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+          {view === 'home' && <Home />}
+          {view === 'recording' && <Recording />}
+          {view === 'meeting' && <Meeting />}
+          {view === 'settings' && <Settings />}
+          {view === 'search' && <Search />}
+          {view === 'dictations' && <Dictations />}
+          {view === 'calendar' && <Calendar />}
+        </main>
+        <Toasts />
+        <UpdateReadyToast />
+      </div>
+    </Frame>
   )
 }
 

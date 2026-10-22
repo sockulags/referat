@@ -87,6 +87,7 @@ export const IPC = {
 
   // Misc
   openExternal: 'misc:open-external',
+  setTitleBarTheme: 'misc:title-bar-theme',
   getAppVersion: 'misc:app-version',
 
   // Events (main -> renderer)

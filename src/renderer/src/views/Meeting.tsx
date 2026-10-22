@@ -838,7 +838,7 @@ function TranscriptTab({
             clearSelection()
           }}
           style={{ top: selection.top - 8, left: selection.left }}
-          className="fixed z-40 -translate-x-1/2 -translate-y-full rounded-lg bg-fg px-3 py-1.5 text-xs font-medium text-surface shadow-float animate-pop-in focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="no-drag fixed z-40 -translate-x-1/2 -translate-y-full rounded-lg bg-fg px-3 py-1.5 text-xs font-medium text-surface shadow-float animate-pop-in focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {strings.meeting.addToGlossary}
         </button>

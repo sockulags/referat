@@ -712,5 +712,7 @@ export interface RendererApi {
 
   // Misc
   openExternal(url: string): Promise<void>
+  /** Paint the window buttons for the theme the page shows. */
+  setTitleBarTheme(dark: boolean): Promise<void>
   getAppVersion(): Promise<string>
 }
