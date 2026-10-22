@@ -9,6 +9,7 @@ files:
   - '!docs/*'
   - '!diarization-server/**'
   - '!transcription-server/**'
+  - '!dictation-engine/**'
   - '!wiki-content/*'
   - '!e2e/**'
   - '!scripts/**'
