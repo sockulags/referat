@@ -2,7 +2,15 @@
 import { create } from 'zustand'
 import type { AppSettings, CallApp } from '../../shared/types'
 
-type View = 'home' | 'recording' | 'meeting' | 'settings' | 'onboarding' | 'search' | 'dictations'
+type View =
+  | 'home'
+  | 'recording'
+  | 'meeting'
+  | 'settings'
+  | 'onboarding'
+  | 'search'
+  | 'dictations'
+  | 'calendar'
 
 /** Where a meeting opens: a tab, and in the transcript a moment to go to. */
 export interface MeetingFocus {
@@ -125,4 +133,5 @@ export function applyTheme(theme: AppSettings['theme']): void {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   const dark = theme === 'dark' || (theme === 'system' && prefersDark)
   document.documentElement.classList.toggle('dark', dark)
+  void window.api.setTitleBarTheme(dark)
 }

@@ -5,6 +5,7 @@ import type {
   UpdateDownloadedEvent,
   LocalAiComponentStatus,
   CallEvent,
+  CalendarRecordingEvent,
   DictationEntry
 } from '../shared/types'
 import { IPC, type InvokeName } from '../main/ipc'
@@ -102,12 +103,22 @@ const api: RendererApi = {
   onCallDetected: listen<CallEvent>(IPC.callDetected),
   onDictationAdded: listen<DictationEntry>(IPC.dictationAdded),
   onOpenDictationSettings: listen<void>(IPC.openDictationSettings),
+  onCalendarRecordingDue: listen<CalendarRecordingEvent>(IPC.calendarRecordingDue),
+  onCalendarChanged: listen<void>(IPC.calendarChanged),
+
+  // Calendar
+  listCalendarEvents: invoke('listCalendarEvents'),
+  getCalendarSelection: invoke('getCalendarSelection'),
+  setCalendarMeetingRecorded: invoke('setCalendarMeetingRecorded'),
+  setCalendarSeriesRecorded: invoke('setCalendarSeriesRecorded'),
+  getNextCalendarRecording: invoke('getNextCalendarRecording'),
 
   // Updates
   installUpdateNow: invoke('installUpdateNow'),
 
   // Misc
   openExternal: invoke('openExternal'),
+  setTitleBarTheme: invoke('setTitleBarTheme'),
   getAppVersion: invoke('getAppVersion')
 }
 

@@ -2,8 +2,10 @@ import type { JSX, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useApp } from '../store'
 import { strings } from '../strings'
-import { Wordmark, IconHome, IconDocument, IconSettings, IconSearch, IconMic } from './icons'
+import type { CalendarEvent } from '../../../shared/types'
+import { Wordmark, IconHome, IconSettings, IconSearch, IconMic, IconCalendar } from './icons'
 import { cn } from './ui/cn'
+import { when } from '../calendarTime'
 
 /**
  * The app's main navigation. Views that own the whole window (recording,
@@ -11,23 +13,9 @@ import { cn } from './ui/cn'
  */
 export function SideMenu(): JSX.Element {
   const view = useApp((s) => s.view)
-  const meetingId = useApp((s) => s.meetingId)
   const navigate = useApp((s) => s.navigate)
   // Only for those who dictate: someone who just records meetings never sees it.
   const dictating = useApp((s) => s.settings?.dictation.enabled ?? false)
-  const [latestId, setLatestId] = useState<string | null>(null)
-
-  // Meetings are listed newest first; refreshed whenever the user moves on,
-  // which covers a recording that just finished.
-  useEffect(() => {
-    let cancelled = false
-    void window.api.listMeetings().then((meetings) => {
-      if (!cancelled) setLatestId(meetings[0]?.id ?? null)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [view, meetingId])
 
   return (
     <nav
@@ -49,12 +37,11 @@ export function SideMenu(): JSX.Element {
           {strings.nav.home}
         </MenuItem>
         <MenuItem
-          icon={<IconDocument size={18} />}
-          active={view === 'meeting' && meetingId === latestId}
-          disabled={!latestId}
-          onClick={() => latestId && navigate('meeting', latestId)}
+          icon={<IconCalendar size={18} />}
+          active={view === 'calendar'}
+          onClick={() => navigate('calendar')}
         >
-          {strings.nav.latestMeeting}
+          {strings.nav.calendar}
         </MenuItem>
         <MenuItem
           icon={<IconSearch size={18} />}
@@ -73,6 +60,7 @@ export function SideMenu(): JSX.Element {
           </MenuItem>
         )}
         <div className="hidden flex-1 md:block" />
+        <NextRecording onOpen={() => navigate('calendar')} />
         <MenuItem
           icon={<IconSettings size={18} />}
           active={view === 'settings'}
@@ -82,6 +70,56 @@ export function SideMenu(): JSX.Element {
         </MenuItem>
       </div>
     </nav>
+  )
+}
+
+/**
+ * The calendar meeting referat records next, so it is always in view what
+ * will start by itself. Nothing when nothing is ticked.
+ */
+function NextRecording({ onOpen }: { onOpen: () => void }): JSX.Element | null {
+  const [next, setNext] = useState<CalendarEvent | null>(null)
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    let active = true
+    const refresh = (): void => {
+      setNow(new Date())
+      void window.api.getNextCalendarRecording().then((e) => active && setNext(e))
+    }
+    refresh()
+    const timer = setInterval(refresh, 60_000)
+    const unsubscribe = window.api.onCalendarChanged(refresh)
+    return () => {
+      active = false
+      clearInterval(timer)
+      unsubscribe()
+    }
+  }, [])
+
+  if (!next) return null
+  const started = Date.parse(next.start) <= now.getTime()
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        'mb-2 hidden flex-col gap-0.5 rounded-[10px] border border-border px-3 py-2.5 text-left md:flex',
+        'transition-colors hover:bg-surface-2',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+      )}
+    >
+      <span className="flex items-center gap-1.5 text-[11px] font-medium text-fg-subtle">
+        <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-rec" />
+        {strings.nav.nextRecording}
+      </span>
+      <span className="truncate text-[13px] font-medium text-fg">
+        {next.subject || strings.recording.untitled}
+      </span>
+      <span className="text-xs text-fg-muted">
+        {started ? strings.nav.startsNow : when(next.start, now)}
+      </span>
+    </button>
   )
 }
 

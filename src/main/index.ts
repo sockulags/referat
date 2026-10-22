@@ -25,7 +25,8 @@ import { isRecordingActive } from './storage'
 import { getSettings } from './settings'
 import { startedHidden } from './background'
 import { watchCalls } from './callDetection'
-import type { CallApp } from '../shared/types'
+import { watchCalendar } from './calendar'
+import type { CalendarRecordingEvent, CallApp } from '../shared/types'
 import { initAutoUpdater, installUpdateNow } from './updater'
 import { IPC } from './ipc'
 import {
@@ -40,6 +41,7 @@ import { shareTranscriptionWith } from './providers/transcription'
 import { readViskaConfig, runViskaImport, viskaConfigPath } from './viskaImport'
 import { mergeImportedDictation, recordViskaImport } from './settings'
 import { addGlossaryEntry } from './glossary'
+import { applyNativeTheme, titleBarOverlay, trackTitleBar } from './titleBar'
 
 // Test hook: E2E harnesses point userData at a scratch directory so runs are
 // isolated and repeatable. Also keeps `electron out/main` dev runs from
@@ -96,6 +98,29 @@ function announceCall(callApp: CallApp): void {
   notification.show()
 }
 
+/**
+ * A ticked calendar meeting has started: bring referat up without taking the
+ * focus from the meeting, so the recording and its consent reminder are in
+ * view, and tell the window to record.
+ */
+function recordCalendarMeeting(e: CalendarRecordingEvent): void {
+  if (!mainWindow || mainWindow.isDestroyed()) createWindow()
+  const win = mainWindow
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  if (!win.isVisible()) win.showInactive()
+  const send = (): void => win.webContents.send(IPC.calendarRecordingDue, e)
+  if (win.webContents.isLoading()) win.webContents.once('did-finish-load', send)
+  else send()
+  if (!Notification.isSupported()) return
+  const notification = new Notification({
+    title: `referat spelar in ”${e.title}”`,
+    body: 'Mötet du bockade i har börjat. Berätta för deltagarna att det spelas in.'
+  })
+  notification.on('click', () => restoreWindow())
+  notification.show()
+}
+
 function ensureTray(): void {
   if (tray) return
   const image = nativeImage.createFromPath(icon)
@@ -118,6 +143,8 @@ function ensureTray(): void {
 }
 
 function createWindow(): void {
+  applyNativeTheme()
+  const overlay = titleBarOverlay()
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 720,
@@ -125,12 +152,18 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
+    // referat draws the top strip itself; Windows keeps drawing the window
+    // buttons (and snap layouts) on top of it, in the app's colours.
+    titleBarStyle: 'hidden',
+    titleBarOverlay: overlay,
+    backgroundColor: overlay.color,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true
     }
   })
+  trackTitleBar(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     // Started by the login item: stay in the tray until the user opens it.
@@ -228,6 +261,8 @@ app.whenReady().then(() => {
     onEnd: (callApp) =>
       mainWindow?.webContents.send(IPC.callDetected, { app: callApp, active: false })
   })
+
+  watchCalendar({ recording: isRecordingActive, onDue: recordCalendarMeeting })
 
   // Background auto-updates. No-ops in dev / when not packaged.
   initAutoUpdater(() => mainWindow)

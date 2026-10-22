@@ -33,6 +33,8 @@ import { testTranscriptionConnection, transcribeLiveWindow } from './providers/t
 import { testSummaryConnection } from './providers/summary'
 import { testDiarizationConnection } from './providers/diarization'
 import { openExternalSafe } from './security'
+import * as calendar from './calendar'
+import { applyNativeTheme, setTitleBarTheme } from './titleBar'
 import {
   installLocalAiComponent,
   listLocalAiComponents,
@@ -173,6 +175,7 @@ export function registerIpcHandlers(): void {
   handle('saveGeneralSettings', async (s) => {
     settings.saveGeneralSettings(s)
     if (s.openAtLogin !== undefined) applyOpenAtLogin(s.openAtLogin)
+    if (s.theme !== undefined) applyNativeTheme()
     if (s.speechModel !== undefined) await applySpeechModel()
   })
   handle('saveDictationSettings', async (s) => {
@@ -200,7 +203,19 @@ export function registerIpcHandlers(): void {
   handle('copyProtocol', (id, summaryId) => copyProtocol(id, summaryId))
   handle('openFollowUpEmail', (meetingId, summaryId) => openFollowUpEmail(meetingId, summaryId))
 
+  // ---- Calendar ----
+  handle('listCalendarEvents', () => calendar.listCalendarEvents())
+  handle('getCalendarSelection', () => calendar.getCalendarSelection())
+  handle('setCalendarMeetingRecorded', (event, recorded) =>
+    calendar.setCalendarMeetingRecorded(event, recorded)
+  )
+  handle('setCalendarSeriesRecorded', (seriesId, recorded) =>
+    calendar.setCalendarSeriesRecorded(seriesId, recorded)
+  )
+  handle('getNextCalendarRecording', () => calendar.getNextCalendarRecording())
+
   // ---- Misc ----
   handle('openExternal', (url) => openExternalSafe(url))
+  handle('setTitleBarTheme', (dark) => setTitleBarTheme(dark))
   handle('getAppVersion', () => app.getVersion())
 }
