@@ -16,10 +16,14 @@ import win32con
 
 from viska import inject
 
+# The reader opens the clipboard with a window of its own, as programs do:
+# with none, Windows cannot say who is reading, and the engine never sees
+# that the target has read.
 READER = (
-    "import sys, win32clipboard as w, win32con\n"
+    "import sys, win32clipboard as w, win32con, win32gui\n"
+    "hwnd = win32gui.CreateWindow('STATIC', '', 0, 0, 0, 0, 0, 0, 0, 0, None)\n"
     "sys.stdin.readline()\n"
-    "w.OpenClipboard()\n"
+    "w.OpenClipboard(hwnd)\n"
     "try:\n"
     "    text = w.GetClipboardData(win32con.CF_UNICODETEXT)\n"
     "finally:\n"
