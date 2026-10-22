@@ -302,7 +302,7 @@ describe('codexErrorMessage', () => {
     ].join('\n')
     const message = codexErrorMessage(new CodexCliError('failed', 'exit 1', detail))
     expect(message).toContain('modellen gpt-6-luna')
-    expect(message).toContain('Inställningar → Sammanfattning')
+    expect(message).toContain('Inställningar → AI-tjänst')
   })
 
   it('points to an update when the organisation tier reaches the API', () => {

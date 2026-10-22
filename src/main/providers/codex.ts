@@ -374,7 +374,7 @@ export function codexErrorMessage(err: CodexCliError): string {
     return 'Codex CLI kunde inte startas — kontrollera Windows-behörigheterna'
   }
   if (err.kind === 'invalid-model') {
-    return 'Modellnamnet för Codex är ogiltigt — rätta det under Inställningar → Sammanfattning'
+    return 'Modellnamnet för Codex är ogiltigt — rätta det under Inställningar → AI-tjänst'
   }
   if (err.kind === 'timeout') return 'Codex svarar inte (timeout)'
 
@@ -390,7 +390,7 @@ export function codexErrorMessage(err: CodexCliError): string {
   }
 
   if (detail.includes('ultrafast')) {
-    return 'Codex fick inte använda Ultrafast för modellen — uppdatera Codex, eller ange en annan modell under Inställningar → Sammanfattning'
+    return 'Codex fick inte använda Ultrafast för modellen — uppdatera Codex, eller ange en annan modell under Inställningar → AI-tjänst'
   }
 
   // The API refuses the model Codex picked, e.g. a default the account has no
@@ -399,7 +399,7 @@ export function codexErrorMessage(err: CodexCliError): string {
     const name =
       /the '([^']+)' model/i.exec(err.detail)?.[1] ??
       /model metadata for `([^`]+)`/i.exec(err.detail)?.[1]
-    return `Codex kan inte använda ${name ? `modellen ${name}` : 'modellen'} — ange en annan modell under Inställningar → Sammanfattning, eller uppdatera Codex`
+    return `Codex kan inte använda ${name ? `modellen ${name}` : 'modellen'} — ange en annan modell under Inställningar → AI-tjänst, eller uppdatera Codex`
   }
   return 'Codex kunde inte skapa protokollet'
 }
