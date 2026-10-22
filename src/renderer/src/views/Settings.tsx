@@ -59,14 +59,8 @@ export function Settings(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
-      <h1
-        ref={headingRef}
-        tabIndex={-1}
-        className="text-2xl font-semibold tracking-tight text-fg mb-6"
-      >
-        {strings.settings.title}
-      </h1>
-
+      {/* The heading sits above the panel, not the tabs, so the tabs start
+          where they stick and stay put while the page scrolls. */}
       <div className="flex items-start gap-8">
         <nav
           role="tablist"
@@ -102,6 +96,13 @@ export function Settings(): JSX.Element {
           aria-labelledby={`settings-tab-${tab}`}
           className="min-w-0 max-w-2xl flex-1"
         >
+          <h1
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-2xl font-semibold tracking-tight text-fg mb-6"
+          >
+            {strings.settings.title}
+          </h1>
           <div key={tab} className="flex flex-col gap-4 animate-fade-in">
             {tab === 'general' && (
               <>
