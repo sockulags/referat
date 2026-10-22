@@ -2,7 +2,15 @@
 import { create } from 'zustand'
 import type { AppSettings, CallApp } from '../../shared/types'
 
-type View = 'home' | 'recording' | 'meeting' | 'settings' | 'onboarding' | 'search' | 'dictations'
+type View =
+  | 'home'
+  | 'recording'
+  | 'meeting'
+  | 'settings'
+  | 'onboarding'
+  | 'search'
+  | 'dictations'
+  | 'calendar'
 
 /** Where a meeting opens: a tab, and in the transcript a moment to go to. */
 export interface MeetingFocus {

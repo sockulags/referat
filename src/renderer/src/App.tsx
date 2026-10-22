@@ -10,6 +10,8 @@ import { Meeting } from './views/Meeting'
 import { Settings } from './views/Settings'
 import { Search } from './views/Search'
 import { Dictations } from './views/Dictations'
+import { Calendar } from './views/Calendar'
+import { useCalendarRecordings } from './useCalendarRecordings'
 import { Onboarding } from './views/Onboarding'
 import { Spinner } from './components/ui/Spinner'
 
@@ -46,6 +48,7 @@ function App(): JSX.Element {
   const setSettings = useApp((s) => s.setSettings)
   const navigate = useApp((s) => s.navigate)
   const setCall = useApp((s) => s.setCall)
+  useCalendarRecordings()
 
   // A call in a meeting app: Home offers to record it until it ends.
   useEffect(
@@ -115,6 +118,7 @@ function App(): JSX.Element {
         {view === 'settings' && <Settings />}
         {view === 'search' && <Search />}
         {view === 'dictations' && <Dictations />}
+        {view === 'calendar' && <Calendar />}
       </main>
       <Toasts />
       <UpdateReadyToast />

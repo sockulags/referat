@@ -428,6 +428,49 @@ export interface CallEvent {
   active: boolean
 }
 
+// ---------- Calendar ----------
+
+/** One meeting from the user's Outlook calendar, a single occurrence of a series included. */
+export interface CalendarEvent {
+  /** Unique per occurrence: the series id plus the start time. */
+  key: string
+  /** Outlook's GlobalAppointmentID, which every occurrence of a series shares. */
+  seriesId: string
+  subject: string
+  /** ISO 8601, UTC. */
+  start: string
+  end: string
+  recurring: boolean
+  /** The Teams join link, when Outlook has one for the meeting; '' otherwise. */
+  teamsUrl: string
+  location: string
+}
+
+/**
+ * Which calendar meetings referat records by itself. A ticked series covers
+ * every occurrence except the ones the user unticked (skipped).
+ */
+export interface CalendarSelection {
+  occurrences: string[]
+  series: string[]
+  skipped: string[]
+  /** The project each recurring series records into, created at its first recording. */
+  seriesProjects: Record<string, string>
+}
+
+export type CalendarFetch =
+  | { status: 'ok'; events: CalendarEvent[] }
+  /** Classic Outlook is not installed or not running; the new Outlook has no COM. */
+  | { status: 'unavailable' }
+  | { status: 'error'; message: string }
+
+/** Main asks the window to start recording a ticked calendar meeting now. */
+export interface CalendarRecordingEvent {
+  title: string
+  /** '' records outside any project. */
+  projectId: string
+}
+
 // ---------- Search ----------
 
 export interface SearchFilter {
@@ -647,6 +690,17 @@ export interface RendererApi {
   onDictationAdded(cb: (e: DictationEntry) => void): () => void
   /** Fires when the main process wants the dictation settings shown. */
   onOpenDictationSettings(cb: () => void): () => void
+  /** Fires when a ticked calendar meeting starts and should be recorded. */
+  onCalendarRecordingDue(cb: (e: CalendarRecordingEvent) => void): () => void
+
+  // Calendar
+  /** The coming days' meetings from classic Outlook; starts Outlook if needed. */
+  listCalendarEvents(): Promise<CalendarFetch>
+  getCalendarSelection(): Promise<CalendarSelection>
+  /** Tick or untick one meeting for recording. */
+  setCalendarMeetingRecorded(event: CalendarEvent, recorded: boolean): Promise<CalendarSelection>
+  /** Tick or untick every meeting in a recurring series. */
+  setCalendarSeriesRecorded(seriesId: string, recorded: boolean): Promise<CalendarSelection>
 
   // Updates
   /** Quit and install the downloaded update immediately (toast action). */

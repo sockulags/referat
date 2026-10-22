@@ -2,7 +2,15 @@ import type { JSX, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useApp } from '../store'
 import { strings } from '../strings'
-import { Wordmark, IconHome, IconDocument, IconSettings, IconSearch, IconMic } from './icons'
+import {
+  Wordmark,
+  IconHome,
+  IconDocument,
+  IconSettings,
+  IconSearch,
+  IconMic,
+  IconCalendar
+} from './icons'
 import { cn } from './ui/cn'
 
 /**
@@ -62,6 +70,13 @@ export function SideMenu(): JSX.Element {
           onClick={() => navigate('search')}
         >
           {strings.nav.search}
+        </MenuItem>
+        <MenuItem
+          icon={<IconCalendar size={18} />}
+          active={view === 'calendar'}
+          onClick={() => navigate('calendar')}
+        >
+          {strings.nav.calendar}
         </MenuItem>
         {dictating && (
           <MenuItem

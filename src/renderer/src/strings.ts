@@ -29,8 +29,33 @@ export const strings = {
     home: 'Hem',
     latestMeeting: 'Senaste mötet',
     search: 'Sök i möten',
+    calendar: 'Kalender',
     dictations: 'Diktat',
     settings: 'Inställningar'
+  },
+
+  calendar: {
+    title: 'Kalender',
+    description:
+      'Dina möten i Outlook de kommande sju dagarna. Bocka i dem du vill spela in, så startar inspelningen när mötet börjar och får mötets namn.',
+    refresh: 'Läs in igen',
+    today: 'Idag',
+    tomorrow: 'Imorgon',
+    record: 'Spela in',
+    wholeSeries: 'Hela serien',
+    recurring: 'Återkommande',
+    teams: 'Teams',
+    /** Where a recurring series' recordings are filed. */
+    seriesProject: (name: string): string => `Sparas i projektet ${name}`,
+    seriesNewProject: 'Får ett eget projekt vid första inspelningen',
+    empty: 'Inga möten i kalendern de kommande sju dagarna.',
+    runningHint:
+      'referat behöver vara igång när mötet börjar. Med ”Ligg kvar i systemfältet” under Inställningar räcker det att det ligger i systemfältet.',
+    unavailableTitle: 'Hittar inte klassiska Outlook',
+    unavailableBody:
+      'Kalendern läses från den klassiska Outlook-appen för Windows, som behöver vara installerad och inloggad. Nya Outlook och Outlook på webben går inte att läsa härifrån.',
+    errorTitle: 'Kalendern gick inte att läsa',
+    saveFailed: 'Det gick inte att spara valet'
   },
 
   dictations: {
