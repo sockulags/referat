@@ -40,7 +40,7 @@ import { shareTranscriptionWith } from './providers/transcription'
 import { readViskaConfig, runViskaImport, viskaConfigPath } from './viskaImport'
 import { mergeImportedDictation, recordViskaImport } from './settings'
 import { addGlossaryEntry } from './glossary'
-import { titleBarOverlay, trackTitleBar } from './titleBar'
+import { applyNativeTheme, titleBarOverlay, trackTitleBar } from './titleBar'
 
 // Test hook: E2E harnesses point userData at a scratch directory so runs are
 // isolated and repeatable. Also keeps `electron out/main` dev runs from
@@ -119,6 +119,7 @@ function ensureTray(): void {
 }
 
 function createWindow(): void {
+  applyNativeTheme()
   const overlay = titleBarOverlay()
   mainWindow = new BrowserWindow({
     width: 1100,

@@ -108,6 +108,7 @@ const api: RendererApi = {
 
   // Misc
   openExternal: invoke('openExternal'),
+  setTitleBarTheme: invoke('setTitleBarTheme'),
   getAppVersion: invoke('getAppVersion')
 }
 
