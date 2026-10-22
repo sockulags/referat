@@ -19,6 +19,7 @@ vi.mock('node:os', () => ({
 import {
   CODEX_SUMMARY_ARGS,
   CodexCliError,
+  codexArgs,
   codexErrorMessage,
   codexInstallCandidates,
   codexSpawnArgs,
@@ -187,6 +188,24 @@ describe('runCodexSummary', () => {
   })
 })
 
+describe('codexArgs', () => {
+  it('leaves the model to Codex when none is chosen', () => {
+    expect(codexArgs('')).toEqual([...CODEX_SUMMARY_ARGS])
+    expect(codexArgs('  ')).toEqual([...CODEX_SUMMARY_ARGS])
+  })
+
+  it('names the chosen model and keeps the stdin marker last', () => {
+    const args = codexArgs(' gpt-5-codex ')
+    expect(args.slice(-3)).toEqual(['--model', 'gpt-5-codex', '-'])
+    expect(args.length).toBe(CODEX_SUMMARY_ARGS.length + 2)
+  })
+
+  it('refuses a model name that could reach cmd.exe as anything but a name', () => {
+    expect(() => codexArgs('gpt" & calc')).toThrow(CodexCliError)
+    expect(() => codexArgs('--sandbox')).toThrow(CodexCliError)
+  })
+})
+
 describe('resolveCodexExecutable', () => {
   it('finds the Windows installer location when PATH does not carry it', () => {
     const installed = 'C:\\Users\\x\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin\\codex.exe'
@@ -272,6 +291,17 @@ describe('codexErrorMessage', () => {
   it('maps authentication failures to an actionable Swedish message', () => {
     const err = new CodexCliError('failed', 'exit 1', 'Authentication required')
     expect(codexErrorMessage(err)).toBe('Codex är inte inloggat — kör codex login')
+  })
+
+  // What a Codex CLI printed when its default model was refused.
+  it('names the model the API refused', () => {
+    const detail = [
+      'warning: Model metadata for `gpt-6-luna` not found. Defaulting to fallback metadata',
+      'ERROR: {"type":"error","status":400,"error":{"type":"invalid_request_error","message":"The \'gpt-6-luna\' model is not supported when using Codex with a ChatGPT account."}}'
+    ].join('\n')
+    const message = codexErrorMessage(new CodexCliError('failed', 'exit 1', detail))
+    expect(message).toContain('modellen gpt-6-luna')
+    expect(message).toContain('Inställningar → Sammanfattning')
   })
 
   it('distinguishes missing and inaccessible executables', () => {

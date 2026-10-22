@@ -465,6 +465,10 @@ export const strings = {
       codexDescription:
         'Referat kör den Codex CLI som redan finns på datorn. Codex kräver ingen API-nyckel och varje protokoll körs utan beständig Codex-historik.',
       testCodex: 'Testa Codex',
+      codexModel: 'Modell',
+      codexModelPlaceholder: 'Codex standardmodell',
+      codexModelHint:
+        'Lämna tomt för att låta Codex välja. Säger Codex att modellen inte stöds, skriv in en modell som ditt konto har tillgång till — de listas med /model i Codex.',
       advanced: 'Avancerat: mallar',
       templatesHint:
         'En mall är instruktionen som styr vad sammanfattningen blir. Du väljer mall när du startar ett möte, och kan skapa fler sammanfattningar av samma möte efteråt.',

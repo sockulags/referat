@@ -12,7 +12,8 @@ const CODEX_COMMAND = 'codex'
 const MAX_STDOUT_BYTES = 2 * 1024 * 1024
 const MAX_STDERR_BYTES = 256 * 1024
 
-export type CodexCliErrorKind = 'not-found' | 'access-denied' | 'timeout' | 'failed' | 'empty'
+export type CodexCliErrorKind =
+  'not-found' | 'access-denied' | 'invalid-model' | 'timeout' | 'failed' | 'empty'
 
 export class CodexCliError extends Error {
   constructor(
@@ -52,6 +53,24 @@ export const CODEX_SUMMARY_ARGS = [
   'history.persistence="none"',
   '-'
 ] as const
+
+// A model name as Codex spells it, e.g. gpt-5-codex. On Windows the arguments
+// can pass through cmd.exe, so nothing beyond these characters is let through.
+const CODEX_MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/
+
+/**
+ * The arguments for one run. An empty model leaves the choice to Codex, whose
+ * default can be a model the account cannot use.
+ */
+export function codexArgs(model = ''): string[] {
+  const name = model.trim()
+  if (!name) return [...CODEX_SUMMARY_ARGS]
+  if (!CODEX_MODEL_PATTERN.test(name)) {
+    throw new CodexCliError('invalid-model', `Ogiltigt modellnamn för Codex: ${name}`)
+  }
+  // The prompt marker '-' stays last.
+  return [...CODEX_SUMMARY_ARGS.slice(0, -1), '--model', name, '-']
+}
 
 // ---- Locating the CLI ----
 //
@@ -216,10 +235,15 @@ function startProcess(
   }
 }
 
-function runProcess(prompt: string, cwd: string, timeoutMs: number): Promise<string> {
+function runProcess(
+  prompt: string,
+  args: readonly string[],
+  cwd: string,
+  timeoutMs: number
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const executable = codexExecutable()
-    const invocation = codexSpawnArgs(executable, CODEX_SUMMARY_ARGS, process)
+    const invocation = codexSpawnArgs(executable, args, process)
 
     const child = startProcess(invocation, cwd)
 
@@ -316,11 +340,19 @@ function runProcess(prompt: string, cwd: string, timeoutMs: number): Promise<str
   })
 }
 
-/** Run a single, non-persisted Codex turn in an otherwise empty workspace. */
-export async function runCodexSummary(prompt: string, timeoutMs: number): Promise<string> {
+/**
+ * Run a single, non-persisted Codex turn in an otherwise empty workspace.
+ * An empty model uses Codex's own default.
+ */
+export async function runCodexSummary(
+  prompt: string,
+  timeoutMs: number,
+  model = ''
+): Promise<string> {
+  const args = codexArgs(model)
   const workDir = await mkdtemp(join(tmpdir(), 'referat-codex-'))
   try {
-    return await runProcess(prompt, workDir, timeoutMs)
+    return await runProcess(prompt, args, workDir, timeoutMs)
   } finally {
     await rm(workDir, { recursive: true, force: true }).catch(() => undefined)
   }
@@ -333,6 +365,9 @@ export function codexErrorMessage(err: CodexCliError): string {
   if (err.kind === 'access-denied') {
     return 'Codex CLI kunde inte startas — kontrollera Windows-behörigheterna'
   }
+  if (err.kind === 'invalid-model') {
+    return 'Modellnamnet för Codex är ogiltigt — rätta det under Inställningar → Sammanfattning'
+  }
   if (err.kind === 'timeout') return 'Codex svarar inte (timeout)'
 
   const detail = err.detail.toLowerCase()
@@ -344,6 +379,15 @@ export function codexErrorMessage(err: CodexCliError): string {
     detail.includes('401')
   ) {
     return 'Codex är inte inloggat — kör codex login'
+  }
+
+  // The API refuses the model Codex picked, e.g. a default the account has no
+  // access to: {"type":"invalid_request_error","message":"The 'x' model ..."}.
+  if (detail.includes('invalid_request_error') && detail.includes('model')) {
+    const name =
+      /the '([^']+)' model/i.exec(err.detail)?.[1] ??
+      /model metadata for `([^`]+)`/i.exec(err.detail)?.[1]
+    return `Codex kan inte använda ${name ? `modellen ${name}` : 'modellen'} — ange en annan modell under Inställningar → Sammanfattning, eller uppdatera Codex`
   }
   return 'Codex kunde inte skapa protokollet'
 }
