@@ -27,7 +27,8 @@ export const strings = {
   nav: {
     label: 'Huvudmeny',
     home: 'Hem',
-    latestMeeting: 'Senaste mötet',
+    nextRecording: 'Nästa inspelning',
+    startsNow: 'börjar nu',
     search: 'Sök i möten',
     calendar: 'Kalender',
     dictations: 'Diktat',

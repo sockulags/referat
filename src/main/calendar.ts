@@ -4,7 +4,7 @@
 // asks the window to record it: named after the meeting, and for a recurring
 // series in that series' project.
 
-import { app } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import type {
@@ -16,6 +16,7 @@ import type {
 import {
   EMPTY_SELECTION,
   dueEvent,
+  nextRecording,
   pruneSelection,
   seriesProject,
   withMeetingRecorded,
@@ -24,6 +25,7 @@ import {
 import { writeJsonAtomic } from './jsonFile'
 import { createProject, listProjects } from './projects'
 import { readOutlookCalendar } from './outlookCalendar'
+import { IPC } from './ipc'
 
 const TICK_MS = 15_000
 const REFRESH_MS = 10 * 60_000
@@ -57,9 +59,15 @@ export function getCalendarSelection(): CalendarSelection {
   }
 }
 
+/** Tells every window the calendar changed, so the menu's next recording follows. */
+function announceChange(): void {
+  for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.calendarChanged)
+}
+
 function saveSelection(selection: CalendarSelection): CalendarSelection {
   const pruned = pruneSelection(selection, Date.now())
   writeJsonAtomic(selectionPath(), pruned)
+  announceChange()
   return pruned
 }
 
@@ -80,8 +88,15 @@ let known: CalendarEvent[] = []
 /** Read Outlook for the calendar view, starting it when it is not running. */
 export async function listCalendarEvents(): Promise<CalendarFetch> {
   const result = await readOutlookCalendar(true)
-  if (result.status === 'ok') known = result.events
+  if (result.status === 'ok') {
+    known = result.events
+    announceChange()
+  }
   return result
+}
+
+export function getNextCalendarRecording(): CalendarEvent | null {
+  return nextRecording(known, getCalendarSelection(), Date.now()) ?? null
 }
 
 function hasTicks(selection: CalendarSelection): boolean {
@@ -124,7 +139,10 @@ export function watchCalendar(opts: {
     try {
       const result = await readOutlookCalendar(false)
       // Outlook closed or busy: keep working from the meetings read before.
-      if (result.status === 'ok') known = result.events
+      if (result.status === 'ok') {
+        known = result.events
+        announceChange()
+      }
     } finally {
       reading = false
     }

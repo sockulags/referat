@@ -210,6 +210,7 @@ export function registerIpcHandlers(): void {
   handle('setCalendarSeriesRecorded', (seriesId, recorded) =>
     calendar.setCalendarSeriesRecorded(seriesId, recorded)
   )
+  handle('getNextCalendarRecording', () => calendar.getNextCalendarRecording())
 
   // ---- Misc ----
   handle('openExternal', (url) => openExternalSafe(url))

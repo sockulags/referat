@@ -7,6 +7,7 @@ import {
   eventKey,
   calendarRows,
   isRecorded,
+  nextRecording,
   pruneSelection,
   seriesProject,
   withMeetingRecorded,
@@ -122,6 +123,24 @@ describe('dueEvent', () => {
     const other = meeting('O', single.start)
     expect(dueEvent([single, other, early], both, start, new Set())).toBe(early)
     expect(dueEvent([other], both, start, new Set())).toBeUndefined()
+  })
+})
+
+describe('nextRecording', () => {
+  const sel = withMeetingRecorded(withMeetingRecorded(EMPTY_SELECTION, single, true), tue, true)
+  const start = Date.parse(single.start)
+
+  it('is the soonest recorded meeting ahead, ignoring the others', () => {
+    expect(nextRecording([tue, mon, single], sel, start - 60_000)).toBe(single)
+  })
+
+  it('keeps a meeting that just started, then moves on', () => {
+    expect(nextRecording([tue, single], sel, start + START_GRACE_MS - 1)).toBe(single)
+    expect(nextRecording([tue, single], sel, start + START_GRACE_MS)).toBe(tue)
+  })
+
+  it('is nothing when nothing ahead is recorded', () => {
+    expect(nextRecording([mon], sel, start)).toBeUndefined()
   })
 })
 

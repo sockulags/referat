@@ -692,6 +692,8 @@ export interface RendererApi {
   onOpenDictationSettings(cb: () => void): () => void
   /** Fires when a ticked calendar meeting starts and should be recorded. */
   onCalendarRecordingDue(cb: (e: CalendarRecordingEvent) => void): () => void
+  /** Fires when the ticks or the meetings read from Outlook change. */
+  onCalendarChanged(cb: () => void): () => void
 
   // Calendar
   /** The coming days' meetings from classic Outlook; starts Outlook if needed. */
@@ -701,6 +703,8 @@ export interface RendererApi {
   setCalendarMeetingRecorded(event: CalendarEvent, recorded: boolean): Promise<CalendarSelection>
   /** Tick or untick every meeting in a recurring series. */
   setCalendarSeriesRecorded(seriesId: string, recorded: boolean): Promise<CalendarSelection>
+  /** The meeting referat will record next, from the meetings last read; never starts Outlook. */
+  getNextCalendarRecording(): Promise<CalendarEvent | null>
 
   // Updates
   /** Quit and install the downloaded update immediately (toast action). */

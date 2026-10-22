@@ -105,6 +105,25 @@ export function dueEvent(
     .sort((a, b) => a.start.localeCompare(b.start))[0]
 }
 
+/**
+ * The recording referat will start next: the soonest recorded meeting that
+ * has not started, or started so recently that it would still be recorded.
+ */
+export function nextRecording(
+  events: CalendarEvent[],
+  selection: CalendarSelection,
+  now: number
+): CalendarEvent | undefined {
+  return events
+    .filter(
+      (e) =>
+        isRecorded(e, selection) &&
+        Date.parse(e.end) > now &&
+        Date.parse(e.start) + START_GRACE_MS > now
+    )
+    .sort((a, b) => a.start.localeCompare(b.start))[0]
+}
+
 /** The local calendar day of an ISO time, "YYYY-MM-DD". */
 export function localDay(iso: string): string {
   const d = new Date(iso)

@@ -2,8 +2,8 @@ import type { JSX, ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import type { CalendarFetch, CalendarSelection, Project } from '../../../shared/types'
 import type { CalendarRow } from '../../../shared/calendar'
-import { EMPTY_SELECTION, calendarRows, localDay } from '../../../shared/calendar'
-import { MONTHS_SHORT } from '../../../shared/dates'
+import { EMPTY_SELECTION, calendarRows } from '../../../shared/calendar'
+import { clock, when } from '../calendarTime'
 import { useApp } from '../store'
 import { strings } from '../strings'
 import { Card } from '../components/ui/Card'
@@ -19,27 +19,6 @@ import {
   IconRetry
 } from '../components/icons'
 import { useAutofocusHeading } from '../components/useAutofocusHeading'
-
-const WEEKDAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör']
-
-function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-}
-
-/** "idag 09:00", "imorgon 09:00" or "tor 23 okt 09:00". */
-function when(iso: string, now: Date): string {
-  const tomorrow = new Date(now)
-  tomorrow.setDate(now.getDate() + 1)
-  const day = localDay(iso)
-  const d = new Date(iso)
-  const label =
-    day === localDay(now.toISOString())
-      ? strings.calendar.today
-      : day === localDay(tomorrow.toISOString())
-        ? strings.calendar.tomorrow
-        : `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`
-  return `${label} ${clock(iso)}`
-}
 
 interface RowActions {
   record: (row: CalendarRow, on: boolean) => void
