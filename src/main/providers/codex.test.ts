@@ -105,6 +105,7 @@ describe('runCodexSummary', () => {
         'features.plugins=false',
         'web_search="disabled"',
         'history.persistence="none"',
+        'service_tier="default"',
         '-'
       ])
     )
@@ -302,6 +303,14 @@ describe('codexErrorMessage', () => {
     const message = codexErrorMessage(new CodexCliError('failed', 'exit 1', detail))
     expect(message).toContain('modellen gpt-6-luna')
     expect(message).toContain('Inställningar → Sammanfattning')
+  })
+
+  it('points to an update when the organisation tier reaches the API', () => {
+    const detail =
+      'ERROR: {"type":"error","status":400,"error":{"type":"invalid_request_error","message":"The \'gpt-6-luna\' model does not support the \'ultrafast\' service tier."}}'
+    expect(codexErrorMessage(new CodexCliError('failed', 'exit 1', detail))).toContain(
+      'uppdatera Codex'
+    )
   })
 
   it('distinguishes missing and inaccessible executables', () => {

@@ -463,7 +463,7 @@ export const strings = {
       flavorOpenAiCompatible: 'OpenAI-kompatibel',
       codexTitle: 'Använder din befintliga Codex-inloggning',
       codexDescription:
-        'Referat kör den Codex CLI som redan finns på datorn. Codex kräver ingen API-nyckel och varje protokoll körs utan beständig Codex-historik.',
+        'Referat kör den Codex CLI som redan finns på datorn, alltid i standardhastighet. Codex kräver ingen API-nyckel och varje protokoll körs utan beständig Codex-historik.',
       testCodex: 'Testa Codex',
       codexModel: 'Modell',
       codexModelPlaceholder: 'Codex standardmodell',

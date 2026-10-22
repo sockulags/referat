@@ -30,6 +30,12 @@ export class CodexCliError extends Error {
  * Flags are intentionally explicit so a user's Codex plugins, rules, MCP
  * servers, web search, shell access, or history settings cannot widen this
  * one-shot text-in/text-out operation.
+ *
+ * The standard service tier is pinned too. Session flags outrank the
+ * enterprise-managed cloud config, and a Codex CLI older than its
+ * `ultrafast_mode` feature forwards an organisation's `service_tier =
+ * "ultrafast"` unchecked, which the API refuses for models without that tier.
+ * Every CLI version reads this key as plain text, so "default" is safe on all.
  */
 export const CODEX_SUMMARY_ARGS = [
   'exec',
@@ -51,6 +57,8 @@ export const CODEX_SUMMARY_ARGS = [
   'web_search="disabled"',
   '--config',
   'history.persistence="none"',
+  '--config',
+  'service_tier="default"',
   '-'
 ] as const
 
@@ -379,6 +387,10 @@ export function codexErrorMessage(err: CodexCliError): string {
     detail.includes('401')
   ) {
     return 'Codex är inte inloggat — kör codex login'
+  }
+
+  if (detail.includes('ultrafast')) {
+    return 'Codex fick inte använda Ultrafast för modellen — uppdatera Codex, eller ange en annan modell under Inställningar → Sammanfattning'
   }
 
   // The API refuses the model Codex picked, e.g. a default the account has no
