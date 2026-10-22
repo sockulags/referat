@@ -112,14 +112,56 @@ export function localDay(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-/** Events grouped by the local day they start, days and events in time order. */
-export function groupByDay(events: CalendarEvent[]): { day: string; events: CalendarEvent[] }[] {
-  const days = new Map<string, CalendarEvent[]>()
-  for (const e of [...events].sort((a, b) => a.start.localeCompare(b.start))) {
-    const day = localDay(e.start)
-    days.set(day, [...(days.get(day) ?? []), e])
+/**
+ * One row of the calendar view: a single meeting, or a recurring series shown
+ * by its next occurrence (for a recorded series, the next one not skipped).
+ */
+export interface CalendarRow {
+  kind: 'single' | 'series'
+  event: CalendarEvent
+  recorded: boolean
+  /** Occurrences of a recorded series the user skipped, still ahead. */
+  skipped: string[]
+}
+
+/**
+ * The view's two lists, soonest first: what referat will record, and the
+ * other meetings. Meetings that are over are left out. A recurring series is
+ * one row, and a recorded one stays among the recorded even with every
+ * occurrence in view skipped. An occurrence ticked on its own (outside a recorded series) gets a
+ * row of its own among the recorded ones.
+ */
+export function calendarRows(
+  events: CalendarEvent[],
+  selection: CalendarSelection,
+  now: number
+): { recorded: CalendarRow[]; other: CalendarRow[] } {
+  const ahead = events
+    .filter((e) => Date.parse(e.end) > now)
+    .sort((a, b) => a.start.localeCompare(b.start))
+  const rows: CalendarRow[] = []
+  const series = new Map<string, CalendarEvent[]>()
+  for (const e of ahead) {
+    if (!e.recurring) {
+      rows.push({ kind: 'single', event: e, recorded: isRecorded(e, selection), skipped: [] })
+    } else {
+      series.set(e.seriesId, [...(series.get(e.seriesId) ?? []), e])
+    }
   }
-  return [...days].map(([day, list]) => ({ day, events: list }))
+  for (const [id, list] of series) {
+    if (selection.series.includes(id)) {
+      const skipped = list.filter((e) => selection.skipped.includes(e.key)).map((e) => e.key)
+      const next = list.find((e) => !skipped.includes(e.key))
+      rows.push({ kind: 'series', event: next ?? list[0], recorded: true, skipped })
+      continue
+    }
+    for (const e of list.filter((o) => selection.occurrences.includes(o.key))) {
+      rows.push({ kind: 'single', event: e, recorded: true, skipped: [] })
+    }
+    rows.push({ kind: 'series', event: list[0], recorded: false, skipped: [] })
+  }
+  rows.sort((a, b) => a.event.start.localeCompare(b.event.start))
+  return { recorded: rows.filter((r) => r.recorded), other: rows.filter((r) => !r.recorded) }
 }
 
 /**

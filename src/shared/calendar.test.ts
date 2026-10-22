@@ -5,7 +5,7 @@ import {
   START_GRACE_MS,
   dueEvent,
   eventKey,
-  groupByDay,
+  calendarRows,
   isRecorded,
   pruneSelection,
   seriesProject,
@@ -144,9 +144,50 @@ describe('seriesProject', () => {
   })
 })
 
-describe('groupByDay', () => {
-  it('groups by local start day in time order', () => {
-    const groups = groupByDay([tue, single, mon])
-    expect(groups.map((g) => g.events)).toEqual([[mon, single], [tue]])
+describe('calendarRows', () => {
+  const now = Date.parse('2026-10-26T07:00:00Z')
+  const wed = meeting('S', '2026-10-28T08:00:00.000Z', { recurring: true })
+  const past = meeting('P', '2026-10-25T08:00:00.000Z')
+  const later = meeting('L', '2026-10-29T08:00:00.000Z')
+  const events = [later, tue, wed, past, single, mon]
+
+  it('shows a series once, by its next occurrence, and leaves out what is over, soonest first', () => {
+    const { recorded, other } = calendarRows(events, EMPTY_SELECTION, now)
+    expect(recorded).toEqual([])
+    expect(other.map((r) => [r.kind, r.event.key])).toEqual([
+      ['series', mon.key],
+      ['single', single.key],
+      ['single', later.key]
+    ])
+  })
+
+  it('moves recorded meetings and series to their own list', () => {
+    let sel = withSeriesRecorded(EMPTY_SELECTION, 'S', true)
+    sel = withMeetingRecorded(sel, later, true)
+    const { recorded, other } = calendarRows(events, sel, now)
+    expect(recorded.map((r) => r.event.key)).toEqual([mon.key, later.key])
+    expect(other.map((r) => r.event.key)).toEqual([single.key])
+  })
+
+  it('shows a recorded series by its next occurrence that is not skipped', () => {
+    const sel = withMeetingRecorded(withSeriesRecorded(EMPTY_SELECTION, 'S', true), mon, false)
+    const [row] = calendarRows(events, sel, now).recorded
+    expect(row.event.key).toBe(tue.key)
+    expect(row.skipped).toEqual([mon.key])
+  })
+
+  it('keeps a recorded series listed when every occurrence in view is skipped', () => {
+    let sel = withSeriesRecorded(EMPTY_SELECTION, 'S', true)
+    for (const e of [mon, tue, wed]) sel = withMeetingRecorded(sel, e, false)
+    const [row] = calendarRows(events, sel, now).recorded
+    expect(row.kind).toBe('series')
+    expect(row.skipped).toHaveLength(3)
+  })
+
+  it('lists an occurrence ticked on its own next to its unrecorded series', () => {
+    const sel = withMeetingRecorded(EMPTY_SELECTION, tue, true)
+    const { recorded, other } = calendarRows(events, sel, now)
+    expect(recorded.map((r) => [r.kind, r.event.key])).toEqual([['single', tue.key]])
+    expect(other[0]).toMatchObject({ kind: 'series', event: mon })
   })
 })

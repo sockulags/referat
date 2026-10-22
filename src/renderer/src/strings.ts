@@ -37,20 +37,32 @@ export const strings = {
   calendar: {
     title: 'Kalender',
     description:
-      'Dina möten i Outlook de kommande sju dagarna. Bocka i dem du vill spela in, så startar inspelningen när mötet börjar och får mötets namn.',
+      'Dina möten i Outlook den kommande veckan. Välj vilka referat ska spela in, så startar inspelningen när mötet börjar och får mötets namn.',
     refresh: 'Läs in igen',
-    today: 'Idag',
-    tomorrow: 'Imorgon',
+    today: 'idag',
+    tomorrow: 'imorgon',
+    recordedHeading: 'Spelas in',
+    recordedEmpty: 'Inget spelas in än. Välj möten nedan.',
+    otherHeading: 'Övriga möten',
+    otherEmpty: 'Alla möten den kommande veckan spelas in.',
     record: 'Spela in',
-    wholeSeries: 'Hela serien',
+    recordSeries: 'Spela in serien',
+    stop: 'Sluta',
+    skipNext: 'Hoppa över nästa',
     recurring: 'Återkommande',
-    teams: 'Teams',
-    /** Where a recurring series' recordings are filed. */
-    seriesProject: (name: string): string => `Sparas i projektet ${name}`,
-    seriesNewProject: 'Får ett eget projekt vid första inspelningen',
-    empty: 'Inga möten i kalendern de kommande sju dagarna.',
+    single: 'Enskilt möte',
+    teams: 'Teams-möte',
+    /** "nästa: idag 09:00" for a recurring series. */
+    next: (when: string): string => `nästa: ${when}`,
+    project: (name: string): string => `projekt ${name}`,
+    newProject: 'eget projekt vid första inspelningen',
+    skipped: (count: number): string =>
+      count === 1 ? '1 tillfälle hoppas över' : `${count} tillfällen hoppas över`,
+    undoSkip: 'Ångra',
+    allSkipped: 'Alla tillfällen den här veckan hoppas över',
+    empty: 'Inga möten i kalendern den kommande veckan.',
     runningHint:
-      'referat behöver vara igång när mötet börjar. Med ”Ligg kvar i systemfältet” under Inställningar räcker det att det ligger i systemfältet.',
+      'referat behöver vara igång när mötet börjar. Slå på ”Ligg kvar i systemfältet” under Inställningar, så räcker det att referat ligger där.',
     unavailableTitle: 'Hittar inte klassiska Outlook',
     unavailableBody:
       'Kalendern läses från den klassiska Outlook-appen för Windows, som behöver vara installerad och inloggad. Nya Outlook och Outlook på webben går inte att läsa härifrån.',
