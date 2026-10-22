@@ -530,14 +530,21 @@ export const strings = {
         'Referat ligger kvar i systemfältet medan dikteringen är på, så att tangenten fungerar även när fönstret är stängt.',
       installFirst: 'Installera taligenkänningen under fliken Taligenkänning först.',
       openSpeech: 'Taligenkänning och modell',
-      fromViska: (terms: number): string =>
-        terms > 0
-          ? `Dina inställningar från Viska har flyttats hit, och ${terms} ord från Viska finns nu i ordlistan.`
-          : 'Dina inställningar från Viska har flyttats hit.',
       startFailed: 'Dikteringen kunde inte starta.',
       hotkey: 'Tangent',
-      hotkeyHint:
-        'Håll ned för att prata, tryck två gånger för att låta den vara på. Funktionstangenter och musens tumknappar fungerar bra.',
+      hotkeyHint: 'Funktionstangenter och musens tumknappar fungerar bra.',
+      hotkeyMode: 'Så startar och stoppar du',
+      hotkeyModes: {
+        hold: 'Håll in medan jag pratar',
+        toggle: 'Tryck för att starta, tryck igen för att stoppa',
+        auto: 'Båda: håll in, eller tryck en gång'
+      },
+      hotkeyModeHint: {
+        hold: 'Dikteringen slutar när du släpper knappen.',
+        toggle:
+          'Du behöver inte hålla in knappen. Dikteringen pågår tills du trycker en gång till.',
+        auto: 'Håller du in slutar dikteringen när du släpper. Trycker du kort pågår den tills du trycker igen.'
+      },
       hotkeyChange: 'Byt tangent',
       hotkeyWaiting: 'Tryck …',
       hotkeyCatching: 'Tryck den tangent eller musknapp du vill använda. Esc avbryter.',
@@ -568,6 +575,21 @@ export const strings = {
       rewrite: 'Skriv om med AI innan texten skrivs in',
       rewriteHint:
         'Använder samma AI-tjänst som sammanfattningarna. Det tar några sekunder, och texten skickas dit tjänsten finns. Under tiden kan du välja att infoga texten som den var.',
+      rewriteWhen: 'När ska texten skrivas om?',
+      rewriteWhenOptions: {
+        always: 'Varje gång',
+        'with-key': 'Bara när jag håller en knapp',
+        'without-key': 'Varje gång, utom när jag håller en knapp'
+      },
+      rewriteKey: 'Knapp',
+      rewriteKeyHint: {
+        'with-key':
+          'Håll knappen när du börjar diktera, så skrivs texten om. Utan den skrivs texten in direkt. Du kan släppa knappen när dikteringen har startat.',
+        'without-key':
+          'Håll knappen när du börjar diktera, så skrivs texten in direkt utan omskrivning. Du kan släppa knappen när dikteringen har startat.'
+      },
+      rewriteKeyInHotkey:
+        'Dikteringstangenten innehåller redan den knappen, så den hålls alltid. Välj den andra knappen.',
       rewriteInstruction: 'Vad ska omskrivningen göra?',
       rewriteInstructionHint:
         'T.ex. "Skriv som ett vänligt mejl" eller "Gör texten kort och saklig".'

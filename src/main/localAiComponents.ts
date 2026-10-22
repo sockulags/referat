@@ -65,8 +65,8 @@ const DEFINITIONS: Record<LocalAiComponent, ComponentDefinition> = {
     args: ['--host', '127.0.0.1', '--port', '8300', '--device', 'cuda'],
     parts: 2
   },
-  // Viska's dictation engine (viska --engine), built from a pinned Viska
-  // commit by scripts/build-local-ai-components.ps1.
+  // The dictation engine, built from dictation-engine/ by
+  // scripts/build-local-ai-components.ps1.
   'dictation-cpu': {
     asset: 'referat-dictation-cpu-win-x64.zip',
     executable: 'viska-engine.exe',

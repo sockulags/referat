@@ -24,6 +24,20 @@ jobs:
       - run: npm run format:check
       - run: npm run test:unit
 
+  dictation-engine:
+    name: Dictation engine tests
+    # The engine uses the Win32 API (keys, clipboard, windows), so it only
+    # imports on Windows.
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: dictation-engine
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - run: uv sync --group dev --locked
+      - run: uv run pytest -q
+
   e2e:
     name: End-to-end (Electron)
     # Electron's GUI runs on the Windows runner without an extra display server.

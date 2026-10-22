@@ -204,10 +204,11 @@ export async function rewriteWithSummaryProvider(
       throw err
     }
   }
+  // Room for a rewrite of five minutes of speech, the longest a dictation is.
   if (config.apiFlavor === 'anthropic') {
-    return anthropicMessages(config, prompt, timeoutMs, 1024)
+    return anthropicMessages(config, prompt, timeoutMs, 4096)
   }
-  return openAiChat(config, prompt, timeoutMs, 1024)
+  return openAiChat(config, prompt, timeoutMs, 4096)
 }
 
 export async function testSummaryConnection(config: SummaryConfig): Promise<ConnectionTestResult> {

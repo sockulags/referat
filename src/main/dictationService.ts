@@ -16,7 +16,7 @@ import {
   headsetNoticesShown,
   markHeadsetNoticeShown
 } from './settings'
-import { rewriteDictation } from './providers/dictationRewrite'
+import { rewriteDictation, rewriteTimeoutMs } from './providers/dictationRewrite'
 import { DictationEngineProcess, dictationEngineProgram, type EngineEvent } from './dictation'
 import { DictationOverlay } from './dictationOverlay'
 import { addDictation } from './dictationHistory'
@@ -105,7 +105,8 @@ async function answerRewrite(event: EngineEvent): Promise<void> {
       typeof event.text === 'string' ? event.text : '',
       getSettings().dictation.rewriteInstruction,
       glossaryPromptBlock(listGlossaryTerms().filter((term) => !term.projectId)),
-      getSummaryConfig()
+      getSummaryConfig(),
+      rewriteTimeoutMs(event.timeout_s)
     )
     await running.connection.send('polished', { request, text })
   } catch (error) {
@@ -142,7 +143,8 @@ function onExit(reason: string): void {
 
 /**
  * Start the engine (if it is not running) and give it these settings, with
- * the keys of Viska's config.json. Throws when no engine is installed.
+ * the keys in dictation-engine/src/viska/config.py. Throws when no engine is
+ * installed.
  */
 export async function startDictation(config: Record<string, unknown>): Promise<void> {
   if (typeof config.hotkey === 'string' && config.hotkey) hotkey = config.hotkey

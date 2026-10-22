@@ -150,12 +150,15 @@ function defaults(): StoredSettings {
     dictation: {
       enabled: false,
       hotkey: 'f9',
+      hotkeyMode: 'auto',
       microphone: '',
       avoidBluetooth: true,
       language: 'sv',
       live: null,
       sounds: true,
       rewrite: false,
+      rewriteWhen: 'always',
+      rewriteKey: 'ctrl',
       rewriteInstruction:
         'Skriv om texten till korrekt och tydlig text utan utfyllnadsord. Behåll innehållet.'
     },
@@ -388,12 +391,19 @@ export function saveDictationSettings(payload: DictationSettings): void {
   s.dictation = {
     enabled: payload.enabled,
     hotkey: payload.hotkey.trim().toLowerCase() || 'f9',
+    hotkeyMode: (['auto', 'hold', 'toggle'] as const).includes(payload.hotkeyMode)
+      ? payload.hotkeyMode
+      : 'auto',
     microphone: payload.microphone,
     avoidBluetooth: payload.avoidBluetooth,
     language: payload.language === 'en' ? 'en' : 'sv',
     live: payload.live,
     sounds: payload.sounds,
     rewrite: payload.rewrite,
+    rewriteWhen: (['always', 'with-key', 'without-key'] as const).includes(payload.rewriteWhen)
+      ? payload.rewriteWhen
+      : 'always',
+    rewriteKey: payload.rewriteKey === 'shift' ? 'shift' : 'ctrl',
     rewriteInstruction: payload.rewriteInstruction.trim() || defaults().dictation.rewriteInstruction
   }
   // Dictation only works while referat runs, so it keeps referat in the tray.

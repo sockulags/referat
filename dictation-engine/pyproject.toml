@@ -1,0 +1,37 @@
+[project]
+name = "referat-dictation"
+version = "0.9.0"
+description = "Dictation engine for referat: hold a key, speak, and the text is typed at the cursor"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "faster-whisper>=1.1.0",
+  "sounddevice>=0.5",
+  "numpy",
+  "pynput>=1.7",
+  "pywin32>=306",
+  # faster-whisper 1.2.1 opens audio with av.open(..., metadata_errors=...),
+  # which av 19 removed; every meeting transcription then fails with a
+  # TypeError. Same pin as transcription-server.
+  "av<19",
+]
+
+[project.optional-dependencies]
+# What CTranslate2 loads on Windows: cuBLAS by name, and the CUDA runtime.
+# cuDNN is left out; the Windows build of CTranslate2 4.8 never uses it.
+gpu = [
+  "nvidia-cublas-cu12",
+  "nvidia-cuda-runtime-cu12",
+]
+
+[dependency-groups]
+dev = ["pyinstaller>=6.10", "pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/viska"]

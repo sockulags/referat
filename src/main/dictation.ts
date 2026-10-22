@@ -1,11 +1,11 @@
-// Dictation: Viska's dictation engine running as a component.
+// Dictation: the dictation engine in dictation-engine/, running as a component.
 //
-// The engine (viska-engine.exe, "viska --engine") owns everything that has to
+// The engine (viska-engine.exe, "python -m viska") owns everything that has to
 // be fast and native — the global hotkey, the microphone, KB-Whisper and
 // typing the text into the app that has focus. referat starts it, sends it
 // settings and shows what it reports. The two talk in JSON lines over the
-// engine's stdin and stdout; docs/motorlage.md in the Viska repository
-// describes every command and event.
+// engine's stdin and stdout; dictation-engine/PROTOCOL.md describes every
+// command and event.
 
 import { spawn, type ChildProcess } from 'child_process'
 import { existsSync } from 'fs'

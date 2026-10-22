@@ -13,7 +13,8 @@ export default defineConfig(
       '**/out',
       'site/**',
       'scripts/**',
-      'diarization-server/**'
+      'diarization-server/**',
+      'dictation-engine/**'
     ]
   },
   tseslint.configs.recommended,
