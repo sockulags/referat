@@ -7,3 +7,4 @@ tsconfig.*.json
 site/
 scripts/
 diarization-server/
+dictation-engine/

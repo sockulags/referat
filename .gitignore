@@ -16,4 +16,10 @@ transcription-server/*.spec
 transcription-server/**/__pycache__/
 diarization-server/build/
 diarization-server/dist/
+dictation-engine/.venv/
+dictation-engine/.pytest_cache/
+dictation-engine/build/
+dictation-engine/dist/
+dictation-engine/*.spec
+dictation-engine/**/__pycache__/
 diarization-server/*.spec
