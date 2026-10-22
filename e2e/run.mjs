@@ -389,7 +389,10 @@ async function main() {
   await page.waitForTimeout(1000)
   await page.getByRole('button', { name: 'Hem', exact: true }).click()
   await page.waitForTimeout(600)
-  await page.getByRole('button', { name: 'Senaste mötet', exact: true }).click()
+  await page
+    .getByRole('button', { name: /^Öppna möte: / })
+    .first()
+    .click()
   await page.waitForTimeout(1000)
   assert(
     (await page.getByLabel('Actionpunkt', { exact: true }).first().inputValue()) ===

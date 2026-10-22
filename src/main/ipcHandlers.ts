@@ -33,6 +33,7 @@ import { testTranscriptionConnection, transcribeLiveWindow } from './providers/t
 import { testSummaryConnection } from './providers/summary'
 import { testDiarizationConnection } from './providers/diarization'
 import { openExternalSafe } from './security'
+import * as calendar from './calendar'
 import { applyNativeTheme, setTitleBarTheme } from './titleBar'
 import {
   installLocalAiComponent,
@@ -201,6 +202,17 @@ export function registerIpcHandlers(): void {
   handle('exportProtocol', (id, format, summaryId) => exportProtocol(id, format, summaryId))
   handle('copyProtocol', (id, summaryId) => copyProtocol(id, summaryId))
   handle('openFollowUpEmail', (meetingId, summaryId) => openFollowUpEmail(meetingId, summaryId))
+
+  // ---- Calendar ----
+  handle('listCalendarEvents', () => calendar.listCalendarEvents())
+  handle('getCalendarSelection', () => calendar.getCalendarSelection())
+  handle('setCalendarMeetingRecorded', (event, recorded) =>
+    calendar.setCalendarMeetingRecorded(event, recorded)
+  )
+  handle('setCalendarSeriesRecorded', (seriesId, recorded) =>
+    calendar.setCalendarSeriesRecorded(seriesId, recorded)
+  )
+  handle('getNextCalendarRecording', () => calendar.getNextCalendarRecording())
 
   // ---- Misc ----
   handle('openExternal', (url) => openExternalSafe(url))

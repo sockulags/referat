@@ -27,10 +27,48 @@ export const strings = {
   nav: {
     label: 'Huvudmeny',
     home: 'Hem',
-    latestMeeting: 'Senaste mötet',
+    nextRecording: 'Nästa inspelning',
+    startsNow: 'börjar nu',
     search: 'Sök i möten',
+    calendar: 'Kalender',
     dictations: 'Diktat',
     settings: 'Inställningar'
+  },
+
+  calendar: {
+    title: 'Kalender',
+    description:
+      'Dina möten i Outlook den kommande veckan. Välj vilka referat ska spela in, så startar inspelningen när mötet börjar och får mötets namn.',
+    refresh: 'Läs in igen',
+    today: 'idag',
+    tomorrow: 'imorgon',
+    recordedHeading: 'Spelas in',
+    recordedEmpty: 'Inget spelas in än. Välj möten nedan.',
+    otherHeading: 'Övriga möten',
+    otherEmpty: 'Alla möten den kommande veckan spelas in.',
+    record: 'Spela in',
+    recordSeries: 'Spela in serien',
+    stop: 'Sluta',
+    skipNext: 'Hoppa över nästa',
+    recurring: 'Återkommande',
+    single: 'Enskilt möte',
+    teams: 'Teams-möte',
+    /** "nästa: idag 09:00" for a recurring series. */
+    next: (when: string): string => `nästa: ${when}`,
+    project: (name: string): string => `projekt ${name}`,
+    newProject: 'eget projekt vid första inspelningen',
+    skipped: (count: number): string =>
+      count === 1 ? '1 tillfälle hoppas över' : `${count} tillfällen hoppas över`,
+    undoSkip: 'Ångra',
+    allSkipped: 'Alla tillfällen den här veckan hoppas över',
+    empty: 'Inga möten i kalendern den kommande veckan.',
+    runningHint:
+      'referat behöver vara igång när mötet börjar. Slå på ”Ligg kvar i systemfältet” under Inställningar, så räcker det att referat ligger där.',
+    unavailableTitle: 'Hittar inte klassiska Outlook',
+    unavailableBody:
+      'Kalendern läses från den klassiska Outlook-appen för Windows, som behöver vara installerad och inloggad. Nya Outlook och Outlook på webben går inte att läsa härifrån.',
+    errorTitle: 'Kalendern gick inte att läsa',
+    saveFailed: 'Det gick inte att spara valet'
   },
 
   dictations: {

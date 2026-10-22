@@ -182,6 +182,27 @@ export const IconRetry = (p: IconProps): JSX.Element => (
   </Base>
 )
 
+export const IconCalendar = (p: IconProps): JSX.Element => (
+  <Base {...p}>
+    <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" />
+  </Base>
+)
+
+export const IconCalendarEvent = (p: IconProps): JSX.Element => (
+  <Base {...p}>
+    <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" />
+    <rect x="8" y="13.5" width="4" height="3.5" rx="0.8" />
+  </Base>
+)
+
+export const IconRepeat = (p: IconProps): JSX.Element => (
+  <Base {...p}>
+    <path d="M4 12V9.5A3.5 3.5 0 0 1 7.5 6H19M16 3l3 3-3 3M20 12v2.5a3.5 3.5 0 0 1-3.5 3.5H5M8 21l-3-3 3-3" />
+  </Base>
+)
+
 export const IconClock = (p: IconProps): JSX.Element => (
   <Base {...p}>
     <circle cx="12" cy="12" r="8.5" />

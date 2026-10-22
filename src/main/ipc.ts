@@ -75,6 +75,13 @@ export const IPC = {
   copyProtocol: 'export:copy',
   openFollowUpEmail: 'export:follow-up-email',
 
+  // Calendar
+  listCalendarEvents: 'calendar:list',
+  getCalendarSelection: 'calendar:selection',
+  setCalendarMeetingRecorded: 'calendar:set-meeting',
+  setCalendarSeriesRecorded: 'calendar:set-series',
+  getNextCalendarRecording: 'calendar:next',
+
   // Updates
   installUpdateNow: 'updater:install-now',
 
@@ -89,7 +96,9 @@ export const IPC = {
   localAiComponentProgress: 'local-ai:progress',
   callDetected: 'calls:detected',
   dictationAdded: 'dictation:added',
-  openDictationSettings: 'dictation:open-settings'
+  openDictationSettings: 'dictation:open-settings',
+  calendarRecordingDue: 'calendar:recording-due',
+  calendarChanged: 'calendar:changed'
 } as const
 
 /** RendererApi methods that are requests to main, as opposed to event subscriptions. */
@@ -101,4 +110,6 @@ export type InvokeName = Exclude<
   | 'onCallDetected'
   | 'onDictationAdded'
   | 'onOpenDictationSettings'
+  | 'onCalendarRecordingDue'
+  | 'onCalendarChanged'
 >

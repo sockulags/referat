@@ -25,7 +25,8 @@ import { isRecordingActive } from './storage'
 import { getSettings } from './settings'
 import { startedHidden } from './background'
 import { watchCalls } from './callDetection'
-import type { CallApp } from '../shared/types'
+import { watchCalendar } from './calendar'
+import type { CalendarRecordingEvent, CallApp } from '../shared/types'
 import { initAutoUpdater, installUpdateNow } from './updater'
 import { IPC } from './ipc'
 import {
@@ -92,6 +93,29 @@ function announceCall(callApp: CallApp): void {
   const notification = new Notification({
     title: CALL_TITLES[callApp],
     body: 'Klicka för att spela in det med referat.'
+  })
+  notification.on('click', () => restoreWindow())
+  notification.show()
+}
+
+/**
+ * A ticked calendar meeting has started: bring referat up without taking the
+ * focus from the meeting, so the recording and its consent reminder are in
+ * view, and tell the window to record.
+ */
+function recordCalendarMeeting(e: CalendarRecordingEvent): void {
+  if (!mainWindow || mainWindow.isDestroyed()) createWindow()
+  const win = mainWindow
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  if (!win.isVisible()) win.showInactive()
+  const send = (): void => win.webContents.send(IPC.calendarRecordingDue, e)
+  if (win.webContents.isLoading()) win.webContents.once('did-finish-load', send)
+  else send()
+  if (!Notification.isSupported()) return
+  const notification = new Notification({
+    title: `referat spelar in ”${e.title}”`,
+    body: 'Mötet du bockade i har börjat. Berätta för deltagarna att det spelas in.'
   })
   notification.on('click', () => restoreWindow())
   notification.show()
@@ -237,6 +261,8 @@ app.whenReady().then(() => {
     onEnd: (callApp) =>
       mainWindow?.webContents.send(IPC.callDetected, { app: callApp, active: false })
   })
+
+  watchCalendar({ recording: isRecordingActive, onDue: recordCalendarMeeting })
 
   // Background auto-updates. No-ops in dev / when not packaged.
   initAutoUpdater(() => mainWindow)
