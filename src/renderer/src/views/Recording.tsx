@@ -143,6 +143,24 @@ export function Recording(): JSX.Element {
     return () => cancelAnimationFrame(raf)
   }, [])
 
+  // A calendar meeting that is over: ask whether to stop, or stop as main says.
+  const [meetingEnded, setMeetingEnded] = useState<{ stopAt: string } | null>(null)
+  const stopRef = useRef<() => Promise<void>>(async () => {})
+  useEffect(
+    () =>
+      window.api.onCalendarRecordingEnd((e) => {
+        if (e.state === 'ask') setMeetingEnded({ stopAt: e.stopAt })
+        else setMeetingEnded(null)
+        if (e.state === 'stop') void stopRef.current()
+      }),
+    []
+  )
+
+  const keepRecording = (): void => {
+    setMeetingEnded(null)
+    void window.api.keepCalendarRecording()
+  }
+
   const togglePause = (): void => {
     const rec = recorderRef.current
     if (!rec) return
@@ -180,6 +198,10 @@ export function Recording(): JSX.Element {
     }
     navigate('home')
   }
+
+  useEffect(() => {
+    stopRef.current = stop
+  })
 
   const cancel = async (): Promise<void> => {
     const rec = recorderRef.current
@@ -223,6 +245,33 @@ export function Recording(): JSX.Element {
       </div>
 
       <h1 className="text-xl font-semibold text-fg mb-2 max-w-sm truncate w-full">{title}</h1>
+
+      {meetingEnded && phase !== 'finishing' && (
+        <div
+          role="alert"
+          className="w-full mb-6 flex flex-wrap items-center gap-3 rounded-[10px] border border-border-strong bg-surface py-3 px-4 text-left text-sm animate-fade-in"
+        >
+          <div className="min-w-0 flex-[1_1_220px]">
+            <p className="font-medium text-fg">{strings.recording.calendarEndTitle}</p>
+            <p className="text-fg-muted">
+              {strings.recording.calendarEndBody(
+                new Date(meetingEnded.stopAt).toLocaleTimeString('sv-SE', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              )}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={keepRecording}>
+              {strings.recording.calendarKeep}
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => void stop()}>
+              {strings.recording.calendarStop}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {showConsent && (
         <div

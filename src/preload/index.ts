@@ -5,6 +5,7 @@ import type {
   UpdateDownloadedEvent,
   LocalAiComponentStatus,
   CallEvent,
+  CalendarRecordingEnd,
   CalendarRecordingEvent,
   DictationEntry
 } from '../shared/types'
@@ -105,6 +106,7 @@ const api: RendererApi = {
   onOpenDictationSettings: listen<void>(IPC.openDictationSettings),
   onCalendarRecordingDue: listen<CalendarRecordingEvent>(IPC.calendarRecordingDue),
   onCalendarChanged: listen<void>(IPC.calendarChanged),
+  onCalendarRecordingEnd: listen<CalendarRecordingEnd>(IPC.calendarRecordingEnd),
 
   // Calendar
   listCalendarEvents: invoke('listCalendarEvents'),
@@ -112,6 +114,7 @@ const api: RendererApi = {
   setCalendarMeetingRecorded: invoke('setCalendarMeetingRecorded'),
   setCalendarSeriesRecorded: invoke('setCalendarSeriesRecorded'),
   getNextCalendarRecording: invoke('getNextCalendarRecording'),
+  keepCalendarRecording: invoke('keepCalendarRecording'),
 
   // Updates
   installUpdateNow: invoke('installUpdateNow'),

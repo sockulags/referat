@@ -81,6 +81,7 @@ export const IPC = {
   setCalendarMeetingRecorded: 'calendar:set-meeting',
   setCalendarSeriesRecorded: 'calendar:set-series',
   getNextCalendarRecording: 'calendar:next',
+  keepCalendarRecording: 'calendar:keep-recording',
 
   // Updates
   installUpdateNow: 'updater:install-now',
@@ -98,7 +99,8 @@ export const IPC = {
   dictationAdded: 'dictation:added',
   openDictationSettings: 'dictation:open-settings',
   calendarRecordingDue: 'calendar:recording-due',
-  calendarChanged: 'calendar:changed'
+  calendarChanged: 'calendar:changed',
+  calendarRecordingEnd: 'calendar:recording-end'
 } as const
 
 /** RendererApi methods that are requests to main, as opposed to event subscriptions. */
@@ -112,4 +114,5 @@ export type InvokeName = Exclude<
   | 'onOpenDictationSettings'
   | 'onCalendarRecordingDue'
   | 'onCalendarChanged'
+  | 'onCalendarRecordingEnd'
 >

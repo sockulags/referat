@@ -227,7 +227,12 @@ export const strings = {
     liveWaiting: 'Texten dyker upp här efter en stund.',
     liveBehind: 'Transkriberingen hinner inte med, så vissa delar hoppas över.',
     liveUnavailable: 'Live-texten är tillfälligt borta. Inspelningen påverkas inte.',
-    liveGap: 'En del hoppades över'
+    liveGap: 'En del hoppades över',
+    calendarEndTitle: 'Mötet är slut – stoppa inspelningen?',
+    /** When a calendar recording stops by itself, "10:05". */
+    calendarEndBody: (time: string): string => `Inspelningen stoppas av sig själv kl. ${time}.`,
+    calendarStop: 'Stoppa',
+    calendarKeep: 'Fortsätt'
   },
 
   meeting: {
