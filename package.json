@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
-    "docx": "^9.10.0",
+    "docx": "^9.14.0",
     "electron-updater": "^6.8.9"
   },
   "devDependencies": {
@@ -52,7 +52,7 @@
     "typescript": "^5.9.3",
     "vite": "^7.3.7",
     "vitest": "^5.0.4",
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.16"
   },
   "license": "MIT",
   "overrides": {
